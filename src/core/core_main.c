@@ -17,7 +17,9 @@ int main(int argc, const char** argv)
   L = luaL_newstate();
   luaL_openlibs(L);
 
-  printf("LolitaCore\n");
+  printf("Copyright:      %s\n", LOLICORE_COPYRIGHT);
+  printf("Version:        %d\n", LOLICORE_VERSION);
+  printf("ReposVersion:   %s\n", LOLICORE_VERSION_REPOS);
 
   lua_close(L);
   return z;

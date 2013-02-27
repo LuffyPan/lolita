@@ -1,6 +1,10 @@
 
 
 
+if not string.find(_PREMAKE_VERSION, "4.4") then
+  printf("Current Premake version is %s, need %s", _PREMAKE_VERSION, "4.4")
+  return
+end
 
 if not _ACTION then
   printf("_ACTION is nil!")
@@ -73,7 +77,20 @@ if _ACTION == "clean" then
   os.rmdir("_deploy")
 end
 
-local function exec(cmd, ...)
+local function _version()
+  print("Updating version number...")
+  local version = os.outputof("git describe --dirty")
+  version = version:gsub("\n", "")
+  printf("Repos version is %s", version)
+  io.input("src/core/core_config.h.in")
+  local text = io.read("*a")
+  text = text:gsub("@REPOS_VERSION@", version)
+  io.output("src/core/core_config.h")
+  io.write(text)
+  io.close()
+end
+
+local function _exec(cmd, ...)
   cmd = string.format(cmd, unpack(arg))
   local z = os.execute(cmd .. " > output.log 2> error.log")
   --local z = os.execute(cmd)
@@ -82,10 +99,17 @@ local function exec(cmd, ...)
   return z
 end
 
+local function _execex(cmd, ...)
+  cmd = string.format(cmd, unpack(arg))
+  local z = os.execute(cmd)
+  return z
+end
+
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
   printf("Premaking %s...", action)
-  exec("premake4 %s", action)
+  _version()
+  _exec("premake4 %s", action)
 end
 
 local function _domake()
@@ -96,7 +120,9 @@ local function _domake()
     local cwd = os.getcwd()
     printf("Current working directory:%s", cwd)
     os.chdir(string.format("_build/%s", action))
-    exec("make config=%s", config)
+    _execex("make config=%s", config)
+    --local result = os.outputof(string.format("make config=%s", config))
+    --printf(result)
     os.chdir(cwd)
   else
     printf("Unsupported action %s now!", action)

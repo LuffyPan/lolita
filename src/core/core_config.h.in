@@ -1,0 +1,15 @@
+/*
+
+file    core_config.h.in
+desc    LoliCore configuration template.
+author  Chamz Lau Copyrigh (c) 2013-2017
+date    2013/02/27 22:09:53
+
+*/
+
+#ifndef _CORE_CONFIG_H_
+#define _CORE_CONFIG_H_
+
+#define LOLICORE_VERSION_REPOS "@REPOS_VERSION@"
+
+#endif
