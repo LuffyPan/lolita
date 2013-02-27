@@ -2,7 +2,7 @@
 
 file    core_main.c
 desc    LoliCore program entry point.
-author  Chamz Lau Copyrigh (c) 2013-2017
+author  Chamz Lau Copyright (c) 2013-2017
 date    2013/02/26 20:51:04
 
 */

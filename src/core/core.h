@@ -2,7 +2,7 @@
 
 file    core.h
 desc    LoliCore.
-author  Chamz Lau Copyrigh (c) 2013-2017
+author  Chamz Lau Copyright (c) 2013-2017
 date    2013/02/26 21:10:58 
 
 */
