@@ -1,9 +1,8 @@
 /*
 
-file    core.h
-desc    LoliCore.
-author  Chamz Lau Copyright (c) 2013-2017
-date    2013/02/26 21:10:58 
+LoliCore.
+Chamz Lau Copyright (C) 2013-2017
+2013/02/26 21:10:58
 
 */
 
@@ -14,6 +13,7 @@ date    2013/02/26 21:10:58
 #include <string.h>
 #include "lua.h"
 #include "lauxlib.h"
+#include "lualib.h"
 #include "core_config.h"
 
 #define LOLICORE_VERSION 1990

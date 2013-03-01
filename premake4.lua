@@ -31,6 +31,7 @@ project "lolicore"
   {
     "src/3rd/lua-5.2.1/src/lua.c",
     "src/3rd/lua-5.2.1/src/luac.c",
+    "src/core/core_config.h",
   }
 
   configuration "debug"
@@ -193,5 +194,10 @@ newoption
   allowed =
   {
     { "gmake", "gmake" },
+    { "vs2002", "Visual Studio 2002" },
+    { "vs2003", "Visual Studio 2003" },
+    { "vs2005", "Visual Studio 2005" },
+    { "vs2008", "Visual Studio 2008" },
+    { "vs2010", "Visual Studio 2010" },
   }
 }
