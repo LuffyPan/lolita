@@ -34,6 +34,13 @@ project "lolicore"
     "src/core/core_config.h",
   }
 
+  --Platform macro configuration, much more thing to do..
+  configuration "vs*"
+    defines { "LOLICORE_PLAT=LOLICORE_PLAT_WIN32" }
+
+  configuration "gmake"
+    defines { "LOLICORE_PLAT=LOLICORE_PLAT_LINUX" }
+
   configuration "debug"
     targetdir ("_bin/" .. _ACTION .. "/debug")
     defines "_DEBUG"

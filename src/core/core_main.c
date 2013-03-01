@@ -19,6 +19,7 @@ int main(int argc, const char** argv)
   printf("Copyright:      %s\n", LOLICORE_COPYRIGHT);
   printf("Version:        %d\n", LOLICORE_VERSION);
   printf("ReposVersion:   %s\n", LOLICORE_VERSION_REPOS);
+  printf("Platform:       %s\n", LOLICORE_PLATSTR);
 
   lua_close(L);
   return z;
