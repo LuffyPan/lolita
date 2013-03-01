@@ -22,7 +22,7 @@ Chamz Lau Copyright (C) 2013-2017
 #define LOLICORE_PLAT_MACOSX (4)
 
 #ifndef LOLICORE_PLAT
-  #define LOLICORE_PLAT LOLICORE_PLAT_LINUX
+  #error No definition of LOLICORE_PLAT!
 #endif
 
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
