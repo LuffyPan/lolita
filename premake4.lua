@@ -15,6 +15,10 @@ solution "lolicore"
   configurations { "debug", "release" }
   location ("_build/" .. _ACTION)
 
+  --IS this vs used only?
+  debugdir ("_deploy")
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", }
+
 project "lolicore"
   targetname "lolicore"
   language "C"

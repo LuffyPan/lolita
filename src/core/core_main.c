@@ -10,17 +10,15 @@ Chamz Lau, Copyright (C) 2013-2017
 
 int main(int argc, const char** argv)
 {
-  lua_State* L;
-  int z = 0;
+  lua_State* L = NULL;
   
-  L = luaL_newstate();
-  luaL_openlibs(L);
+  L = lolicore_born(argc, argv);
+  if (!L)
+  {
+    return 1;
+  }
+  lolicore_active(L);
+  lolicore_die(L);
 
-  printf("Copyright:      %s\n", LOLICORE_COPYRIGHT);
-  printf("Version:        %d\n", LOLICORE_VERSION);
-  printf("ReposVersion:   %s\n", LOLICORE_VERSION_REPOS);
-  printf("Platform:       %s\n", LOLICORE_PLATSTR);
-
-  lua_close(L);
-  return z;
+  return 0;
 }

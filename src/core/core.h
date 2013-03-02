@@ -41,4 +41,8 @@ Chamz Lau Copyright (C) 2013-2017
 #define LOLICORE_AUTHOR "Chamz Lau"
 #define LOLICORE_COPYRIGHT "LolitaCore Copyright (C) 2006-2013, " LOLICORE_AUTHOR
 
+lua_State* lolicore_born(int argc, const char** argv);
+void lolicore_active(lua_State* L);
+void lolicore_die(lua_State* L);
+
 #endif
