@@ -6,8 +6,8 @@ Chamz Lau, Copyright (C) 2013-2017
 
 */
 
-#ifndef _CORE_CONFIG_H_
-#define _CORE_CONFIG_H_
+#ifndef _COCONF_H_
+#define _COCONF_H_
 
 #define LOLICORE_VERSION_REPOS "@REPOS_VERSION@"
 

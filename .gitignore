@@ -2,3 +2,4 @@ _build
 _deploy
 _bin
 src/core/core_config.h
+src/core/coconf.h

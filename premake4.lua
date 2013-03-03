@@ -35,7 +35,7 @@ project "lolicore"
   {
     "src/3rd/lua-5.2.1/src/lua.c",
     "src/3rd/lua-5.2.1/src/luac.c",
-    "src/core/core_config.h",
+    "src/core/coconf.h",
   }
 
   --Platform macro configuration, much more thing to do..
@@ -94,10 +94,10 @@ local function _version()
   local version = os.outputof("git describe --dirty")
   version = version:gsub("\n", "")
   printf("Repos version is %s", version)
-  io.input("src/core/core_config.h.in")
+  io.input("src/core/coconf.h.in")
   local text = io.read("*a")
   text = text:gsub("@REPOS_VERSION@", version)
-  io.output("src/core/core_config.h")
+  io.output("src/core/coconf.h")
   io.write(text)
   io.close()
 end

@@ -6,15 +6,12 @@ Chamz Lau Copyright (C) 2013-2017
 
 */
 
-#ifndef _CORE_H_ 
-#define _CORE_H_
+#ifndef _CO_H_
+#define _CO_H_
 
-#include <stdlib.h>
-#include <string.h>
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
-#include "core_config.h"
+#include "coconf.h"
+#include "codef.h"
+#include "cort.h"
 
 #define LOLICORE_PLAT_WIN32 (1)
 #define LOLICORE_PLAT_UNIX (2)
@@ -41,8 +38,12 @@ Chamz Lau Copyright (C) 2013-2017
 #define LOLICORE_AUTHOR "Chamz Lau"
 #define LOLICORE_COPYRIGHT "LolitaCore Copyright (C) 2006-2013, " LOLICORE_AUTHOR
 
-lua_State* lolicore_born(int argc, const char** argv);
-void lolicore_active(lua_State* L);
-void lolicore_die(lua_State* L);
+typedef co lolicore;
+
+lolicore* lolicore_born(int argc, const char** argv);
+void lolicore_active(lolicore* L);
+void lolicore_die(lolicore* L);
+
+int co_kill(lua_State* L);
 
 #endif

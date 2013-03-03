@@ -4,9 +4,9 @@
 -- 2013/03/02 23:45:51
 --
 
-print("corelst.lua")
+print("colst.lua")
 
 return
 {
-  "corext.lua",
+  "coext.lua",
 }
