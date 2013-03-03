@@ -163,6 +163,29 @@ local function _dodeploy()
   os.copyfile(src, dest)
 end
 
+local function _docheck()
+  printf("Check code style....")
+  cfiles = os.matchfiles("src/core/**.c")
+  chdrfiles = os.matchfiles("src/core/**.h")
+  sfiles = os.matchfiles("src/script/**.lua")
+  table.insert(sfiles, "premake4.lua")
+  local files = {cfiles, chdrfiles, sfiles}
+  for _, v in ipairs(files) do
+    for _, file in ipairs(v) do
+      printf("Checking file %s....", file)
+      io.input(file)
+      local text = io.read("*a")
+      if string.find(text, "\r") then
+        printf("Checked \\r in file!!")
+        io.close()
+        return
+      end
+      io.close()
+    end
+  end
+  printf("Check passed!")
+end
+
 newaction
 {
   trigger = "premake",
@@ -183,6 +206,13 @@ newaction
   trigger = "deploy",
   description = "Deploy",
   execute = _dodeploy,
+}
+
+newaction
+{
+  trigger = "check",
+  description = "Check code style",
+  execute = _docheck,
 }
 
 newoption
