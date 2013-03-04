@@ -10,6 +10,7 @@ Chamz Lau
 #define _COMM_H_
 
 #include "codef.h"
+#include "cort.h"
 
 void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns);
 

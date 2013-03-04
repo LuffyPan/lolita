@@ -17,7 +17,7 @@ solution "lolicore"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", }
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "scriptpath=../src/script", }
 
 project "lolicore"
   targetname "lolicore"
@@ -93,13 +93,25 @@ local function _version()
   print("Updating version number...")
   local version = os.outputof("git describe --dirty")
   version = version:gsub("\n", "")
+  version = version:gsub("\r", "")
   printf("Repos version is %s", version)
-  io.input("src/core/coconf.h.in")
-  local text = io.read("*a")
+  local fni = "src/core/coconf.h.in"
+  local fi = io.open(fni, "rb")
+  if not fi then
+    printf("Cannot open conf template file:%s", fni)
+    return
+  end
+  local text = fi:read("*a")
+  fi:close()
   text = text:gsub("@REPOS_VERSION@", version)
-  io.output("src/core/coconf.h")
-  io.write(text)
-  io.close()
+  local fno = "src/core/coconf.h"
+  local fo = io.open(fno, "wb")
+  if not fo then
+    printf("Cannot open conf file:%s", fno)
+    return
+  end
+  fo:write(text)
+  fo:close()
 end
 
 local function _exec(cmd, ...)
@@ -173,14 +185,16 @@ local function _docheck()
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)
-      io.input(file)
-      local text = io.read("*a")
-      if string.find(text, "\r") then
-        printf("Checked \\r in file!!")
-        io.close()
-        return
+      local f = io.open(file, "rb")
+      if f then
+        local text = f:read("*a")
+        if string.find(text, "\r") then
+          printf("Checked \\r in file!!")
+          f:close()
+          return
+        end
+        f:close()
       end
-      io.close()
     end
   end
   printf("Check passed!")

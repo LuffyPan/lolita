@@ -12,6 +12,7 @@ Chamz Lau Copyright (C) 2013-2017
 #include "coconf.h"
 #include "codef.h"
 #include "cort.h"
+#include "cos.h"
 
 #define LOLICORE_PLAT_WIN32 (1)
 #define LOLICORE_PLAT_UNIX (2)

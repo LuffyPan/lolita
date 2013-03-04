@@ -15,9 +15,9 @@ static void co_free(co* Co);
 
 lolicore* lolicore_born(int argc, const char** argv)
 {
-  printf("lolicore_born\n");
   co_xlloc fx = _co_xlloc;
   co* Co;
+  printf("lolicore_born\n");
   Co = co_cast(co*, (*fx)(NULL, 0, sizeof(co)));
   if (NULL == Co) return NULL;
   Co->fxlloc = fx;
