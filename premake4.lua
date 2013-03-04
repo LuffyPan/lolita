@@ -193,6 +193,11 @@ local function _docheck()
           f:close()
           return
         end
+        if string.find(text, "\t") then
+          printf("Checked \\t in file!!")
+          f:close()
+          return
+        end
         f:close()
       end
     end
