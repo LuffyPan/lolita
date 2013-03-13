@@ -1,7 +1,7 @@
 /*
 
 LoliCore script
-Chamz Lau
+Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 14:30:35
 
 */
@@ -9,12 +9,11 @@ Chamz Lau
 #ifndef _COS_H_
 #define _COS_H_
 
-#include "co.h"
 #include "codef.h"
-#include "comm.h"
 
 void coS_born(co* Co);
 void coS_die(co* Co);
 void coS_active(co* Co);
+lua_State* coS_lua(co* Co); /* Todo:more advanced function 2 other mod */
 
 #endif

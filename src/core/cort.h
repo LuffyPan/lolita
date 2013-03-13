@@ -1,7 +1,7 @@
 /*
 
 LoliCore runtime
-Chamz Lau
+Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 13:53:52
 
 */

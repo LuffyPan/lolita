@@ -1,12 +1,16 @@
 /*
 
 LoliCore script
-Chamz Lau
+Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 14:31:15
 
 */
 
 #include "cos.h"
+#include "co.h"
+#include "cort.h"
+#include "comm.h"
+#include "conet.h"
 
 static void _coS_exportbasic(co* Co);
 static void _coS_exportarg(co* Co);
@@ -22,6 +26,11 @@ static const luaL_Reg co_funcs[] =
 
 static const luaL_Reg coN_funcs[] =
 {
+  {"register", coN_export_register},
+  {"connect", coN_export_connect},
+  {"listen", coN_export_listen},
+  {"push", coN_export_push},
+  {"close", coN_export_close},
   {NULL, NULL},
 };
 
@@ -72,6 +81,11 @@ void coS_active(co* Co)
   lua_getfield(L, -1, "active");
   coR_runerror(Co, LUA_OK == lua_pcall(L, 0, 0, 0));
   lua_pop(L, 2);
+}
+
+lua_State* coS_lua(co* Co)
+{
+  return Co->L;
 }
 
 static void _coS_exportbasic(co* Co)
@@ -162,7 +176,7 @@ static void _coS_initscript(co* Co)
   coR_runerror(Co, lua_istable(L, -1));
   lua_getfield(L, -1, "arg");
   coR_runerror(Co, lua_istable(L, -1));
-  lua_getfield(L, -1, "scriptpath");
+  lua_getfield(L, -1, "corepath");
   if (lua_isstring(L, -1))
   {
     size_t len = 0;

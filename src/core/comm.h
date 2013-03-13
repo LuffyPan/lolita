@@ -1,7 +1,7 @@
 /*
 
 LoliCore memory
-Chamz Lau
+Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 12:58:23
 
 */
@@ -20,7 +20,7 @@ void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns);
 #define coM_deleteobj(Co, p) coM_xllocmem(Co, (p), sizeof(*(p)), 0)
 #define coM_newvector(Co, t, n) co_cast(t*, _coM_xllocvector(Co, NULL, 0, n, sizeof(t)))
 #define coM_deletevector(Co, p, n) _coM_xllocvector(Co, (p), n, 0, sizeof((p)[0]))
-#define coM_renewvector(Co, t, p, on, nn) _coM_xllocvector(Co, (p), (on), (nn), sizeof(t))
+#define coM_renewvector(Co, t, p, on, nn) co_cast(t*, _coM_xllocvector(Co, (p), (on), (nn), sizeof(t)))
 
 #define _coM_maxsizet ((~((size_t)0)) - 2)
 #define _coM_xllocvector(Co, p, on, nn, e) \

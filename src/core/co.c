@@ -7,6 +7,9 @@ Chamz Lau, Copyright (C) 2013-2017
 */
 
 #include "co.h"
+#include "cort.h"
+#include "cos.h"
+#include "conet.h"
 
 static void* _co_xlloc(void* p, size_t os, size_t ns);
 static void co_new(co* Co, void* ud);
@@ -26,6 +29,7 @@ lolicore* lolicore_born(int argc, const char** argv)
   Co->argv = argv;
   Co->bactive = 0;
   Co->L = NULL;
+  Co->N = NULL;
   if (0 != coR_pcall(Co, co_new, NULL))
   {
     printf("co_new error!!\n");
@@ -51,6 +55,7 @@ void lolicore_die(lolicore* Co)
 
 static void co_new(co* Co, void* ud)
 {
+  coN_born(Co);
   coS_born(Co);
 }
 
@@ -60,6 +65,7 @@ static void co_active(co* Co, void* ud)
   while(Co->bactive)
   {
     printf("lolicore_active\n");
+    coN_active(Co);
     coS_active(Co);
   }
 }
@@ -67,6 +73,7 @@ static void co_active(co* Co, void* ud)
 static void co_free(co* Co)
 {
   coS_die(Co);
+  coN_die(Co);
   (*Co->fxlloc)(Co, sizeof(co), 0);
 }
 
