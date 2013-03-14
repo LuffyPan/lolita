@@ -160,7 +160,7 @@ local function _dodeploy()
   printf("Deploy %s %s...", action, config)
   local bin = string.format("_bin/%s/%s", action, config)
   if not os.isdir(bin) then
-    printf("%s is not a dir")
+    printf("%s is not a dir", bin)
     return
   end
 
@@ -169,7 +169,12 @@ local function _dodeploy()
   local src = string.format("%s/lolicore.exe", bin)
   local dest = string.format("_deploy/lolicore.exe")
   if not os.isfile(src) then
-    printf("%s is not a file")
+    printf("%s is not a file", src)
+  end
+  src = string.format("%s/lolicore", bin)
+  dest = string.format("_deploy/lolicore")
+  if not os.isfile(src) then
+    printf("%s is not a file", src)
     return
   end
   os.copyfile(src, dest)
