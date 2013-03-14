@@ -61,6 +61,7 @@ struct co_longjmp
 
 struct co
 {
+  int btrace;
   co_xlloc fxlloc;
   co_longjmp* errjmp;
   int argc;
@@ -75,5 +76,7 @@ typedef co lolicore;
 #define co_cast(t, exp) ((t)(exp))
 #define co_assert(x) assert((x))
 #define co_assertex(x,msg) co_assert((x) && msg)
-
+void co_trace(co* Co, int tracelv, const char* fmt, ...);
+#define co_traceinfo(Co, fmt, ...) co_trace((Co), 1, fmt, ##__VA_ARGS__)
+#define co_traceerror(Co, fmt, ...) co_trace((Co), 2, fmt, ##__VA_ARGS__)
 #endif

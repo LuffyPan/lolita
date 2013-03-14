@@ -1,30 +1,28 @@
-print("demo")
+print("avatar_demo.lua")
 
 avatar.activecnt = 0
 avatar.idaccp = 0
 function avatar.born()
-  print("avatar.born")
   for i = 1, 1 do
     local idaccp = core.api.net.listen("127.0.0.1", 7000 + i)
     avatar.idaccp = idaccp
-    print(idaccp)
   end
 
   for i = 1, 1 do
     local idconn = core.api.net.connect("127.0.0.1", 7000 + i)
-    print(idconn)
     for ii = 1, 2 do
       if core.api.net.push(idconn, 0, "avatar lolita") then
-        print("push data successed")
+        --print("push data successed")
       else
-        print("push data failed")
+        --print("push data failed")
       end
     end
   end
+  print("avatar.born")
 end
 
 function avatar.active()
-  print("avatar.active")
+  --print("avatar.active")
   if avatar.activecnt > 3 then
     if avatar.idaccp > 0 then
       core.api.net.close(avatar.idaccp, 0)

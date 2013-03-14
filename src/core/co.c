@@ -18,11 +18,11 @@ static void co_free(co* Co);
 
 lolicore* lolicore_born(int argc, const char** argv)
 {
-  co_xlloc fx = _co_xlloc;
   co* Co;
-  printf("lolicore_born\n");
+  co_xlloc fx = _co_xlloc;
   Co = co_cast(co*, (*fx)(NULL, 0, sizeof(co)));
   if (NULL == Co) return NULL;
+  Co->btrace = 1; /* process specially */
   Co->fxlloc = fx;
   Co->errjmp = NULL;
   Co->argc = argc;
@@ -32,25 +32,23 @@ lolicore* lolicore_born(int argc, const char** argv)
   Co->N = NULL;
   if (0 != coR_pcall(Co, co_new, NULL))
   {
-    printf("co_new error!!\n");
     co_free(Co);
+    co_traceerror(Co, "co failed while born\n");
     return NULL;
   }
+  co_traceinfo(Co, "co borned..\n");
   return (lolicore*)Co;
 }
 
 void lolicore_active(lolicore* Co)
 {
-  if (0 != coR_pcall(Co, co_active, NULL))
-  {
-    printf("co_active error!!\n");
-  }
+  coR_runerror(Co, 0 == coR_pcall(Co, co_active, NULL));
 }
 
 void lolicore_die(lolicore* Co)
 {
-  printf("lolicore_die\n");
   co_free(Co);
+  co_traceinfo(Co, "co died..\n");
 }
 
 static void co_new(co* Co, void* ud)
@@ -64,7 +62,6 @@ static void co_active(co* Co, void* ud)
   Co->bactive = 1;
   while(Co->bactive)
   {
-    printf("lolicore_active\n");
     coN_active(Co);
     coS_active(Co);
   }
@@ -83,12 +80,33 @@ static void* _co_xlloc(void* p, size_t os, size_t ns)
   else{return realloc(p, ns);}
 }
 
-int co_kill(lua_State* L)
+int co_export_kill(lua_State* L)
 {
   co* Co = NULL;
   lua_getallocf(L, (void**)&Co);
   co_assert(Co);
   Co->bactive = 0;
-  printf("co_kill\n");
+  co_traceinfo(Co, "co be killed!\n");
   return 0;
+}
+
+int co_export_enabletrace(lua_State* L)
+{
+  co* Co = NULL;
+  int benable = 0;
+  lua_getallocf(L, (void**)&Co);
+  co_assert(Co);
+  benable = luaL_checkint(L, 1);
+  Co->btrace = benable;
+  co_traceinfo(Co, "co enable trace!\n");
+  return 0;
+}
+
+void co_trace(co* Co, int tracelv, const char* fmt, ...)
+{
+  va_list va;
+  if (!Co->btrace) return;
+  va_start(va, fmt);
+  vprintf(fmt, va);
+  va_end(va);
 }

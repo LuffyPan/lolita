@@ -15,6 +15,7 @@ lolicore* lolicore_born(int argc, const char** argv);
 void lolicore_active(lolicore* L);
 void lolicore_die(lolicore* L);
 
-int co_kill(lua_State* L);
+int co_export_kill(lua_State* L);
+int co_export_enabletrace(lua_State* L);
 
 #endif

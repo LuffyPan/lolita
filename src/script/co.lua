@@ -10,11 +10,10 @@ avatar = {}
 local n = 0
 
 function core.c.born()
-  print("core.c.born")
-  print(core.info.version)
-  print(core.info.reposversion)
-  print(core.info.author)
-  print(core.info.copyright)
+  --print("core.c.born")
+  --print(core.info.author)
+  --print(core.info.version)
+  --[[
   for k,v in pairs(core.arg) do
     print(string.format("arg[%s]=%s", k, v))
   end
@@ -28,6 +27,7 @@ function core.c.born()
   for k,v in pairs(core.api.net) do
     print(k, v);
   end
+  --]]
 
   local corepath = core.arg.corepath or "."
   local corelst = dofile(corepath .. "/colst.lua");
@@ -41,6 +41,10 @@ function core.c.born()
   end
 
   avatar.born()
+  print(string.format("\n\n\n/**********************************************************\n\n%s", core.info.copyright))
+  print(core.info.author)
+  print(core.info.reposversion)
+  print(string.format("%s\n\n**********************************************************/\n\n\n", core.info.version))
 end
 
 function core.c.active()
@@ -49,13 +53,13 @@ function core.c.active()
     core.api.base.kill()
     return
   end
-  print(string.format("core.c.active, n = %d", n))
+  --print(string.format("core.c.active, n = %d", n))
   avatar.active()
 end
 
 function core.c.die()
   avatar.die()
-  print("core.c.die")
+  --print("core.c.die")
 end
 
 function core.c.onconnect(id, extra)

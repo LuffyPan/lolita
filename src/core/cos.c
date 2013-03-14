@@ -20,7 +20,8 @@ static void _coS_initscript(co* Co);
 
 static const luaL_Reg co_funcs[] =
 {
-  {"kill", co_kill},
+  {"kill", co_export_kill},
+  {"enabletrace", co_export_enabletrace},
   {NULL, NULL},
 };
 
@@ -55,6 +56,7 @@ void coS_born(co* Co)
   _coS_exportarg(Co);
   _coS_exportapi(Co);
   _coS_initscript(Co);
+  co_traceinfo(Co, "coScript borned..\n");
 }
 
 void coS_die(co* Co)
@@ -71,6 +73,7 @@ void coS_die(co* Co)
 _coS1:
   lua_close(Co->L);
   Co->L = NULL;
+  co_traceinfo(Co, "coScript died..\n");
 }
 
 void coS_active(co* Co)
@@ -189,13 +192,13 @@ static void _coS_initscript(co* Co)
   {
     strcpy(corefile, "co.lua");
   }
-  printf("corefile:%s\n", corefile);
   z = luaL_dofile(L, corefile);
   if (z)
   {
-    printf("dofile error:%s\n", lua_tostring(L, -1));
+    co_traceinfo(Co, "coScript load %s failed, detail, %s\n", corefile, lua_tostring(L, -1));
     coR_runerror(Co, 0);
   }
+  co_traceinfo(Co, "coScript load %s succeed\n", corefile);
   lua_pop(L, 2);
   lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "born");
@@ -203,8 +206,9 @@ static void _coS_initscript(co* Co)
   z = lua_pcall(L, 0, 0, 0);
   if (z != LUA_OK)
   {
-    printf("core.born call error:%s\n", lua_tostring(L, -1));
+    co_traceinfo(Co, "coScript initializing failed, detail, %s\n", lua_tostring(L, -1));
     coR_runerror(Co, 0);
   }
+  co_traceinfo(Co, "coScript initializing succeed\n");
   lua_pop(L, 2);
 }
