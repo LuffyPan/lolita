@@ -677,7 +677,12 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
   lua_getfield(L, -1, "onconnect");
   lua_pushnumber(L, s->id);
   lua_pushnumber(L, extra);
-  coR_runerror(Co, LUA_OK == lua_pcall(L, 2, 0, 0));
+  if (LUA_OK != lua_pcall(L, 2, 0, 0))
+  {
+    co_traceerror(Co, "coNet id[%d] failed call onconnect, detail, %s\n", s->id, lua_tostring(L, -1));
+    lua_pop(L, 3);
+    return;
+  }
   lua_pop(L, 2);
 }
 
@@ -692,7 +697,12 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   lua_pushnumber(L, s->id);
   lua_pushnumber(L, as->id);
   lua_pushnumber(L, extra);
-  coR_runerror(Co, LUA_OK == lua_pcall(L, 3, 0, 0));
+  if (LUA_OK != lua_pcall(L, 3, 0, 0))
+  {
+    co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onaccept, detail, %s\n", s->id, as->id, lua_tostring(L, -1));
+    lua_pop(L, 3);
+    return;
+  }
   lua_pop(L, 2);
 }
 
@@ -728,7 +738,11 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     lua_pushnumber(L, as ? as->id : 0);
     lua_pushlstring(L, data + sizeof(cosockpack_hdr), hdr->dsize);
     lua_pushnumber(L, extra);
-    coR_runerror(Co, LUA_OK == lua_pcall(L, 4, 0, 0));
+    if (LUA_OK != lua_pcall(L, 4, 0, 0))
+    {
+      co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onpack, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
+      lua_pop(L, 1);
+    }
     usesize += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
     data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
     leftsize -= sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
@@ -758,7 +772,12 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   lua_pushnumber(L, s->id);
   lua_pushnumber(L, as ? as->id : 0);
   lua_pushnumber(L, extra);
-  coR_runerror(Co, LUA_OK == lua_pcall(L, 3, 0, 0));
+  if (LUA_OK != lua_pcall(L, 3, 0, 0))
+  {
+    co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onclose, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
+    lua_pop(L, 3);
+    return;
+  }
   lua_pop(L, 2);
 }
 

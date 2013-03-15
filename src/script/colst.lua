@@ -8,5 +8,7 @@ print("colst.lua")
 
 return
 {
+  "comisc.lua",
+  "conet.lua",
   "coext.lua",
 }

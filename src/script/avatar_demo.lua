@@ -11,11 +11,14 @@ function avatar.born()
   for i = 1, 1 do
     local idconn = core.api.net.connect("127.0.0.1", 7000 + i)
     for ii = 1, 2 do
-      if core.api.net.push(idconn, 0, "avatar lolita") then
+      local tb = {a = 1, b = 2, c = 3, fuck = "shit", shit = "fuck"}
+      if core.api.net.push(idconn, 0, "print('helloworld')") then
         --print("push data successed")
       else
         --print("push data failed")
       end
+      core.api.net.push(idconn, 0, "local a = 1")
+      core.api.net.pushtb(idconn, 0, tb)
     end
   end
   print("avatar.born")
@@ -42,11 +45,11 @@ end
 
 function avatar.onaccept(id, attaid, extra)
   print("avatar onaccept", id, attaid, extra)
-  core.api.net.push(id, attaid, "avatar lolita accept")
+  core.api.net.pushtb(id, attaid, {})
 end
 
-function avatar.onpack(id, attaid, data, extra)
-  print("avatar onpack", id, attaid, data, extra)
+function avatar.onpack(id, attaid, tbdata, extra)
+  print("avatar onpack", id, attaid, tbdata, extra)
 end
 
 function avatar.onclose(id, attaid, extra)

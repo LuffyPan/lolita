@@ -82,7 +82,11 @@ void coS_active(co* Co)
   lua_getglobal(L, "core");
   lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "active");
-  coR_runerror(Co, LUA_OK == lua_pcall(L, 0, 0, 0));
+  if (LUA_OK != lua_pcall(L, 0, 0, 0))
+  {
+    co_traceerror(Co, "coScript failed call active, detail, %s\n", lua_tostring(L, -1));
+    lua_pop(L, 1);
+  }
   lua_pop(L, 2);
 }
 

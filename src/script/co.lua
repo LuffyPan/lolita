@@ -79,7 +79,9 @@ end
 function core.c.onpack(id, attaid, data, extra)
   print("core.c.onpack", id, attaid, data, extra)
   if avatar.onpack then
-    avatar.onpack(id, attaid, data, extra)
+    local tbdata = assert(core.deserialize(data))
+    assert(type(tbdata) == "table", "not table pack")
+    avatar.onpack(id, attaid, tbdata, extra)
   end
 end
 
