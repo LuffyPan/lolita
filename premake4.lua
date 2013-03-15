@@ -170,14 +170,16 @@ local function _dodeploy()
   local dest = string.format("_deploy/lolicore.exe")
   if not os.isfile(src) then
     printf("%s is not a file", src)
+  else
+    os.copyfile(src, dest)
   end
   src = string.format("%s/lolicore", bin)
   dest = string.format("_deploy/lolicore")
   if not os.isfile(src) then
     printf("%s is not a file", src)
-    return
+  else
+    os.copyfile(src, dest)
   end
-  os.copyfile(src, dest)
 end
 
 local function _docheck()
