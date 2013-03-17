@@ -1,15 +1,25 @@
-print("avatar_demo.lua")
+local avatar_demo = core.avatar
 
-avatar.activecnt = 0
-avatar.idaccp = 0
-function avatar.born()
+function avatar_demo:image()
+  print("imagination")
+end
+
+function avatar_demo:born()
+  self.activecnt = 0
+  self.idaccp = 0
+  local t1sec = core.image:gettime()
+  print(t1sec)
+  core.image:register(16, self.image, self)
+  core.image:register(32, self.image, self)
+  local imaid = core.image:register(64, self.image, self)
+  core.image:unregister(imaid)
   for i = 1, 1 do
-    local idaccp = core.api.net.listen("127.0.0.1", 7000 + i)
-    avatar.idaccp = idaccp
+    local idaccp = core.net:listen("127.0.0.1", 7000 + i)
+    self.idaccp = idaccp
   end
 
   for i = 1, 1 do
-    local idconn = core.api.net.connect("127.0.0.1", 7000 + i)
+    local idconn = core.net:connect("127.0.0.1", 7000 + i)
     for ii = 1, 2 do
       local tb = {a = 1, b = 2, c = 3, fuck = "shit", shit = "fuck"}
       if core.api.net.push(idconn, 0, "print('helloworld')") then
@@ -18,40 +28,43 @@ function avatar.born()
         --print("push data failed")
       end
       core.api.net.push(idconn, 0, "local a = 1")
-      core.api.net.pushtb(idconn, 0, tb)
+      core.net:pushtb(idconn, 0, tb)
     end
   end
-  print("avatar.born")
+  local t2sec = core.image:gettime()
+  print(t2sec)
+  local telapse = t2sec - t1sec
+  print(telapse)
+  print("avatar_demo born")
 end
 
-function avatar.active()
-  --print("avatar.active")
-  if avatar.activecnt > 3 then
-    if avatar.idaccp > 0 then
-      core.api.net.close(avatar.idaccp, 0)
-      avatar.idaccp = 0
+function avatar_demo:active()
+  if self.activecnt > 3 then
+    if self.idaccp > 0 then
+      core.net:close(self.idaccp, 0)
+      self.idaccp = 0
     end
   end
-  avatar.activecnt = avatar.activecnt + 1
+  self.activecnt = self.activecnt + 1
 end
 
-function avatar.die()
-  print("avatar.die")
+function avatar_demo:die()
+  print("avatar_demo die")
 end
 
-function avatar.onconnect(id, extra)
-  print("avatar onconnect", id, extra)
+function avatar_demo:onconnect(id, extra)
+  print("avatar_demo onconnect", id, extra)
 end
 
-function avatar.onaccept(id, attaid, extra)
-  print("avatar onaccept", id, attaid, extra)
-  core.api.net.pushtb(id, attaid, {})
+function avatar_demo:onaccept(id, attaid, extra)
+  print("avatar_demo onaccept", id, attaid, extra)
+  core.net:pushtb(id, attaid, {})
 end
 
-function avatar.onpack(id, attaid, tbdata, extra)
-  print("avatar onpack", id, attaid, tbdata, extra)
+function avatar_demo:onpack(id, attaid, tbdata, extra)
+  print("avatar_demo onpack", id, attaid, tbdata, extra)
 end
 
-function avatar.onclose(id, attaid, extra)
-  print("avatar onclose", id, attaid, extra)
+function avatar_demo:onclose(id, attaid, extra)
+  print("avatar_demo onclose", id, attaid, extra)
 end

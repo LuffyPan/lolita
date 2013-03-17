@@ -11,6 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cort.h"
 #include "comm.h"
 #include "conet.h"
+#include "coos.h"
 
 static void _coS_exportbasic(co* Co);
 static void _coS_exportarg(co* Co);
@@ -32,6 +33,12 @@ static const luaL_Reg coN_funcs[] =
   {"listen", coN_export_listen},
   {"push", coN_export_push},
   {"close", coN_export_close},
+  {NULL, NULL},
+};
+
+static const luaL_Reg coOs_funcs[] =
+{
+  {"gettime", coOs_export_gettime},
   {NULL, NULL},
 };
 
@@ -64,12 +71,11 @@ void coS_die(co* Co)
   lua_State* L = Co->L;
   lua_getglobal(L, "core");
   if (!lua_istable(L, -1)) {lua_pop(L, 1); goto _coS1;}
-  lua_getfield(L, -1, "c");
-  if (!lua_istable(L, -1)) {lua_pop(L, 2); goto _coS1;}
   lua_getfield(L, -1, "die");
-  if (!lua_isfunction(L, -1)) {lua_pop(L, 3); goto _coS1;}
-  if (LUA_OK != lua_pcall(L, 0, 0, 0)){}
-  lua_pop(L, 2);
+  if (!lua_isfunction(L, -1)) {lua_pop(L, 2); goto _coS1;}
+  lua_pushvalue(L, -2);
+  if (LUA_OK != lua_pcall(L, 1, 0, 0)){}
+  lua_pop(L, 1);
 _coS1:
   lua_close(Co->L);
   Co->L = NULL;
@@ -79,15 +85,20 @@ _coS1:
 void coS_active(co* Co)
 {
   lua_State* L = Co->L;
+  int nstack = lua_gettop(L);
   lua_getglobal(L, "core");
-  lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "active");
-  if (LUA_OK != lua_pcall(L, 0, 0, 0))
+  coR_runerror(Co, lua_isfunction(L, -1));
+  lua_pushvalue(L, -2);
+  if (LUA_OK != lua_pcall(L, 1, 0, 0))
   {
     co_traceerror(Co, "coScript failed call active, detail, %s\n", lua_tostring(L, -1));
-    lua_pop(L, 1);
+    lua_pop(L, 2);
+    co_assert(nstack == lua_gettop(L));
+    return;
   }
-  lua_pop(L, 2);
+  lua_pop(L, 1);
+  co_assert(nstack == lua_gettop(L));
 }
 
 lua_State* coS_lua(co* Co)
@@ -169,8 +180,10 @@ static void _coS_exportapi(co* Co)
   lua_newtable(L);
   luaL_setfuncs(L, coN_funcs, 0);
   lua_setfield(L, -2, "net");
-  luaL_setfuncs(L, coN_funcs, 0);
-  lua_pop(L, 2);
+
+  lua_newtable(L);
+  luaL_setfuncs(L, coOs_funcs, 0);
+  lua_setfield(L, -2, "os");
 }
 
 static void _coS_initscript(co* Co)
@@ -204,15 +217,15 @@ static void _coS_initscript(co* Co)
   }
   co_traceinfo(Co, "coScript load %s succeed\n", corefile);
   lua_pop(L, 2);
-  lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "born");
   coR_runerror(Co, lua_isfunction(L, -1));
-  z = lua_pcall(L, 0, 0, 0);
+  lua_pushvalue(L, -2);
+  z = lua_pcall(L, 1, 0, 0);
   if (z != LUA_OK)
   {
     co_traceinfo(Co, "coScript initializing failed, detail, %s\n", lua_tostring(L, -1));
     coR_runerror(Co, 0);
   }
   co_traceinfo(Co, "coScript initializing succeed\n");
-  lua_pop(L, 2);
+  lua_pop(L, 1);
 }

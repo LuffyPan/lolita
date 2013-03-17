@@ -4,6 +4,8 @@
 --2013/03/15 00:12:21
 --
 
+core.misc = {}
+local misc = core.misc
 local serialize
 function serialize(o)
   local s = ""
@@ -23,12 +25,12 @@ function serialize(o)
   return s
 end
 
-function core.serialize(tbdata)
+function misc:serialize(tbdata)
   assert(type(tbdata) == "table", "cannot serialize a " .. type(tbdata))
   return "return \n" .. serialize(tbdata)
 end
 
-function core.deserialize(sdata)
+function misc:deserialize(sdata)
   local f = assert(load(sdata, nil, "t", {["print"] = print})) --just a joke!
   local tbdata = f()
   assert(type(tbdata) == "table", "sdata is not a table")

@@ -4,12 +4,9 @@
 -- 2013/03/02 23:27:09
 --
 
-core.c = {}
-avatar = {}
+core.avatar = {}
 
-local n = 0
-
-function core.c.born()
+function core:born()
   --print("core.c.born")
   --print(core.info.author)
   --print(core.info.version)
@@ -28,66 +25,51 @@ function core.c.born()
     print(k, v);
   end
   --]]
+  print(self)
 
-  local corepath = core.arg.corepath or "."
+  local corepath = self.arg.corepath or "."
   local corelst = dofile(corepath .. "/colst.lua");
   for _, s in ipairs(corelst) do
     dofile(corepath .. "/" .. s)
   end
 
-  local avatarscript = core.arg.avatar
+  local avatarscript = self.arg.avatar
   if avatarscript then
-    dofile(core.arg.avatar)
+    dofile(self.arg.avatar)
   end
 
-  avatar.born()
-  print(string.format("\n\n\n/**********************************************************\n\n%s", core.info.copyright))
-  print(core.info.author)
-  print(core.info.reposversion)
-  print(string.format("%s\n\n**********************************************************/\n\n\n", core.info.version))
+  self.image:born()
+  self.avatar:born()
+  print(string.format("\n\n\n/**********************************************************\n\n%s", self.info.copyright))
+  print(self.info.author)
+  print(self.info.reposversion)
+  print(string.format("%s\n\n**********************************************************/\n\n\n", self.info.version))
 end
 
-function core.c.active()
-  n = n + 1
-  if n > 10 then
-    core.api.base.kill()
-    return
-  end
-  --print(string.format("core.c.active, n = %d", n))
-  avatar.active()
+function core:active()
+  self.image:active()
+  self.avatar:active()
 end
 
-function core.c.die()
-  avatar.die()
-  --print("core.c.die")
+function core:die()
+  self.avatar:die()
+  self.image:die()
 end
 
-function core.c.onconnect(id, extra)
-  print("core.c.onconnect", id, extra)
-  if avatar.onconnect then
-    avatar.onconnect(id, extra)
-  end
+function core:onconnect(id, extra)
+  self.avatar:onconnect(id, extra)
 end
 
-function core.c.onaccept(id, attaid, extra)
-  print("core.c.onaccept", id, attaid, extra)
-  if avatar.onaccept then
-    avatar.onaccept(id, attaid, extra)
-  end
+function core:onaccept(id, attaid, extra)
+  self.avatar:onaccept(id, attaid, extra)
 end
 
-function core.c.onpack(id, attaid, data, extra)
-  print("core.c.onpack", id, attaid, data, extra)
-  if avatar.onpack then
-    local tbdata = assert(core.deserialize(data))
-    assert(type(tbdata) == "table", "not table pack")
-    avatar.onpack(id, attaid, tbdata, extra)
-  end
+function core:onpack(id, attaid, data, extra)
+  local tbdata = assert(self.misc:deserialize(data))
+  assert(type(tbdata) == "table", "not table pack")
+  self.avatar:onpack(id, attaid, tbdata, extra)
 end
 
-function core.c.onclose(id, attaid, extra)
-  print("core.c.onclose", id, attaid, extra)
-  if avatar.onclose then
-    avatar.onclose(id, attaid, extra)
-  end
+function core:onclose(id, attaid, extra)
+  self.avatar:onclose(id, attaid, extra)
 end

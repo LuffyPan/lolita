@@ -673,17 +673,17 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
   co_assert(!as);
   co_traceinfo(Co, "coNet, id[%d], connect event result[%d]\n", s->id, extra);
   lua_getglobal(L, "core");
-  lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "onconnect");
+  lua_pushvalue(L, -2);
   lua_pushnumber(L, s->id);
   lua_pushnumber(L, extra);
-  if (LUA_OK != lua_pcall(L, 2, 0, 0))
+  if (LUA_OK != lua_pcall(L, 3, 0, 0))
   {
     co_traceerror(Co, "coNet id[%d] failed call onconnect, detail, %s\n", s->id, lua_tostring(L, -1));
-    lua_pop(L, 3);
+    lua_pop(L, 2);
     return;
   }
-  lua_pop(L, 2);
+  lua_pop(L, 1);
 }
 
 static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
@@ -692,18 +692,18 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   co_assert(as);
   co_traceinfo(Co, "coNet, id[%d], attaid[%d] accept event\n", s->id, as->id);
   lua_getglobal(L, "core");
-  lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "onaccept");
+  lua_pushvalue(L, -2);
   lua_pushnumber(L, s->id);
   lua_pushnumber(L, as->id);
   lua_pushnumber(L, extra);
-  if (LUA_OK != lua_pcall(L, 3, 0, 0))
+  if (LUA_OK != lua_pcall(L, 4, 0, 0))
   {
     co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onaccept, detail, %s\n", s->id, as->id, lua_tostring(L, -1));
-    lua_pop(L, 3);
+    lua_pop(L, 2);
     return;
   }
-  lua_pop(L, 2);
+  lua_pop(L, 3);
 }
 
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
@@ -717,7 +717,6 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   int bclose = 0;
   co_traceinfo(Co, "coNet, id[%d], attaid[%d] try process pack\n", s->id, as ? as->id : 0);
   lua_getglobal(L, "core");
-  lua_getfield(L, -1, "c");
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
   else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
   /* Todo:hide low level data */
@@ -734,11 +733,12 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     if (tail->flag != COSOCKPACK_TAIL_FLAG) { bclose = 1; break; }
     co_traceinfo(Co, "coNet, id[%d], attaid[%d] processpack event, packsize[%u]\n", s->id, as ? as->id : 0, hdr->dsize);
     lua_getfield(L, -1, "onpack");
+    lua_pushvalue(L, -2);
     lua_pushnumber(L, s->id);
     lua_pushnumber(L, as ? as->id : 0);
     lua_pushlstring(L, data + sizeof(cosockpack_hdr), hdr->dsize);
     lua_pushnumber(L, extra);
-    if (LUA_OK != lua_pcall(L, 4, 0, 0))
+    if (LUA_OK != lua_pcall(L, 5, 0, 0))
     {
       co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onpack, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
       lua_pop(L, 1);
@@ -747,7 +747,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
     leftsize -= sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
   }
-  lua_pop(L, 2);
+  lua_pop(L, 1);
   if (usesize == datasize) { cosockbuf_clear(ps->revbuf); }
   else { co_assert(usesize < datasize); cosockbuf_lmove(ps->revbuf, usesize); }
   co_traceinfo(Co, "coNet, id[%d], attaid[%d] finish processpack, leftsize[%u]\n", s->id, as ? as->id : 0, co_cast(size_t, cosockbuf_datasize(ps->revbuf)));
@@ -765,20 +765,20 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   lua_State* L = coS_lua(Co);
   co_traceinfo(Co, "coNet, id[%d], attaid[%d] close event\n", s->id, as ? as->id : 0);
   lua_getglobal(L, "core");
-  lua_getfield(L, -1, "c");
   lua_getfield(L, -1, "onclose");
+  lua_pushvalue(L, -2);
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
   else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
   lua_pushnumber(L, s->id);
   lua_pushnumber(L, as ? as->id : 0);
   lua_pushnumber(L, extra);
-  if (LUA_OK != lua_pcall(L, 3, 0, 0))
+  if (LUA_OK != lua_pcall(L, 4, 0, 0))
   {
     co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onclose, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
-    lua_pop(L, 3);
+    lua_pop(L, 2);
     return;
   }
-  lua_pop(L, 2);
+  lua_pop(L, 1);
 }
 
 static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosock* attached2s, cosockevent* eventer, int fdt)
