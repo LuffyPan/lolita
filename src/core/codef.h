@@ -78,5 +78,7 @@ typedef co lolicore;
 #define co_assertex(x,msg) co_assert((x) && msg)
 void co_trace(co* Co, int tracelv, const char* fmt, ...);
 #define co_traceinfo(Co, fmt, ...) co_trace((Co), 1, fmt, ##__VA_ARGS__)
-#define co_traceerror(Co, fmt, ...) co_trace((Co), 2, fmt, ##__VA_ARGS__)
+#define co_traceinfolv2(Co, fmt, ...) co_trace((Co), 2, fmt, ##__VA_ARGS__)
+#define co_traceinfolv3(Co, fmt, ...) co_trace((Co), 3, fmt, ##__VA_ARGS__)
+#define co_traceerror(Co, fmt, ...) co_trace((Co), 0, fmt, ##__VA_ARGS__)
 #endif

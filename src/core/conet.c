@@ -1129,7 +1129,7 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   co_assert(r >= 1);
   if (FD_ISSET(s->fd, &rfds))
   {
-    co_traceinfo(Co, "coNet, id[%d] is in readfds\n", s->id);
+    co_traceinfolv3(Co, "coNet, id[%d] is in readfds\n", s->id);
     r = cosock_recv(Co, s);
     if (0 == r)
     {
@@ -1152,7 +1152,7 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   }
   if (FD_ISSET(s->fd, &wfds))
   {
-    co_traceinfo(Co, "coNet, id[%d] is in writefds\n", s->id);
+    co_traceinfolv3(Co, "coNet, id[%d] is in writefds\n", s->id);
     if (s->bconnected)
     {
       r = cosock_send(Co, s);
@@ -1224,7 +1224,7 @@ static void cosock_activeaccp_win32(co* Co, cosock* s)
   if (FD_ISSET(s->fd, &rfds))
   {
     cosock* ns = NULL;
-    co_traceinfo(Co, "coNet, id[%d] is in readfds\n", s->id);
+    co_traceinfolv3(Co, "coNet, id[%d] is in readfds\n", s->id);
     if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
     else { cosock_eventaccept(Co, s, ns, 1); }
   }
@@ -1236,7 +1236,7 @@ static void cosock_activeaccp_win32(co* Co, cosock* s)
     cosock* as = ps[i];
     if (FD_ISSET(as->fd, &rfds))
     {
-      co_traceinfo(Co, "coNet, id[%d] attaid[%d] is in readfds\n", s->id, as->id);
+      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in readfds\n", s->id, as->id);
       r = cosock_recv(Co, as);
       if (0 == r)
       {
@@ -1260,7 +1260,7 @@ static void cosock_activeaccp_win32(co* Co, cosock* s)
     }
     if (FD_ISSET(as->fd, &wfds))
     {
-      co_traceinfo(Co, "coNet, id[%d] attaid[%d] is in writefds\n", s->id, as->id);
+      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in writefds\n", s->id, as->id);
       r = cosock_send(Co, as);
       if (0 == r)
       {
@@ -1276,7 +1276,7 @@ static void cosock_activeaccp_win32(co* Co, cosock* s)
     }
     if (FD_ISSET(as->fd, &efds))
     {
-      co_traceinfo(Co, "coNet, id[%d] attaid[%d] is in exceptfds\n", s->id, as->id);
+      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in exceptfds\n", s->id, as->id);
       cosock_close(Co, as);
       cosock_eventclose(Co, s, as, 0);
     }

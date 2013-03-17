@@ -105,7 +105,7 @@ int co_export_enabletrace(lua_State* L)
 void co_trace(co* Co, int tracelv, const char* fmt, ...)
 {
   va_list va;
-  if (!Co->btrace) return;
+  if (tracelv < Co->btrace) return;
   va_start(va, fmt);
   vprintf(fmt, va);
   va_end(va);
