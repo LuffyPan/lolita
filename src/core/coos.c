@@ -12,6 +12,14 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <Windows.h>
 #endif
 
+void coOs_sleep(int msec)
+{
+  co_assertex(msec >= 0 && msec < 1000 * 60, "fuck, need so long..");
+#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+  Sleep((DWORD)msec);
+#endif
+}
+
 double coOs_gettime()
 {
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32

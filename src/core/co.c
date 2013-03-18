@@ -10,6 +10,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cort.h"
 #include "cos.h"
 #include "conet.h"
+#include "coos.h"
 
 static void* _co_xlloc(void* p, size_t os, size_t ns);
 static void co_new(co* Co, void* ud);
@@ -64,6 +65,7 @@ static void co_active(co* Co, void* ud)
   {
     coN_active(Co);
     coS_active(Co);
+    coOs_sleep(1);
   }
 }
 

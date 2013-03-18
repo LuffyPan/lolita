@@ -11,6 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "codef.h"
 
+void coOs_sleep(int msec);
 int coOs_export_gettime(lua_State* L);
 
 #endif
