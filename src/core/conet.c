@@ -264,7 +264,8 @@ static cosockbuf* cosockbuf_new(co* Co, size_t initsize, size_t stepsize, size_t
 
 static void cosockbuf_use(co* Co, cosockbuf* buf, size_t usesize)
 {
-  co_assertex(buf->cursize + usesize < buf->maxsize, "use cosockbuf_isfull to check first!!");
+  /* bug, cursize can be equl to maxsize */
+  co_assertex(buf->cursize + usesize <= buf->maxsize, "use cosockbuf_isfull to check first!!");
   buf->cursize += usesize;
 }
 
@@ -691,6 +692,7 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   lua_State* L = coS_lua(Co);
   co_assert(as);
   co_traceinfo(Co, "coNet, id[%d], attaid[%d] accept event\n", s->id, as->id);
+  co_traceerror(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
   lua_getglobal(L, "core");
   lua_getfield(L, -1, "onaccept");
   lua_pushvalue(L, -2);
@@ -701,9 +703,12 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   {
     co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onaccept, detail, %s\n", s->id, as->id, lua_tostring(L, -1));
     lua_pop(L, 2);
+    co_traceerror(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
     return;
   }
-  lua_pop(L, 3);
+  /* SHIT, why pop 3 ..... */
+  lua_pop(L, 1);
+  co_traceerror(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
 }
 
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
@@ -716,6 +721,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   cosockpack_tail* tail = NULL;
   int bclose = 0;
   co_traceinfo(Co, "coNet, id[%d], attaid[%d] try process pack\n", s->id, as ? as->id : 0);
+  co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
   lua_getglobal(L, "core");
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
   else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
@@ -742,6 +748,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     {
       co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onpack, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
       lua_pop(L, 1);
+      co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
     }
     usesize += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
     data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
@@ -757,6 +764,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     cosock_eventclose(Co, s, as, extra);
     co_traceinfo(Co, "coNet, id[%d], attaid[%d] close while exception when processpack\n", s->id, as ? as->id : 0);
   }
+  co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
 }
 
 static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)

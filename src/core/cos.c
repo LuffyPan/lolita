@@ -58,11 +58,13 @@ void coS_born(co* Co)
 {
   co_assert(!Co->L);
   Co->L = lua_newstate(_coS_alloc, Co);
+  co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(Co->L));
   _coS_exportbasic(Co);
   _coS_exportinfo(Co);
   _coS_exportarg(Co);
   _coS_exportapi(Co);
   _coS_initscript(Co);
+  co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(Co->L));
   co_traceinfo(Co, "coScript borned..\n");
 }
 
@@ -184,6 +186,9 @@ static void _coS_exportapi(co* Co)
   lua_newtable(L);
   luaL_setfuncs(L, coOs_funcs, 0);
   lua_setfield(L, -2, "os");
+
+  /* SHIT, Forget to pop, deley the fatal error occurs later!! */
+  lua_pop(L, 2);
 }
 
 static void _coS_initscript(co* Co)

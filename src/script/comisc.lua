@@ -36,3 +36,8 @@ function misc:deserialize(sdata)
   assert(type(tbdata) == "table", "sdata is not a table")
   return tbdata
 end
+
+function misc:dofile()
+  --don't process absolute path
+  dofile(core.avatarpath .. "/" .. filepath)
+end

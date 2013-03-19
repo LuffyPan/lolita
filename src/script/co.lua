@@ -33,9 +33,25 @@ function core:born()
     dofile(corepath .. "/" .. s)
   end
 
+  --todo:get avatar's path, should provide a function to get a filepath's path party
+  local s = 0
+  local e = nil
+  local laste = nil
+  while 1 do
+    s, e = string.find(self.arg.avatar, "/", s + 1)
+    if not s then break end
+    laste = e - 1
+  end
+  if laste then
+    self.avatarpath = string.sub(self.arg.avatar, 1, laste)
+  else
+    self.avatarpath = "."
+  end
+
   local avatarscript = self.arg.avatar
   if avatarscript then
     dofile(self.arg.avatar)
+    --assert(loadfile(self.arg.avatar, "t", self.avatar))()
   end
 
   self.image:born()

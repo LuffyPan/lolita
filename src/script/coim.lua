@@ -57,7 +57,8 @@ function image:active()
 
   for k, v in pairs(self.images) do
     if self.imagecnt >= v.ima and v.bclose == 0 then
-      v.fn(fnparam, v)
+      --Todo:pcall ?
+      v.fn(v.fnparam, v)
       v.bclose = 1
       table.insert(self.closeimages, v)
     end
