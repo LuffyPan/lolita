@@ -37,7 +37,13 @@ function misc:deserialize(sdata)
   return tbdata
 end
 
-function misc:dofile()
+function misc:dofile(filepath, env)
   --don't process absolute path
-  dofile(core.avatarpath .. "/" .. filepath)
+  --dofile(core.avatarpath .. "/" .. filepath)
+  if not env then
+    dofile(core.avatarpath .. "/" .. filepath)
+  else
+    local f = assert(loadfile(core.avatarpath .. "/" .. filepath, "t", env))
+    f()
+  end
 end

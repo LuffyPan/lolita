@@ -55,6 +55,7 @@ function core:born()
   end
 
   self.image:born()
+  self.net:born()
   self.avatar:born()
   print(string.format("\n\n\n/**********************************************************\n\n%s", self.info.copyright))
   print(self.info.author)
@@ -70,22 +71,21 @@ end
 function core:die()
   self.avatar:die()
   self.image:die()
+  self.net:die()
 end
 
-function core:onconnect(id, extra)
-  self.avatar:onconnect(id, extra)
+function core:onconnect(netid, extra)
+  self.net:dispatchconnect(netid, extra)
 end
 
-function core:onaccept(id, attaid, extra)
-  self.avatar:onaccept(id, attaid, extra)
+function core:onaccept(netid, attanetid, extra)
+  self.net:dispatchaccept(netid, attanetid, extra)
 end
 
-function core:onpack(id, attaid, data, extra)
-  local tbdata = assert(self.misc:deserialize(data))
-  assert(type(tbdata) == "table", "not table pack")
-  self.avatar:onpack(id, attaid, tbdata, extra)
+function core:onpack(netid, attanetid, data, extra)
+  self.net:dispatchpack(netid, attanetid, data, extra)
 end
 
-function core:onclose(id, attaid, extra)
-  self.avatar:onclose(id, attaid, extra)
+function core:onclose(netid, attanetid, extra)
+  self.net:dispatchclose(netid, attanetid, extra)
 end

@@ -71,7 +71,8 @@ typedef int cosockfd;
 
 #define COSOCKBUF_INITCNT 4096
 #define COSOCKBUF_STEPCNT 4096
-#define COSOCKBUF_LIMITCNT 40960
+#define COSOCKBUF_LIMITCNT 4096 /* develop value for test and debug */
+/* #define COSOCKBUF_LIMITCNT 40960 */
 #define COSOCKBUF_ALLCNT COSOCKBUF_INITCNT, COSOCKBUF_STEPCNT, COSOCKBUF_LIMITCNT
 
 #define CON_COSOCK_INITCNT 16
@@ -274,14 +275,14 @@ static int cosockbuf_isfull(co* Co, cosockbuf* buf, size_t usesize)
   if (buf->cursize + usesize > buf->maxsize)
   {
     size_t stepsize = 0;
-    if (buf->maxsize >= buf->limitsize) return 0;
+    if (buf->maxsize >= buf->limitsize) return 1;
     stepsize = buf->limitsize - buf->maxsize;
     stepsize = stepsize > buf->stepsize ? buf->stepsize : stepsize;
     buf->b = coM_renewvector(Co, char, buf->b, buf->maxsize, buf->maxsize + stepsize);
     buf->maxsize += stepsize;
-    return buf->cursize + usesize <= buf->maxsize;
+    return buf->cursize + usesize > buf->maxsize;
   }
-  return 1;
+  return 0;
 }
 
 static void cosockbuf_delete(co* Co, cosockbuf* buf)
@@ -430,6 +431,7 @@ static int cosockid2idx_getidx(cosockid2idx* id2idx, int id)
   lua_gettable(id2idx->id2idx, -2);
   idx = (int)lua_tonumber(id2idx->id2idx, -1);
   lua_pop(id2idx->id2idx, 2);
+  co_assertex(idx, "invalid id 2 idx");
   return idx;
 }
 
@@ -911,9 +913,14 @@ static int cosock_recv(co* Co, cosock* s)
   int buflen = 0;
   while (1)
   {
+    if (cosockbuf_isfull(Co, s->revbuf, 1024))
+    {
+      co_traceerror(Co, "coNet, id[%d] buf is full while recv\n", s->id);
+      return -1;
+    }
     buf = cosockbuf_uudata(s->revbuf);
     buflen = (int)cosockbuf_uusize(s->revbuf);
-    if (buflen <= 0) return -1;
+    co_assert(buflen > 0);
     r = recv(s->fd, buf, buflen, 0);
     if (0 == r)
     {
@@ -980,7 +987,7 @@ static int cosock_send(co* Co, cosock* s)
 
 static int cosock_canpush(co* Co, cosock* s, size_t datasize)
 {
-  if (!cosockbuf_isfull(Co, s->sndbuf, datasize)) return 0;
+  if (cosockbuf_isfull(Co, s->sndbuf, datasize)) return 0;
   return 1;
 }
 
@@ -988,7 +995,7 @@ static void cosock_push(co* Co, cosock* s, const char* data, size_t datasize)
 {
   char* uudata = NULL;
   size_t uusize = 0;
-  if (!cosockbuf_isfull(Co, s->sndbuf, datasize)) { co_assertex(0, "cosockbuf is full, use canpush to check first"); }
+  if (cosockbuf_isfull(Co, s->sndbuf, datasize)) { co_assertex(0, "cosockbuf is full, use canpush to check first"); }
   uudata = cosockbuf_uudata(s->sndbuf);
   uusize = cosockbuf_uusize(s->sndbuf);
   co_assert(uusize >= datasize);
@@ -1149,6 +1156,7 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
     else if (-1 == r)
     {
       cosock_close(Co, s);
+      cosock_eventprocesspack(Co, s, NULL, 0);
       cosock_eventclose(Co, s, NULL, 0);
     }
     else
@@ -1257,6 +1265,7 @@ static void cosock_activeaccp_win32(co* Co, cosock* s)
       {
         /* close exceptly */
         cosock_close(Co, as);
+        cosock_eventprocesspack(Co, s, as, 0);
         cosock_eventclose(Co, s, as, 0);
       }
       else
