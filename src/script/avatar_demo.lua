@@ -9,6 +9,31 @@ function avatar_demo:born()
   self.idaccp = 0
   local t1sec = core.image:gettime()
   print(t1sec)
+
+  local cwd = assert(core.api.os.getcwd())
+  print(string.format("Current Working Dir:%s", cwd))
+  if core.api.os.ispath("avatar") then
+    print("avatar is a path")
+  else
+    print("avatar is not a path")
+  end
+
+  if core.api.os.mkdir("avatar") then
+    print("mkdir avatar succeed")
+  end
+
+  if core.api.os.isfile("avatar") then
+    print("avatar is a file!")
+  else
+    print("avatar is not a file!")
+  end
+
+  if core.api.os.isdir("avatar") then
+    print("avatar is a dir")
+  else
+    print("avatar si not a dir")
+  end
+
   core.image:register(16, self.image, self)
   core.image:register(32, self.image, self)
   local imaid = core.image:register(64, self.image, self)
