@@ -132,6 +132,7 @@ end
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
   printf("Premaking %s...", action)
+  os.mkdir("_deploy")
   _version()
   _exec("premake4 %s", action)
 end
