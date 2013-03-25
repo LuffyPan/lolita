@@ -11,6 +11,11 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
   #include <Windows.h>
+#else
+  #include <unistd.h>
+  #include <sys/types.h>
+  #include <sys/resource.h>
+  #include <sys/time.h>
 #endif
 
 void coOs_sleep(int msec)
@@ -18,6 +23,11 @@ void coOs_sleep(int msec)
   co_assertex(msec >= 0 && msec < 1000 * 60, "fuck, need so long..");
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
   Sleep((DWORD)msec);
+#else
+  struct timeval delay;
+  delay.tv_sec = 0;
+  delay.tv_usec = msec * 1000; // 20 ms
+  select(0, NULL, NULL, NULL, &delay);
 #endif
 }
 
@@ -32,7 +42,13 @@ double coOs_gettime()
   sec = dc / dfre;
   return sec;
 #else
-  return 0.0f;
+  int z = 0;
+  struct timeval _tv;
+  double sec;
+  z = gettimeofday(&_tv, NULL);
+  co_assertex(0 == z, "gettimeofday failed!");
+  sec = (double)_tv.tv_sec + (double)((double)_tv.tv_usec / (double)1000000.0f);
+  return sec;
 #endif
 }
 
@@ -96,6 +112,14 @@ int coOs_getcwd(co* Co, char* buf, size_t bufs)
   z = (getcwd(buf, bufs) != 0);
 #endif
   return z;
+}
+
+int coOs_export_sleep(lua_State* L)
+{
+  int msec = 0;
+  msec = luaL_checkint(L, 1);
+  coOs_sleep(msec);
+  return 0;
 }
 
 int coOs_export_gettime(lua_State* L)

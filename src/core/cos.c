@@ -38,6 +38,7 @@ static const luaL_Reg coN_funcs[] =
 
 static const luaL_Reg coOs_funcs[] =
 {
+  {"sleep", coOs_export_sleep},
   {"gettime", coOs_export_gettime},
   {"isdir", coOs_export_isdir},
   {"isfile", coOs_export_isfile},
