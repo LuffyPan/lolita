@@ -25,12 +25,13 @@ typedef SOCKET cosockfd;
 #define COSOCKFD_EWOULDBLOCK WSAEWOULDBLOCK
 #define COSOCKFD_EAGAIN COSOCKFD_EWOULDBLOCK
 #define COSOCKFD_EINPROGRESS WSAEINPROGRESS
+#define COSOCKFD_ENOTCONN WSAENOTCONN
 #define cosockfd_close closesocket
 #define cosockfd_ioctl ioctlsocket
 #define cosockfd_errno WSAGetLastError()
 #define cosockfd_errstr(ec) "not supported"
 #define cosock_activeconn cosock_activeconn_win32
-#define cosock_activeaccp cosock_activeaccp_win32
+#define cosock_activeaccp cosock_activeaccp_common
 #else
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -42,6 +43,7 @@ typedef int cosockfd;
 #define COSOCKFD_EWOULDBLOCK EWOULDBLOCK
 #define COSOCKFD_EAGAIN EAGAIN
 #define COSOCKFD_EINPROGRESS EINPROGRESS
+#define COSOCKFD_ENOTCONN ENOTCONN
 #define COSOCKFD_NULL (-1)
 #define COSOCKFD_ERROR (-1)
 #define cosockfd_close close
@@ -49,7 +51,7 @@ typedef int cosockfd;
 #define cosockfd_errno errno
 #define cosockfd_errstr(ec) strerror((ec))
 #define cosock_activeconn cosock_activeconn_ux
-#define cosock_activeaccp cosock_activeaccp_ux
+#define cosock_activeaccp cosock_activeaccp_common /* hoho */
 #endif
 
 #define COSOCKFD_TNULL (0)
@@ -89,12 +91,11 @@ typedef struct cosock cosock;
 typedef void (*cosockeventer)(co* Co, cosock* s, cosock* as, int extra);
 /* typedef void (*cosock_activefunc)(void* p, cosock* s, cosock* sa); */
 
+static void cosock_activeaccp_common(co* Co, cosock* s);
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
 static void cosock_activeconn_win32(co* Co, cosock* s);
-static void cosock_activeaccp_win32(co* Co, cosock* s);
 #else
 static void cosock_activeconn_ux(co* Co, cosock* s);
-static void cosock_activeaccp_ux(co* Co, cosock* s);
 #endif
 
 /* align & littleending ! */
@@ -655,14 +656,14 @@ static void coN_realclose(co* Co)
     if (attaed2s)
     {
       co_assert(COSOCKFD_TATTA == s->fdt);
-      co_traceinfo(Co, "coNet, id[%d], attaid[%d] realclosed!!\n", attaed2s->id, s->id);
+      co_traceinfo(Co, "coNet, attacher id[%d], attaid[%d] realclosed!!\n", attaed2s->id, s->id);
       cosockpool_del(Co, attaed2s->attapo, s);
       cosock_delete(Co, s);
     }
     else
     {
       co_assert(COSOCKFD_TACCP == s->fdt || COSOCKFD_TCONN == s->fdt);
-      co_traceinfo(Co, "coNet, id[%d], attaid[%d] realclosed!!\n", s->id, 0);
+      co_traceinfo(Co, "coNet, connector id[%d], attaid[%d] realclosed!!\n", s->id, 0);
       cosockpool_del(Co, N->po, s);
       cosock_delete(Co, s);
     }
@@ -1121,6 +1122,99 @@ static void cosock_deletefdt(co* Co, cosock* s)
   }
 }
 
+static void cosock_activeaccp_common(co* Co, cosock* s)
+{
+  int r = 0;
+  fd_set rfds, wfds, efds;
+  struct timeval tv = { 0 };
+  int cnt = 0, i = 0;
+  cosock** ps = NULL;
+  cosockfd maxfd;
+  co_assert(COSOCKFD_TACCP == s->fdt);
+  FD_ZERO(&rfds); FD_ZERO(&wfds); FD_ZERO(&efds);
+  FD_SET(s->fd, &rfds); FD_SET(s->fd, &wfds); FD_SET(s->fd, &efds);
+  maxfd = s->fd;
+  ps = cosockpool_cosocks(s->attapo);
+  cnt = cosockpool_cosockcnt(s->attapo);
+  for (i = 1; i < cnt; ++i)
+  {
+    FD_SET(ps[i]->fd, &rfds); FD_SET(ps[i]->fd, &wfds); FD_SET(ps[i]->fd, &efds);
+    maxfd = ps[i]->fd > maxfd ? ps[i]->fd : maxfd;
+  }
+  r = select(maxfd + 1, &rfds, &wfds, &efds, &tv);
+  if (0 == r){cosock_logec(s); return;}
+  if (COSOCKFD_ERROR == r)
+  {
+    cosock_logec(s);
+    co_traceerror(Co, "coNet, id[%d] activeaccp failed while select, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+    cosock_close(Co, s);
+    cosock_eventclose(Co, s, NULL, 0);
+    return;
+  }
+  co_assert(r >= 1);
+  if (FD_ISSET(s->fd, &rfds))
+  {
+    cosock* ns = NULL;
+    co_traceinfolv3(Co, "coNet, id[%d] is in readfds\n", s->id);
+    if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
+    else { cosock_eventaccept(Co, s, ns, 1); }
+  }
+  if (FD_ISSET(s->fd, &wfds)){co_assertex(0, "acceptor has write event!!!!"); return;}
+  if (FD_ISSET(s->fd, &efds)){co_assertex(0, "acceptor has except event!!!"); return;}
+
+  for (i = 1; i < cnt; ++i)
+  {
+    cosock* as = ps[i];
+    if (FD_ISSET(as->fd, &rfds))
+    {
+      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in readfds\n", s->id, as->id);
+      r = cosock_recv(Co, as);
+      if (0 == r)
+      {
+        /* close gracely, need process package first */
+        cosock_close(Co, as);
+        cosock_eventprocesspack(Co, s, as, 0);
+        cosock_eventclose(Co, s, as, 0);
+      }
+      else if (-1 == r)
+      {
+        /* close exceptly */
+        cosock_close(Co, as);
+        cosock_eventprocesspack(Co, s, as, 0);
+        cosock_eventclose(Co, s, as, 0);
+      }
+      else
+      {
+        /* recved data */
+        co_assert(r == 1);
+        cosock_eventprocesspack(Co, s, as, 0);
+      }
+    }
+    if (FD_ISSET(as->fd, &wfds))
+    {
+      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in writefds\n", s->id, as->id);
+      r = cosock_send(Co, as);
+      if (0 == r)
+      {
+        cosock_close(Co, as);
+        cosock_eventclose(Co, s, as, 0);
+      }
+      else if (-1 == r)
+      {
+        cosock_close(Co, as);
+        cosock_eventclose(Co, s, as, 0);
+      }
+      else { co_assert(1 == r); }
+    }
+    if (FD_ISSET(as->fd, &efds))
+    {
+      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in exceptfds\n", s->id, as->id);
+      cosock_close(Co, as);
+      cosock_eventclose(Co, s, as, 0);
+    }
+  }
+}
+
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
 
 static void cosock_activeconn_win32(co* Co, cosock* s)
@@ -1133,7 +1227,7 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   FD_SET(s->fd, &rfds); FD_SET(s->fd, &wfds); FD_SET(s->fd, &efds);
   r = select(0, &rfds, &wfds, &efds, &tv);
   if (0 == r){cosock_logec(s); return;}
-  if (SOCKET_ERROR == r)
+  if (COSOCKFD_ERROR == r)
   {
     cosock_logec(s);
     cosock_close(Co, s);
@@ -1213,101 +1307,109 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   }
 }
 
-static void cosock_activeaccp_win32(co* Co, cosock* s)
+#else
+
+static void cosock_activeconn_ux(co* Co, cosock* s)
 {
   int r = 0;
   fd_set rfds, wfds, efds;
   struct timeval tv = { 0 };
-  int cnt = 0, i = 0;
-  cosock** ps = NULL;
-  co_assert(COSOCKFD_TACCP == s->fdt);
+  co_assert(COSOCKFD_TCONN == s->fdt);
   FD_ZERO(&rfds); FD_ZERO(&wfds); FD_ZERO(&efds);
   FD_SET(s->fd, &rfds); FD_SET(s->fd, &wfds); FD_SET(s->fd, &efds);
-  ps = cosockpool_cosocks(s->attapo);
-  cnt = cosockpool_cosockcnt(s->attapo);
-  for (i = 1; i < cnt; ++i){FD_SET(ps[i]->fd, &rfds); FD_SET(ps[i]->fd, &wfds); FD_SET(ps[i]->fd, &efds); }
-  r = select(0, &rfds, &wfds, &efds, &tv);
+  r = select(s->fd + 1, &rfds, &wfds, &efds, &tv);
   if (0 == r){cosock_logec(s); return;}
-  if (SOCKET_ERROR == r)
+  if (COSOCKFD_ERROR == r)
   {
     cosock_logec(s);
-    co_traceerror(Co, "coNet, id[%d] activeaccp failed while select, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
     cosock_close(Co, s);
+    co_traceerror(Co, "coNet, id[%d] activeconnector failed while select, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
     cosock_eventclose(Co, s, NULL, 0);
     return;
   }
   co_assert(r >= 1);
   if (FD_ISSET(s->fd, &rfds))
   {
-    cosock* ns = NULL;
-    co_traceinfolv3(Co, "coNet, id[%d] is in readfds\n", s->id);
-    if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
-    else { cosock_eventaccept(Co, s, ns, 1); }
-  }
-  if (FD_ISSET(s->fd, &wfds)){co_assertex(0, "acceptor has write event!!!!"); return;}
-  if (FD_ISSET(s->fd, &efds)){co_assertex(0, "acceptor has except event!!!"); return;}
-
-  for (i = 1; i < cnt; ++i)
-  {
-    cosock* as = ps[i];
-    if (FD_ISSET(as->fd, &rfds))
+    co_traceinfolv2(Co, "coNet, id[%d] is in readfds\n", s->id);
+    if (FD_ISSET(s->fd, &wfds))
     {
-      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in readfds\n", s->id, as->id);
-      r = cosock_recv(Co, as);
+      struct sockaddr_in sin;
+      int sinsize = sizeof(sin);
+      co_traceinfolv2(Co, "coNet, id[%d] is also in writefds\n", s->id);
+      if (0 != getpeername(s->fd, (struct sockaddr*)&sin, &sinsize))
+      {
+        /* connect failed */
+        cosock_logec(s);
+        cosock_close(Co, s);
+        if (s->ec == COSOCKFD_ENOTCONN)
+        {
+          co_traceinfolv2(Co, "coNet, id[%d] is connect failed\n", s->id);
+          cosock_eventconnect(Co, s, NULL, 0);
+        }
+        else
+        {
+          co_traceinfolv2(Co, "coNet, id[%d] is detected fatal error while getpeername, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+          cosock_eventclose(Co, s, NULL, 0);
+        }
+        return;
+      }
+    }
+    r = cosock_recv(Co, s);
+    if (0 == r)
+    {
+      /* closed gracely, process package first */
+      cosock_close(Co, s);
+      cosock_eventprocesspack(Co, s, NULL, 0);
+      cosock_eventclose(Co, s, NULL, 0);
+    }
+    else if (-1 == r)
+    {
+      cosock_close(Co, s);
+      cosock_eventprocesspack(Co, s, NULL, 0);
+      cosock_eventclose(Co, s, NULL, 0);
+    }
+    else
+    {
+      co_assert(1 == r);
+      cosock_eventprocesspack(Co, s, NULL, 0);
+    }
+    return;
+  }
+  if (FD_ISSET(s->fd, &wfds))
+  {
+    co_traceinfolv3(Co, "coNet, id[%d] is in writefds\n", s->id);
+    if (s->bconnected)
+    {
+      r = cosock_send(Co, s);
       if (0 == r)
       {
-        /* close gracely, need process package first */
-        cosock_close(Co, as);
-        cosock_eventprocesspack(Co, s, as, 0);
-        cosock_eventclose(Co, s, as, 0);
+        cosock_close(Co, s);
+        cosock_eventclose(Co, s, NULL, 0);
       }
       else if (-1 == r)
       {
-        /* close exceptly */
-        cosock_close(Co, as);
-        cosock_eventprocesspack(Co, s, as, 0);
-        cosock_eventclose(Co, s, as, 0);
+        cosock_close(Co, s);
+        cosock_eventclose(Co, s, NULL, 0);
       }
       else
       {
-        /* recved data */
-        co_assert(r == 1);
-        cosock_eventprocesspack(Co, s, as, 0);
+        co_assert(1 == r);
       }
+      return;
     }
-    if (FD_ISSET(as->fd, &wfds))
+    else
     {
-      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in writefds\n", s->id, as->id);
-      r = cosock_send(Co, as);
-      if (0 == r)
-      {
-        cosock_close(Co, as);
-        cosock_eventclose(Co, s, as, 0);
-      }
-      else if (-1 == r)
-      {
-        cosock_close(Co, as);
-        cosock_eventclose(Co, s, as, 0);
-      }
-      else { co_assert(1 == r); }
-    }
-    if (FD_ISSET(as->fd, &efds))
-    {
-      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in exceptfds\n", s->id, as->id);
-      cosock_close(Co, as);
-      cosock_eventclose(Co, s, as, 0);
+      co_traceinfolv2(Co, "coNet, id[%d], connect succeed\n", s->id);
+      s->bconnected = 1;
+      cosock_eventconnect(Co, s, NULL, 1);
     }
   }
-}
-
-#else
-
-static void cosock_activeconn_ux(co* Co, cosock* s)
-{
-}
-
-static void cosock_activeaccp_ux(co* Co, cosock* s)
-{
+  if (FD_ISSET(s->fd, &efds))
+  {
+    co_traceerror(Co, "coNet, id[%d] is in exceptfds\n", s->id);
+    cosock_close(Co, s);
+    cosock_eventclose(Co, s, NULL, 0);
+  }
 }
 
 #endif
