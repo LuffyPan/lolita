@@ -18,7 +18,7 @@ int main(int argc, const char** argv)
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
   _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
-  Co = lolicore_born(argc, argv);if (!Co){return 1;}
+  Co = lolicore_born(argc, argv, NULL, NULL);if (!Co){return 1;}
   lolicore_active(Co);
   lolicore_die(Co);
   return 0;

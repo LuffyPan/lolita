@@ -8,15 +8,15 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "comm.h"
 
-void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns)
+void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns, int bthrow)
 {
   void* np;
   co_assert((os == 0) == (p == NULL));
-  np = (*Co->fxlloc)(p, os, ns);
+  np = (*Co->xlloc)(Co->ud, p, os, ns);
   if (np == NULL && ns > 0)
   {
     co_assertex(ns > os, "failed when shrinking mem..");
-    coR_throw(Co, 1);
+    if (bthrow) coR_throw(Co, 1); else return NULL;
   }
   co_assert((ns == 0) == (np == NULL));
   return np;

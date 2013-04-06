@@ -50,7 +50,7 @@ typedef struct coN coN;
 
 typedef struct co_longjmp co_longjmp;
 typedef struct co co;
-typedef void* (*co_xlloc)(void* p, size_t olds, size_t news);
+typedef void* (*co_xlloc)(void* ud, void* p, size_t olds, size_t news);
 
 struct co_longjmp
 {
@@ -62,7 +62,10 @@ struct co_longjmp
 struct co
 {
   int btrace;
-  co_xlloc fxlloc;
+  co_xlloc xlloc;
+  void* ud;
+  size_t umem;
+  size_t maxmem;
   co_longjmp* errjmp;
   int argc;
   const char** argv;

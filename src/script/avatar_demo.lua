@@ -1,7 +1,14 @@
 local avatar_demo = core.avatar
 
 function avatar_demo:image()
-  print("imagination")
+  print(string.format("mem:%u/%u", core.api.base.getmem()))
+  core.image:register(16, self.image, self)
+end
+
+function avatar_demo:imageclose()
+  print("imagination close")
+  debug.debug()
+  core.api.base.kill()
 end
 
 function avatar_demo:born()
@@ -9,6 +16,11 @@ function avatar_demo:born()
   self.idaccp = 0
   local t1sec = core.image:gettime()
   print(t1sec)
+
+  local umem, maxmem = core.api.base.getmem()
+  core.api.base.setmaxmem(maxmem)
+  print(string.format("%d/%d", umem, maxmem))
+  self.memtb = {}
 
   local cwd = assert(core.api.os.getcwd())
   print(string.format("Current Working Dir:%s", cwd))
@@ -35,7 +47,7 @@ function avatar_demo:born()
   end
 
   core.image:register(16, self.image, self)
-  core.image:register(32, self.image, self)
+  core.image:register(3200, self.imageclose, self)
   local imaid = core.image:register(64, self.image, self)
   core.image:unregister(imaid)
   for i = 1, 1 do

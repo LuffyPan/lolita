@@ -25,7 +25,6 @@ function core:born()
     print(k, v);
   end
   --]]
-  print(self)
 
   local corepath = self.arg.corepath or "."
   local corelst = dofile(corepath .. "/colst.lua");

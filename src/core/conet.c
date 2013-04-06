@@ -121,6 +121,7 @@ struct cosockbuf
   size_t stepsize;
   size_t maxsize;
   size_t limitsize;
+  size_t initsize;
 };
 
 struct cosockpool
@@ -130,6 +131,7 @@ struct cosockpool
   int stepcnt;
   int maxcnt;
   int limitcnt;
+  int initcnt;
 };
 
 struct cosockid2idx
@@ -247,8 +249,16 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra);
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra);
 static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra);
 
+static void cosockbuf_pnew(co* Co, void* ud)
+{
+  cosockbuf* buf = (cosockbuf*)ud;
+  buf->b = coM_newvector(Co, char, buf->initsize);
+  buf->maxsize = buf->initsize;
+}
+
 static cosockbuf* cosockbuf_new(co* Co, size_t initsize, size_t stepsize, size_t limitsize)
 {
+  int z = 0;
   cosockbuf* buf = NULL;
   co_assert(initsize > 0);
   co_assert(stepsize > 0);
@@ -259,8 +269,9 @@ static cosockbuf* cosockbuf_new(co* Co, size_t initsize, size_t stepsize, size_t
   buf->stepsize = stepsize;
   buf->maxsize = 0;
   buf->limitsize = limitsize;
-  buf->b = coM_newvector(Co, char, initsize);
-  buf->maxsize = initsize;
+  buf->initsize = initsize;
+  z = coR_pcall(Co, cosockbuf_pnew, buf);
+  if (z){cosockbuf_delete(Co, buf); buf = NULL;coR_throw(Co, z);}
   return buf;
 }
 
@@ -273,23 +284,22 @@ static void cosockbuf_use(co* Co, cosockbuf* buf, size_t usesize)
 
 static int cosockbuf_isfull(co* Co, cosockbuf* buf, size_t usesize)
 {
-  if (buf->cursize + usesize > buf->maxsize)
+  while (buf->cursize + usesize > buf->maxsize)
   {
     size_t stepsize = 0;
-    if (buf->maxsize >= buf->limitsize) return 1;
+    if (buf->maxsize >= buf->limitsize) break;
     stepsize = buf->limitsize - buf->maxsize;
     stepsize = stepsize > buf->stepsize ? buf->stepsize : stepsize;
     buf->b = coM_renewvector(Co, char, buf->b, buf->maxsize, buf->maxsize + stepsize);
     buf->maxsize += stepsize;
-    return buf->cursize + usesize > buf->maxsize;
   }
-  return 0;
+  return buf->cursize + usesize > buf->maxsize;
 }
 
 static void cosockbuf_delete(co* Co, cosockbuf* buf)
 {
   if (!buf) return;
-  coM_deletevector(Co, buf->b, buf->maxsize);
+  if (buf->b) coM_deletevector(Co, buf->b, buf->maxsize);
   coM_deleteobj(Co, buf);
 }
 
@@ -300,8 +310,18 @@ static void cosockbuf_lmove(cosockbuf* buf, size_t msize)
   buf->cursize -= msize;
 }
 
+static void cosockpool_pnew(co* Co, void* ud)
+{
+  cosockpool* po = (cosockpool*)ud;
+  po->sp = coM_newvector(Co, cosock*, po->initcnt);
+  po->maxcnt = po->initcnt;
+  po->sp[0] = NULL;
+  po->curcnt = 1; /* reserved 0 to identify init state */
+}
+
 static cosockpool* cosockpool_new(co* Co, int initcnt, int stepcnt, int limitcnt)
 {
+  int z = 0;
   cosockpool* po = NULL;
   co_assert(initcnt > 0);
   co_assert(stepcnt > 0);
@@ -312,10 +332,9 @@ static cosockpool* cosockpool_new(co* Co, int initcnt, int stepcnt, int limitcnt
   po->stepcnt = stepcnt;
   po->maxcnt = 0;
   po->limitcnt = limitcnt;
-  po->sp = coM_newvector(Co, cosock*, initcnt);
-  po->maxcnt = initcnt;
-  po->sp[0] = NULL;
-  po->curcnt = 1; /* reserved 0 to identify init state */
+  po->initcnt = initcnt;
+  z = coR_pcall(Co, cosockpool_pnew, po);
+  if (z){cosockpool_delete(Co, po); po = NULL;coR_throw(Co, z);}
   return po;
 }
 
@@ -354,18 +373,17 @@ static void cosockpool_del(co* Co, cosockpool* po, cosock* s)
 static int cosockpool_isfull(co* Co, cosockpool* po, int cnt)
 {
   co_assert(cnt >= 0);
-  if (po->curcnt + cnt > po->maxcnt)
+  while (po->curcnt + cnt > po->maxcnt)
   {
     int stepcnt = 0;
     /* expand */
-    if (po->maxcnt >= po->limitcnt) return 0;
+    if (po->maxcnt >= po->limitcnt) break;
     stepcnt = po->limitcnt - po->maxcnt;
     stepcnt = stepcnt > po->stepcnt ? po->stepcnt : stepcnt;
     po->sp = coM_renewvector(Co, cosock*, po->sp, po->maxcnt, po->maxcnt + stepcnt);
     po->maxcnt += stepcnt;
-    return po->curcnt + cnt <= po->maxcnt;
   }
-  return 1;
+  return po->curcnt + cnt > po->maxcnt;
 }
 
 static void cosockpool_delete(co* Co, cosockpool* po)
@@ -387,26 +405,35 @@ static void* _cosockid2idx_alloc(void* ud, void* p, size_t os, size_t ns)
   void* np = NULL;
   /* when p == NULL, the un32_osize indicate the type of object lua, so, reset it to 0 */
   os = (NULL == p && os > 0) ? 0 : os;
-  np = coM_xllocmem(Co, p, os, ns);
+  np = coM_xllocmem(Co, p, os, ns, 0);
   /* Lua assumes that the allocator never fails when osize >= nsize */
   if (NULL == np && ns > 0 && ns <= os) co_assert(0);
   return np;
 }
 
+static void cosockid2idx_pnew(co* Co, void* ud)
+{
+  cosockid2idx* i2i = (cosockid2idx*)ud;
+  i2i->id2idx = lua_newstate(_cosockid2idx_alloc, Co);
+  if (!i2i->id2idx) coR_throw(Co, 2);
+}
+
 static cosockid2idx* cosockid2idx_new(co* Co)
 {
+  int z = 0;
   cosockid2idx* i2i = NULL;
   i2i = coM_newobj(Co, cosockid2idx);
   i2i->nextid = 1;
   i2i->id2idx = NULL;
-  i2i->id2idx = lua_newstate(_cosockid2idx_alloc, Co);
+  z = coR_pcall(Co, cosockid2idx_pnew, i2i);
+  if (z){cosockid2idx_delete(Co, i2i);i2i = NULL;coR_throw(Co, z);}
   return i2i;
 }
 
 static void cosockid2idx_delete(co* Co, cosockid2idx* id2idx)
 {
   if (!id2idx) return;
-  lua_close(id2idx->id2idx);
+  if (id2idx->id2idx) lua_close(id2idx->id2idx);
   coM_deleteobj(Co, id2idx);
 }
 
@@ -541,7 +568,7 @@ static int coN_listen(co* Co, const char* addr, unsigned short port)
 {
   cosock* s = NULL;
   coN* N = Co->N;
-  if (!cosockpool_isfull(Co, N->po, 1))
+  if (cosockpool_isfull(Co, N->po, 1))
   {
     return 0;
   }
@@ -559,7 +586,7 @@ static int coN_connect(co* Co, const char* addr, unsigned short port)
 {
   cosock* s = NULL;
   coN* N = Co->N;
-  if (!cosockpool_isfull(Co, N->po, 1))
+  if (cosockpool_isfull(Co, N->po, 1))
   {
     return 0;
   }
@@ -792,8 +819,15 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   lua_pop(L, 1);
 }
 
+static void cosock_pnew(co* Co, void* ud)
+{
+  cosock* s = (cosock*)ud;
+  cosock_newfdt(Co, s);
+}
+
 static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosock* attached2s, cosockevent* eventer, int fdt)
 {
+  int z = 0;
   cosock* s = co_cast(cosock*, coM_newobj(Co, cosock));
   s->poolidx = 0;
   s->id = cosockid2idx_newid(i2i);
@@ -810,7 +844,8 @@ static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosoc
   s->attaed2s = attached2s;
   s->eventer = eventer;
   s->ec = 0;
-  cosock_newfdt(Co, s);
+  z = coR_pcall(Co, cosock_pnew, s);
+  if (z){cosock_delete(Co, s); s = NULL;coR_throw(Co, z);}
   return s;
 }
 
