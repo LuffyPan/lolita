@@ -415,7 +415,7 @@ static void cosockid2idx_pnew(co* Co, void* ud)
 {
   cosockid2idx* i2i = (cosockid2idx*)ud;
   i2i->id2idx = lua_newstate(_cosockid2idx_alloc, Co);
-  if (!i2i->id2idx) coR_throw(Co, 2);
+  if (!i2i->id2idx) coR_throw(Co, CO_ERRSCRIPTNEW);
 }
 
 static cosockid2idx* cosockid2idx_new(co* Co)
@@ -475,7 +475,6 @@ void coN_born(co* Co)
   coN_newid2idx(Co);
   coN_initenv(Co);
   coN_newcosocks(Co);
-  co_traceinfo(Co, "coNet borned..\n");
 }
 
 void coN_active(co* Co)
@@ -497,7 +496,6 @@ void coN_die(co* Co)
   coN_uninitenv(Co);
   coN_deleteid2idx(Co);
   coM_deleteobj(Co, Co->N);
-  co_traceinfo(Co, "coNet died..\n");
 }
 
 static void coN_initenv(co* Co)
@@ -555,6 +553,7 @@ static void coN_deletecosocks(co* Co)
   while(cnt > 1)
   {
     cosock* s = ps[1];
+    s->bactive = 0; /* force unactive */
     cosockpool_del(Co, N->po, s);
     cosock_delete(Co, s);
     --cnt;
@@ -628,7 +627,7 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
   }
   if (!cosock_canpush(Co, ps, dsize + sizeof(cosockpack_hdr) + sizeof(cosockpack_tail)))
   {
-    co_traceerror(Co, "coNet, id[%d], attaid[%d]'s send buffer is full!!!!!\n", s->id, attas ? attas->id : 0);
+    coN_tracefatal(Co, "id[%d,%d] send buffer is full!!!!!", s->id, attas ? attas->id : 0);
     return 0;
   }
   hdr.flag = COSOCKPACK_HDR_FLAG;
@@ -638,7 +637,7 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
   cosock_push(Co, ps, (const char*)&hdr, sizeof(hdr));
   cosock_push(Co, ps, data, dsize);
   cosock_push(Co, ps, (const char*)&tail, sizeof(tail));
-  co_traceinfo(Co, "coNet, id[%d], attaid[%d] push data, size[%u]\n", s->id, attas ? attas->id : 0, dsize);
+  coN_tracedebug(Co, "id[%d,%d] pushed data with size[%u]", s->id, attas ? attas->id : 0, dsize);
   return 1;
 }
 
@@ -666,7 +665,7 @@ static int coN_close(co* Co, int id, int attaid)
     co_assert(COSOCKFD_TATTA == attas->fdt);
     cosock_close(Co, attas);
   }
-  co_traceinfo(Co, "coNet, id[%d], attaid[%d] close!!\n", s->id, attas ? attas->id : 0);
+  coN_tracedebug(Co, "id[%d,%d] closed", s->id, attas ? attas->id : 0);
   return 1;
 }
 
@@ -683,14 +682,14 @@ static void coN_realclose(co* Co)
     if (attaed2s)
     {
       co_assert(COSOCKFD_TATTA == s->fdt);
-      co_traceinfo(Co, "coNet, attacher id[%d], attaid[%d] realclosed!!\n", attaed2s->id, s->id);
+      coN_tracedebug(Co, "id[%d,%d] attacher real closed", attaed2s->id, s->id);
       cosockpool_del(Co, attaed2s->attapo, s);
       cosock_delete(Co, s);
     }
     else
     {
       co_assert(COSOCKFD_TACCP == s->fdt || COSOCKFD_TCONN == s->fdt);
-      co_traceinfo(Co, "coNet, connector id[%d], attaid[%d] realclosed!!\n", s->id, 0);
+      coN_tracedebug(Co, "id[%d,%d] connector real closed", s->id, 0);
       cosockpool_del(Co, N->po, s);
       cosock_delete(Co, s);
     }
@@ -702,7 +701,7 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
 {
   lua_State* L = coS_lua(Co);
   co_assert(!as);
-  co_traceinfo(Co, "coNet, id[%d], connect event result[%d]\n", s->id, extra);
+  coN_tracedebug(Co, "id[%d,%d] connect event result[%d]", s->id, 0, extra);
   lua_getglobal(L, "core");
   lua_getfield(L, -1, "onconnect");
   lua_pushvalue(L, -2);
@@ -710,7 +709,7 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
   lua_pushnumber(L, extra);
   if (LUA_OK != lua_pcall(L, 3, 0, 0))
   {
-    co_traceerror(Co, "coNet id[%d] failed call onconnect, detail, %s\n", s->id, lua_tostring(L, -1));
+    coN_tracedebug(Co, "id[%d,%d] failed while call onconnect, %s", s->id, 0, lua_tostring(L, -1));
     lua_pop(L, 2);
     return;
   }
@@ -721,8 +720,8 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
 {
   lua_State* L = coS_lua(Co);
   co_assert(as);
-  co_traceinfo(Co, "coNet, id[%d], attaid[%d] accept event\n", s->id, as->id);
-  co_traceerror(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
+  co_assert(lua_gettop(L) == 0);
+  coN_tracedebug(Co, "id[%d,%d] accept event", s->id, as->id);
   lua_getglobal(L, "core");
   lua_getfield(L, -1, "onaccept");
   lua_pushvalue(L, -2);
@@ -731,14 +730,14 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   lua_pushnumber(L, extra);
   if (LUA_OK != lua_pcall(L, 4, 0, 0))
   {
-    co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onaccept, detail, %s\n", s->id, as->id, lua_tostring(L, -1));
+    coN_tracedebug(Co, "id[%d,%d] failed while call onaccept, %s", s->id, as->id, lua_tostring(L, -1));
     lua_pop(L, 2);
-    co_traceerror(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
+    co_assert(lua_gettop(L) ==0);
     return;
   }
   /* SHIT, why pop 3 ..... */
   lua_pop(L, 1);
-  co_traceerror(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
+  co_assert(lua_gettop(L) == 0);
 }
 
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
@@ -750,8 +749,9 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   cosockpack_hdr* hdr = NULL;
   cosockpack_tail* tail = NULL;
   int bclose = 0;
-  co_traceinfo(Co, "coNet, id[%d], attaid[%d] try process pack\n", s->id, as ? as->id : 0);
-  co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
+  co_assert(lua_gettop(L) == 0);
+  coN_tracedebug(Co, "id[%d,%d] package event", s->id, as ? as->id : 0);
+  coN_tracedebug(Co, "id[%d,%d] trying process package", s->id, as ? as->id : 0);
   lua_getglobal(L, "core");
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
   else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
@@ -767,7 +767,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     if (leftsize < sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize) break;
     tail = (cosockpack_tail*)(data + sizeof(cosockpack_hdr) + hdr->dsize);
     if (tail->flag != COSOCKPACK_TAIL_FLAG) { bclose = 1; break; }
-    co_traceinfo(Co, "coNet, id[%d], attaid[%d] processpack event, packsize[%u]\n", s->id, as ? as->id : 0, hdr->dsize);
+    coN_tracedebug(Co, "id[%d,%d] trying process one package, package size[%u]", s->id, as ? as->id : 0, hdr->dsize);
     lua_getfield(L, -1, "onpack");
     lua_pushvalue(L, -2);
     lua_pushnumber(L, s->id);
@@ -776,9 +776,9 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     lua_pushnumber(L, extra);
     if (LUA_OK != lua_pcall(L, 5, 0, 0))
     {
-      co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onpack, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
+      coN_tracedebug(Co, "id[%d,%d] failed while call onpack, %s", s->id, as ? as->id : 0, lua_tostring(L, -1));
       lua_pop(L, 1);
-      co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
+      co_assert(lua_gettop(L) == 1);
     }
     usesize += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
     data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
@@ -787,21 +787,22 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   lua_pop(L, 1);
   if (usesize == datasize) { cosockbuf_clear(ps->revbuf); }
   else { co_assert(usesize < datasize); cosockbuf_lmove(ps->revbuf, usesize); }
-  co_traceinfo(Co, "coNet, id[%d], attaid[%d] finish processpack, leftsize[%u]\n", s->id, as ? as->id : 0, co_cast(size_t, cosockbuf_datasize(ps->revbuf)));
+  coN_tracedebug(Co, "id[%d,%d] finished process package, leftsize[%u]", s->id, as ? as->id : 0, co_cast(size_t, cosockbuf_datasize(ps->revbuf)));
   if (bclose)
   {
     cosock_close(Co, ps);
     cosock_eventclose(Co, s, as, extra);
-    co_traceinfo(Co, "coNet, id[%d], attaid[%d] close while exception when processpack\n", s->id, as ? as->id : 0);
+    coN_tracedebug(Co, "id[%d,%d] closed while process package because of exception", s->id, as ? as->id : 0);
   }
-  co_traceinfo(Co, "coScript, current stack count[%d]\n", lua_gettop(L));
+  co_assert(lua_gettop(L) == 0);
 }
 
 static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
 {
   cosock* ps = NULL;
   lua_State* L = coS_lua(Co);
-  co_traceinfo(Co, "coNet, id[%d], attaid[%d] close event\n", s->id, as ? as->id : 0);
+  co_assert(lua_gettop(L) == 0);
+  coN_tracedebug(Co,"id[%d,%d] close event", s->id, as ? as->id : 0);
   lua_getglobal(L, "core");
   lua_getfield(L, -1, "onclose");
   lua_pushvalue(L, -2);
@@ -812,11 +813,12 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   lua_pushnumber(L, extra);
   if (LUA_OK != lua_pcall(L, 4, 0, 0))
   {
-    co_traceerror(Co, "coNet id[%d], attaid[%d] failed call onclose, detail, %s\n", s->id, as ? as->id : 0, lua_tostring(L, -1));
+    coN_tracedebug(Co, "id[%d,%d] failed while call onclose, %s", s->id, as ? as->id : 0, lua_tostring(L, -1));
     lua_pop(L, 2);
     return;
   }
   lua_pop(L, 1);
+  co_assert(lua_gettop(L) == 0);
 }
 
 static void cosock_pnew(co* Co, void* ud)
@@ -854,10 +856,10 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
   struct sockaddr_in sin = { 0 };
   co_assert(COSOCKFD_TACCP == cosock_fdt(s));
   co_assert(addr);
-  co_traceinfo(Co, "coNet id[%d], try listen at addr[%s], port[%d]\n", s->id, addr, (int)port);
+  coN_tracedebug(Co, "id[%d,%d] trying listen at [%s:%d]", s->id, 0, addr, (int)port);
   if (!cosock_newfd(Co, s))
   {
-    co_traceerror(Co, "coNet id[%d], listen failed when newfd, ec[%d], ecs[%s]\n", s->id, cosock_ec(s), cosockfd_errstr(cosock_ec(s)));
+    coN_tracedebug(Co, "id[%d,%d] listen failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
   sin.sin_family = PF_INET;
@@ -866,16 +868,16 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
   if (bind(s->fd, (const struct sockaddr*)&sin, sizeof(sin)))
   {
     cosock_logec(s);
-    co_traceerror(Co, "coNet id[%d], listen failed when bind, ec[%d], ecs[%s]\n", s->id, cosock_ec(s), cosockfd_errstr(cosock_ec(s)));
+    coN_tracedebug(Co, "id[%d,%d] listen failed while bind, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
   if (listen(s->fd, 5))
   {
     cosock_logec(s);
-    co_traceerror(Co, "coNet id[%d] listen failed, ec[%d], ecs[%s]\n", s->id, cosock_ec(s), cosockfd_errstr(cosock_ec(s)));
+    coN_tracedebug(Co, "id[%d,%d] listen failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
-  co_traceinfo(Co, "coNet id[%d] listen succeed\n", s->id);
+  coN_tracedebug(Co, "id[%d,%d] listen succeed", s->id, 0);
   return 1;
 }
 
@@ -884,10 +886,10 @@ static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short po
   struct sockaddr_in sin = { 0 };
   co_assert(addr);
   co_assert(COSOCKFD_TCONN == cosock_fdt(s));
-  co_traceinfo(Co, "coNet id[%d], try connect to addr[%s], port[%d]\n", s->id, addr, (int)port);
+  coN_tracedebug(Co, "id[%d,%d] trying connect to [%s:%d]", s->id, 0, addr, (int)port);
   if (!cosock_newfd(Co, s))
   {
-    co_traceerror(Co, "coNet id[%d], connect failed when newfd, ec[%d], ecs[%s]\n", s->id, cosock_ec(s), cosockfd_errstr(cosock_ec(s)));
+    coN_tracedebug(Co, "id[%d,%d] connect failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
   sin.sin_family = PF_INET;
@@ -900,12 +902,12 @@ static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short po
       COSOCKFD_EAGAIN == cosock_ec(s) ||
       COSOCKFD_EINPROGRESS == cosock_ec(s))
     {
-      co_traceinfo(Co, "coNet id[%d], conneting in progress....\n", s->id);
+      coN_tracedebug(Co, "id[%d,%d] connect is in progress", s->id, 0);
       return 1;
     }
     else
     {
-      co_traceinfo(Co, "coNet id[%d], connect failed, ec[%d], ecs[%s]\n", s->id, cosock_ec(s), cosockfd_errstr(cosock_ec(s)));
+      coN_tracedebug(Co, "id[%d,%d] connect failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
       return 0;
     }
   }
@@ -925,19 +927,19 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
   if (nfd == COSOCKFD_NULL)
   {
     cosock_logec(s);
-    co_traceerror(Co, "coNet, id[%d] accept failed, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+    coN_tracedebug(Co, "id[%d,%d] accept failed [%s:%d]", s->id, cosockfd_errstr(s->ec), s->ec);
     return 0;
   }
   sn = cosock_new(Co, s->id2idx, s->closedpo, s, s->eventer, COSOCKFD_TATTA);
   if (!cosock_attachfd(Co, sn, nfd))
   {
-    co_traceerror(Co, "coNet, id[%d], attaid[%d], accept failed while attachfd, ec[%d], ecs[%s]\n", s->id, sn->id, s->ec, cosockfd_errstr(s->ec));
+    coN_tracedebug(Co, "id[%d,%d] accept failed while attachfd, [%s:%d]", s->id, sn->id, cosockfd_errstr(s->ec), s->ec);
     cosock_delete(Co, sn);
     return 0;
   }
   cosockpool_add(Co, s->attapo, sn);
   if (psn) { *psn = sn; }
-  co_traceerror(Co, "coNet, id[%d], attaid[%d], accept success\n", s->id, sn->id);
+  coN_tracedebug(Co, "id[%d,%d] accept succeed", s->id, sn->id);
   return 1;
 }
 
@@ -951,7 +953,7 @@ static int cosock_recv(co* Co, cosock* s)
   {
     if (cosockbuf_isfull(Co, s->revbuf, 1024))
     {
-      co_traceerror(Co, "coNet, id[%d] buf is full while recv\n", s->id);
+      coN_tracefatal(Co, "id[%d,%d] recv buf is full while recv", s->id, 0);
       return -1;
     }
     buf = cosockbuf_uudata(s->revbuf);
@@ -960,7 +962,7 @@ static int cosock_recv(co* Co, cosock* s)
     r = recv(s->fd, buf, buflen, 0);
     if (0 == r)
     {
-      co_traceinfo(Co, "coNet, id[%d] closed while recv..\n", s->id);
+      coN_tracedebug(Co, "id[%d,%d] closed while recv", s->id, 0);
       return 0;
     }
     if (COSOCKFD_ERROR == r)
@@ -970,13 +972,13 @@ static int cosock_recv(co* Co, cosock* s)
       {
         return 1;
       }
-      co_traceerror(Co, "coNet, id[%d] ocurrs error while recv, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+      coN_tracedebug(Co, "id[%d,%d] failed while recv [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
       return -1;
     }
     co_assert(r > 0);
     co_assert(r <= buflen);
     cosockbuf_use(Co, s->revbuf, (size_t)r);
-    co_traceinfo(Co, "coNet, id[%d] recved data, dsize[%u]\n", s->id, co_cast(size_t, r));
+    coN_tracedebug(Co, "id[%d,%d] recved data, size[%u]", s->id, 0, co_cast(size_t, r));
   }
   return 1;
 }
@@ -996,11 +998,11 @@ static int cosock_send(co* Co, cosock* s)
     cosock_logec(s);
     if (cosock_ec(s) == COSOCKFD_EWOULDBLOCK)
     {
-      co_traceinfo(Co, "coNet, id[%d] blocked while send\n", s->id);
+      coN_tracedebug(Co, "id[%d,%d] send failed while blocked", s->id, 0);
     }
     else
     {
-      co_traceerror(Co, "coNet, id[%d] ocurrs error while send, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+      coN_tracedebug(Co, "id[%d,%d] send failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
       return -1;
     }
   }
@@ -1008,7 +1010,7 @@ static int cosock_send(co* Co, cosock* s)
   if (r == datalen)
   {
     cosockbuf_clear(s->sndbuf);
-    co_traceinfo(Co, "coNet, id[%d] send succeed, leftsize[%u]\n", s->id, 0);
+    coN_tracedebug(Co, "id[%d,%d] send succeed, left size[%u]", s->id, 0, 0);
   }
   else
   {
@@ -1016,7 +1018,7 @@ static int cosock_send(co* Co, cosock* s)
     co_assert(r > 0);
     co_assert(r < datalen);
     cosockbuf_lmove(s->sndbuf, (size_t)r);
-    co_traceinfo(Co, "coNet, id[%d] blocked while send, leftsize[%u]\n", s->id, co_cast(size_t, cosockbuf_datasize(s->sndbuf)));
+    coN_tracedebug(Co, "id[%d,%d] send failed, leftsize[%u]", s->id, 0, co_cast(size_t, cosockbuf_datasize(s->sndbuf)));
   }
   return 1;
 }
@@ -1134,7 +1136,7 @@ static void cosock_deletefdt(co* Co, cosock* s)
     int cnt = 0, i = 1;
     co_assert(!s->revbuf);
     co_assert(!s->sndbuf);
-    co_assert(s->attapo);
+    if (!s->attapo) return;
     ps = cosockpool_cosocks(s->attapo);
     cnt = cosockpool_cosockcnt(s->attapo);
     while(cnt > 1)
@@ -1150,10 +1152,8 @@ static void cosock_deletefdt(co* Co, cosock* s)
   else
   {
     co_assert(!s->attapo);
-    co_assert(s->revbuf);
-    co_assert(s->sndbuf);
-    cosockbuf_delete(Co, s->revbuf);
-    cosockbuf_delete(Co, s->sndbuf);
+    if (s->revbuf) cosockbuf_delete(Co, s->revbuf);
+    if (s->sndbuf) cosockbuf_delete(Co, s->sndbuf);
   }
 }
 
@@ -1181,7 +1181,7 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
   if (COSOCKFD_ERROR == r)
   {
     cosock_logec(s);
-    co_traceerror(Co, "coNet, id[%d] activeaccp failed while select, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+    coN_tracefatal(Co, "id[%d,%d] acceptor active failed while select, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     cosock_close(Co, s);
     cosock_eventclose(Co, s, NULL, 0);
     return;
@@ -1190,7 +1190,6 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
   if (FD_ISSET(s->fd, &rfds))
   {
     cosock* ns = NULL;
-    co_traceinfolv3(Co, "coNet, id[%d] is in readfds\n", s->id);
     if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
     else { cosock_eventaccept(Co, s, ns, 1); }
   }
@@ -1202,7 +1201,6 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     cosock* as = ps[i];
     if (FD_ISSET(as->fd, &rfds))
     {
-      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in readfds\n", s->id, as->id);
       r = cosock_recv(Co, as);
       if (0 == r)
       {
@@ -1227,7 +1225,6 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     }
     if (FD_ISSET(as->fd, &wfds))
     {
-      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in writefds\n", s->id, as->id);
       r = cosock_send(Co, as);
       if (0 == r)
       {
@@ -1243,7 +1240,7 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     }
     if (FD_ISSET(as->fd, &efds))
     {
-      co_traceinfolv3(Co, "coNet, id[%d] attaid[%d] is in exceptfds\n", s->id, as->id);
+      coN_tracedebug(Co, "id[%d,%d] attacher is in exceptfds\?", s->id, as->id);
       cosock_close(Co, as);
       cosock_eventclose(Co, s, as, 0);
     }
@@ -1266,14 +1263,13 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   {
     cosock_logec(s);
     cosock_close(Co, s);
-    co_traceerror(Co, "coNet, id[%d] activeconnector failed while select, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+    coN_tracedebug(Co, "id[%d,%d] connector active failed while select, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     cosock_eventclose(Co, s, NULL, 0);
     return;
   }
   co_assert(r >= 1);
   if (FD_ISSET(s->fd, &rfds))
   {
-    co_traceinfolv3(Co, "coNet, id[%d] is in readfds\n", s->id);
     r = cosock_recv(Co, s);
     if (0 == r)
     {
@@ -1297,7 +1293,6 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   }
   if (FD_ISSET(s->fd, &wfds))
   {
-    co_traceinfolv3(Co, "coNet, id[%d] is in writefds\n", s->id);
     if (s->bconnected)
     {
       r = cosock_send(Co, s);
@@ -1326,11 +1321,11 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
   }
   if (FD_ISSET(s->fd, &efds))
   {
-    co_traceerror(Co, "coNet, id[%d] is in exceptfds\n", s->id);
     cosock_close(Co, s);
     if (s->bconnected)
     {
       /* just close it as an exception */
+      coN_tracefatal(Co, "id[%d,%d] connector is in exceptfds while connected\?", s->id, 0);
       cosock_eventclose(Co, s, NULL, 0);
       return;
     }
@@ -1358,19 +1353,17 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
   {
     cosock_logec(s);
     cosock_close(Co, s);
-    co_traceerror(Co, "coNet, id[%d] activeconnector failed while select, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+    coN_tracedebug(Co, "id[%d,%d] connecter active failed while select, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     cosock_eventclose(Co, s, NULL, 0);
     return;
   }
   co_assert(r >= 1);
   if (FD_ISSET(s->fd, &rfds))
   {
-    co_traceinfolv2(Co, "coNet, id[%d] is in readfds\n", s->id);
     if (FD_ISSET(s->fd, &wfds))
     {
       struct sockaddr_in sin;
       int sinsize = sizeof(sin);
-      co_traceinfolv2(Co, "coNet, id[%d] is also in writefds\n", s->id);
       if (0 != getpeername(s->fd, (struct sockaddr*)&sin, &sinsize))
       {
         /* connect failed */
@@ -1378,12 +1371,11 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
         cosock_close(Co, s);
         if (s->ec == COSOCKFD_ENOTCONN)
         {
-          co_traceinfolv2(Co, "coNet, id[%d] is connect failed\n", s->id);
           cosock_eventconnect(Co, s, NULL, 0);
         }
         else
         {
-          co_traceinfolv2(Co, "coNet, id[%d] is detected fatal error while getpeername, ec[%d], ecs[%s]\n", s->id, s->ec, cosockfd_errstr(s->ec));
+          coN_tracefatal(Co, "id[%d,%d] failed while getpeername, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
           cosock_eventclose(Co, s, NULL, 0);
         }
         return;
@@ -1412,7 +1404,6 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
   }
   if (FD_ISSET(s->fd, &wfds))
   {
-    co_traceinfolv3(Co, "coNet, id[%d] is in writefds\n", s->id);
     if (s->bconnected)
     {
       r = cosock_send(Co, s);
@@ -1434,14 +1425,13 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
     }
     else
     {
-      co_traceinfolv2(Co, "coNet, id[%d], connect succeed\n", s->id);
       s->bconnected = 1;
       cosock_eventconnect(Co, s, NULL, 1);
     }
   }
   if (FD_ISSET(s->fd, &efds))
   {
-    co_traceerror(Co, "coNet, id[%d] is in exceptfds\n", s->id);
+    coN_tracefatal(Co, "id[%d,%d] is in exceptfds\?", s->id, 0);
     cosock_close(Co, s);
     cosock_eventclose(Co, s, NULL, 0);
   }

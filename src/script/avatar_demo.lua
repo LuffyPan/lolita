@@ -53,9 +53,10 @@ function avatar_demo:born()
   for i = 1, 1 do
     local idaccp = core.net:listen("127.0.0.1", 7000 + i)
     self.idaccp = idaccp
+    core.net:listen("127.0.0.1", 7000 + i)
   end
 
-  for i = 1, 1 do
+  for i = 1, 2 do
     local idconn = core.net:connect("127.0.0.1", 7000 + i)
     for ii = 1, 2 do
       local tb = {a = 1, b = 2, c = 3, fuck = "shit", shit = "fuck"}

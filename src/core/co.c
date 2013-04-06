@@ -16,8 +16,12 @@ static void* _co_xlloc(void* ud, void* p, size_t os, size_t ns);
 static void co_new(co* Co, void* ud);
 static void co_active(co* Co, void* ud);
 static void co_free(co* Co);
+static void co_fatalerror(co* Co, int e);
+static const char* co_modname(co* Co, int mod);
+static const char* co_lvname(co* Co, int lv);
+static const char* co_errorstr(co* Co, int e);
 
-lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud)
+lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud, co_tracef tf)
 {
   int z = 0;
   co* Co;
@@ -26,8 +30,11 @@ lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud)
   if (NULL == Co) return NULL;
   Co->xlloc = x;
   Co->ud = ud;
+  Co->tf = tf;
+  Co->argc = argc;
+  Co->argv = argv;
   Co->umem = 0;
-  Co->maxmem = 4096 * 20;
+  Co->maxmem = 4096 * 25;
   if (Co->xlloc == _co_xlloc)
   {
     Co->ud = (void*)Co;
@@ -36,15 +43,13 @@ lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud)
   }
   Co->btrace = 1; /* process specially */
   Co->errjmp = NULL;
-  Co->argc = argc;
-  Co->argv = argv;
   Co->bactive = 0;
   Co->L = NULL;
   Co->N = NULL;
   z = coR_pcall(Co, co_new, NULL);
   if (z)
   {
-    printf("mem:%u/%u\n", Co->umem, Co->maxmem);
+    co_fatalerror(Co, z);
     co_free(Co);
     return NULL;
   }
@@ -56,7 +61,7 @@ void lolicore_active(lolicore* Co)
   int z = coR_pcall(Co, co_active, NULL);
   if (z)
   {
-    printf("mem:%u/%u\n", Co->umem, Co->maxmem);
+    co_fatalerror(Co, z);
     return;
   }
 }
@@ -64,6 +69,26 @@ void lolicore_active(lolicore* Co)
 void lolicore_die(lolicore* Co)
 {
   co_free(Co);
+}
+
+size_t lolicore_getusedmem(lolicore* Co)
+{
+  return Co->umem;
+}
+
+size_t lolicore_getmaxmem(lolicore* Co)
+{
+  return Co->maxmem;
+}
+
+const char* lolicore_getmodname(lolicore* Co, int mod)
+{
+  return co_modname(Co, mod);
+}
+
+const char* lolicore_getlvname(lolicore* Co, int lv)
+{
+  return co_lvname(Co, lv);
 }
 
 static void co_new(co* Co, void* ud)
@@ -87,8 +112,58 @@ static void co_free(co* Co)
 {
   coS_die(Co);
   coN_die(Co);
-  co_assert(Co->umem == sizeof(*Co));
+  co_assert((Co->xlloc == _co_xlloc) == (Co->umem == sizeof(*Co)));
   (*Co->xlloc)(NULL, Co, sizeof(co), 0);
+}
+
+static void co_fatalerror(co* Co, int e)
+{
+  switch(e)
+  {
+  case CO_ERRMEM:
+  case CO_ERRSCRIPTNEW:
+  case CO_ERRSCRIPTCALL:
+  default:
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "%s", co_errorstr(Co, e));
+  }
+}
+
+static const char* co_modname(co* Co, int mod)
+{
+  static const char* _mn[CO_MOD_SCRIPT+1] =
+  {
+    "co","coN", "coS",
+  };
+  co_assert(mod >= CO_MOD_CORE && mod <= CO_MOD_SCRIPT);
+  return _mn[mod];
+}
+
+static const char* co_lvname(co* Co, int lv)
+{
+  static const char* _ln[CO_LVINFO+1] =
+  {
+    "FATAL","DEBUG", "INFO",
+  };
+  co_assert(lv >= CO_LVFATAL && lv <= CO_LVINFO);
+  return _ln[lv];
+}
+
+#define CO_OK 0
+#define CO_ERRRUN 1
+#define CO_ERRMEM 2
+#define CO_ERRSCRIPTPANIC 3
+#define CO_ERRSCRIPTNEW 4
+#define CO_ERRSCRIPTCALL 5
+#define CO_ERRX 6
+static const char* co_errorstr(co* Co, int e)
+{
+  static const char* _es[CO_ERRX+1] =
+  {
+    "ok!","runtime error", "memory is not enough\?", "script paniced!", "memory is not enough to new script", "failed to call script",
+    "xxxxx error\?",
+  };
+  co_assert(e >= CO_OK && e <= CO_ERRX);
+  return _es[e];
 }
 
 static void* _co_xlloc(void* ud, void* p, size_t os, size_t ns)
@@ -120,7 +195,6 @@ int co_export_kill(lua_State* L)
   lua_getallocf(L, (void**)&Co);
   co_assert(Co);
   Co->bactive = 0;
-  co_traceinfo(Co, "co be killed!\n");
   return 0;
 }
 
@@ -132,7 +206,6 @@ int co_export_enabletrace(lua_State* L)
   co_assert(Co);
   benable = luaL_checkint(L, 1);
   Co->btrace = benable;
-  co_traceinfo(Co, "co enable trace!\n");
   return 0;
 }
 
@@ -155,11 +228,11 @@ int co_export_getmem(lua_State* L)
   return 2;
 }
 
-void co_trace(co* Co, int tracelv, const char* fmt, ...)
+void co_trace(co* Co, int mod, int lv, const char* msg, ...)
 {
-  va_list va;
-  if (tracelv > Co->btrace) return;
-  va_start(va, fmt);
-  vprintf(fmt, va);
-  va_end(va);
+  va_list msgva;
+  if (!Co->tf) return;
+  va_start(msgva, msg);
+  Co->tf(Co, mod, lv, msg, msgva);
+  va_end(msgva);
 }

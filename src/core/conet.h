@@ -21,4 +21,8 @@ int coN_export_listen(lua_State* L);
 int coN_export_push(lua_State* L);
 int coN_export_close(lua_State* L);
 
+#define coN_traceinfo(Co, msg, ...) co_trace((Co), CO_MOD_NET, CO_LVINFO, msg, ##__VA_ARGS__)
+#define coN_tracedebug(Co, msg, ...) co_trace((Co), CO_MOD_NET, CO_LVDEBUG, msg, ##__VA_ARGS__)
+#define coN_tracefatal(Co, msg, ...) co_trace((Co), CO_MOD_NET, CO_LVFATAL, msg, ##__VA_ARGS__)
+
 #endif

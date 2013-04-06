@@ -16,4 +16,8 @@ void coS_die(co* Co);
 void coS_active(co* Co);
 lua_State* coS_lua(co* Co); /* Todo:more advanced function 2 other mod */
 
+#define coS_tracefatal(Co, msg, ...) co_trace((Co), CO_MOD_SCRIPT, CO_LVFATAL, msg, ##__VA_ARGS__)
+#define coS_tracedebug(Co, msg, ...) co_trace((Co), CO_MOD_SCRIPT, CO_LVDEBUG, msg, ##__VA_ARGS__)
+#define coS_traceinfo(Co, msg, ...) co_trace((Co), CO_MOD_SCRIPT, CO_LVINFO, msg, ##__VA_ARGS__)
+
 #endif

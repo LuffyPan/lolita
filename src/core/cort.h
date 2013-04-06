@@ -15,6 +15,6 @@ typedef void (*coR_pfunc)(co* Co, void* ud);
 
 void coR_throw(co* Co, int status);
 int coR_pcall(co* Co, coR_pfunc f, void* ud);
-#define coR_runerror(Co, e) if (!(e)) {printf("runerror:%s\n", #e); coR_throw((Co), 1);}
+#define coR_runerror(Co, e) if (!(e)) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "runerror %s", #e); coR_throw((Co), CO_ERRRUN);}
 
 #endif

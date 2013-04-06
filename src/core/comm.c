@@ -16,7 +16,7 @@ void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns, int bthrow)
   if (np == NULL && ns > 0)
   {
     co_assertex(ns > os, "failed when shrinking mem..");
-    if (bthrow) coR_throw(Co, 1); else return NULL;
+    if (bthrow) coR_throw(Co, CO_ERRMEM); else return NULL;
   }
   co_assert((ns == 0) == (np == NULL));
   return np;

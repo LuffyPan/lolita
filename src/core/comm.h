@@ -25,7 +25,7 @@ void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns, int bthrow);
 #define _coM_maxsizet ((~((size_t)0)) - 2)
 #define _coM_xllocvector(Co, p, on, nn, e) \
   ((co_cast(size_t, (nn)) > _coM_maxsizet/(e)) ? \
-  (coR_throw(Co,1111), (void*)NULL) :\
+  (coR_throw(Co,CO_ERRX), (void*)NULL) :\
   coM_xllocmem(Co, p, (on)*(e), (nn)*(e), 1))
 
 #endif

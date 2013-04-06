@@ -66,8 +66,8 @@ static int coS_panic(lua_State* L)
 {
   co* Co = NULL;
   lua_getallocf(L, (void**)&Co); co_assert(Co);
-  printf("mem:%u/%u", Co->umem, Co->maxmem);
-  coR_throw(Co, 3);
+  coS_tracedebug(Co, "atpanic\?!");
+  coR_throw(Co, CO_ERRSCRIPTPANIC);
   return 0;
 }
 
@@ -89,15 +89,15 @@ void coS_born(co* Co)
   int z = 0;
   co_assert(!Co->L);
   Co->L = lua_newstate(_coS_alloc, Co);
-  if (!Co->L) coR_throw(Co, 4);
+  if (!Co->L) coR_throw(Co, CO_ERRSCRIPTNEW);
   lua_atpanic(Co->L, coS_panic);
   co_assert(0 == lua_gettop(Co->L));
   lua_pushcfunction(Co->L, coS_pinit);
   z = lua_pcall(Co->L, 0, 0, 0);
-  if (z != LUA_OK)
+  if (z)
   {
-    printf("%s\n", lua_tostring(Co->L, -1));
-    coR_throw(Co, 5);
+    coS_tracedebug(Co, lua_tostring(Co->L, -1));
+    coR_throw(Co, CO_ERRSCRIPTCALL);
   }
   co_assert(0 == lua_gettop(Co->L));
 }
@@ -116,7 +116,6 @@ void coS_die(co* Co)
 _coS1:
   lua_close(L);
   Co->L = NULL;
-  co_traceinfo(Co, "coScript died..\n");
 }
 
 void coS_active(co* Co)
@@ -124,15 +123,14 @@ void coS_active(co* Co)
   lua_State* L = Co->L;
   int nstack = lua_gettop(L);
   lua_getglobal(L, "core");
-  lua_getfield(L, -1, "active");
-  coR_runerror(Co, lua_isfunction(L, -1));
+  lua_getfield(L, -1, "active"); co_assert(lua_isfunction(L, -1));
   lua_pushvalue(L, -2);
   if (LUA_OK != lua_pcall(L, 1, 0, 0))
   {
-    co_traceerror(Co, "coScript failed call active, detail, %s\n", lua_tostring(L, -1));
+    coS_tracedebug(Co, "active failed, %s", lua_tostring(L, -1));
     lua_pop(L, 2);
     co_assert(nstack == lua_gettop(L));
-    coR_throw(Co, 7);
+    coR_throw(Co, CO_ERRSCRIPTCALL);
   }
   lua_pop(L, 1);
   co_assert(nstack == lua_gettop(L));

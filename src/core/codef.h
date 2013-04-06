@@ -50,7 +50,9 @@ typedef struct coN coN;
 
 typedef struct co_longjmp co_longjmp;
 typedef struct co co;
+typedef co lolicore;
 typedef void* (*co_xlloc)(void* ud, void* p, size_t olds, size_t news);
+typedef void (*co_tracef)(lolicore* Co, int mod, int lv, const char* msg, va_list msgva);
 
 struct co_longjmp
 {
@@ -63,6 +65,7 @@ struct co
 {
   int btrace;
   co_xlloc xlloc;
+  co_tracef tf;
   void* ud;
   size_t umem;
   size_t maxmem;
@@ -74,14 +77,32 @@ struct co
   coN* N;
 };
 
-typedef co lolicore;
+#define CO_OK 0
+#define CO_ERRRUN 1
+#define CO_ERRMEM 2
+#define CO_ERRSCRIPTPANIC 3
+#define CO_ERRSCRIPTNEW 4
+#define CO_ERRSCRIPTCALL 5
+#define CO_ERRX 6
+
+#define CO_LVFATAL 0
+#define CO_LVDEBUG 1
+#define CO_LVINFO 2
+
+#define  CO_MOD_CORE 0
+#define CO_MOD_NET 1
+#define CO_MOD_SCRIPT 2
+
+#define LOLICORE_LVFATAL CO_LVFATAL
+#define LOLICORE_LVDEBUG CO_LVDEBUG
+#define LOLICORE_LVINFO CO_LVINFO
+
+#define LOLICORE_MOD_CORE CO_MOD_CORE
+#define LOLICORE_MOD_NET CO_MOD_NET
+#define LOLICORE_MOD_SCRIPT CO_MOD_SCRIPT
 
 #define co_cast(t, exp) ((t)(exp))
 #define co_assert(x) assert((x))
 #define co_assertex(x,msg) co_assert((x) && msg)
-void co_trace(co* Co, int tracelv, const char* fmt, ...);
-#define co_traceinfo(Co, fmt, ...) co_trace((Co), 1, fmt, ##__VA_ARGS__)
-#define co_traceinfolv2(Co, fmt, ...) co_trace((Co), 2, fmt, ##__VA_ARGS__)
-#define co_traceinfolv3(Co, fmt, ...) co_trace((Co), 3, fmt, ##__VA_ARGS__)
-#define co_traceerror(Co, fmt, ...) co_trace((Co), 0, fmt, ##__VA_ARGS__)
+void co_trace(co* Co, int mod, int lv, const char* msg, ...);
 #endif
