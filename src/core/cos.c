@@ -50,27 +50,6 @@ static const luaL_Reg coOs_funcs[] =
   {NULL, NULL},
 };
 
-static void* _coS_alloc(void* ud, void* p, size_t os, size_t ns)
-{
-  co* Co = co_cast(co*, ud);
-  void* np = NULL;
-  /* when p == NULL, the un32_osize indicate the type of object lua, so, reset it to 0 */
-  os = (NULL == p && os > 0) ? 0 : os;
-  np = coM_xllocmem(Co, p, os, ns, 0); /* give control to Lua, don't let co throw */
-  /* Lua assumes that the allocator never fails when osize >= nsize */
-  if (NULL == np && ns > 0 && ns <= os) co_assert(0);
-  return np;
-}
-
-static int coS_panic(lua_State* L)
-{
-  co* Co = NULL;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
-  coS_tracedebug(Co, "atpanic\?!");
-  coR_throw(Co, CO_ERRSCRIPTPANIC);
-  return 0;
-}
-
 static int coS_pinit(lua_State* L)
 {
   co* Co = NULL;
@@ -87,10 +66,7 @@ static int coS_pinit(lua_State* L)
 void coS_born(co* Co)
 {
   int z = 0;
-  co_assert(!Co->L);
-  Co->L = lua_newstate(_coS_alloc, Co);
-  if (!Co->L) coR_throw(Co, CO_ERRSCRIPTNEW);
-  lua_atpanic(Co->L, coS_panic);
+  co_assert(Co->L);
   co_assert(0 == lua_gettop(Co->L));
   lua_pushcfunction(Co->L, coS_pinit);
   z = lua_pcall(Co->L, 0, 0, 0);
@@ -111,11 +87,14 @@ void coS_die(co* Co)
   lua_getfield(L, -1, "die");
   if (!lua_isfunction(L, -1)) {lua_pop(L, 2); goto _coS1;}
   lua_pushvalue(L, -2);
-  if (LUA_OK != lua_pcall(L, 1, 0, 0)){}
+  if (lua_pcall(L, 1, 0, 0))
+  {
+    coS_tracedebug(Co, lua_tostring(Co->L, -1));
+    lua_pop(L, 1);
+  }
   lua_pop(L, 1);
-_coS1:
-  lua_close(L);
-  Co->L = NULL;
+ _coS1:
+  co_assert(lua_gettop(L) == 0);
 }
 
 void coS_active(co* Co)

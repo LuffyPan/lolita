@@ -11,9 +11,14 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cos.h"
 #include "conet.h"
 #include "coos.h"
+#include "comm.h"
 
-static void* _co_xlloc(void* ud, void* p, size_t os, size_t ns);
-static void co_new(co* Co, void* ud);
+static int co_panic(lua_State* L);
+static void* co_xlloc(void* ud, void* p, size_t os, size_t ns);
+static void* co_lualloc(void* ud, void* p, size_t os, size_t ns);
+static void co_newlua(co* Co);
+static void co_deletelua(co* Co);
+static void co_born(co* Co, void* ud);
 static void co_active(co* Co, void* ud);
 static void co_free(co* Co);
 static void co_fatalerror(co* Co, int e);
@@ -21,12 +26,12 @@ static const char* co_modname(co* Co, int mod);
 static const char* co_lvname(co* Co, int lv);
 static const char* co_errorstr(co* Co, int e);
 
-lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud, co_tracef tf)
+lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf)
 {
   int z = 0;
   co* Co;
-  x = x ? x : _co_xlloc;
-  Co = co_cast(co*, (*x)(x == _co_xlloc ? NULL : ud, NULL, 0, sizeof(co)));
+  x = x ? x : co_xlloc;
+  Co = co_cast(co*, (*x)(x == co_xlloc ? NULL : ud, NULL, 0, sizeof(co)));
   if (NULL == Co) return NULL;
   Co->xlloc = x;
   Co->ud = ud;
@@ -35,7 +40,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud, co_tr
   Co->argv = argv;
   Co->umem = 0;
   Co->maxmem = 4096 * 25;
-  if (Co->xlloc == _co_xlloc)
+  if (Co->xlloc == co_xlloc)
   {
     Co->ud = (void*)Co;
     Co->umem = sizeof(*Co);
@@ -46,7 +51,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud, co_tr
   Co->bactive = 0;
   Co->L = NULL;
   Co->N = NULL;
-  z = coR_pcall(Co, co_new, NULL);
+  z = coR_pcall(Co, co_born, NULL);
   if (z)
   {
     co_fatalerror(Co, z);
@@ -91,8 +96,9 @@ const char* lolicore_getlvname(lolicore* Co, int lv)
   return co_lvname(Co, lv);
 }
 
-static void co_new(co* Co, void* ud)
+static void co_born(co* Co, void* ud)
 {
+  co_newlua(Co);
   coN_born(Co);
   coS_born(Co);
 }
@@ -112,8 +118,22 @@ static void co_free(co* Co)
 {
   coS_die(Co);
   coN_die(Co);
-  co_assert((Co->xlloc == _co_xlloc) == (Co->umem == sizeof(*Co)));
+  co_deletelua(Co);
+  co_assert((Co->xlloc == co_xlloc) == (Co->umem == sizeof(*Co)));
   (*Co->xlloc)(NULL, Co, sizeof(co), 0);
+}
+
+static void co_newlua(co* Co)
+{
+  co_assert(!Co->L);
+  Co->L = lua_newstate(co_lualloc, Co);
+  if (!Co->L) coR_throw(Co, CO_ERRSCRIPTNEW);
+  lua_atpanic(Co->L, co_panic);
+}
+
+static void co_deletelua(co* Co)
+{
+  if (Co->L) lua_close(Co->L);
 }
 
 static void co_fatalerror(co* Co, int e)
@@ -166,7 +186,28 @@ static const char* co_errorstr(co* Co, int e)
   return _es[e];
 }
 
-static void* _co_xlloc(void* ud, void* p, size_t os, size_t ns)
+static int co_panic(lua_State* L)
+{
+  co* Co = NULL;
+  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "atpanic\?!");
+  coR_throw(Co, CO_ERRSCRIPTPANIC);
+  return 0;
+}
+
+static void* co_lualloc(void* ud, void* p, size_t os, size_t ns)
+{
+  co* Co = co_cast(co*, ud);
+  void* np = NULL;
+  /* when p == NULL, the un32_osize indicate the type of object lua, so, reset it to 0 */
+  os = (NULL == p && os > 0) ? 0 : os;
+  np = coM_xllocmem(Co, p, os, ns, 0); /* give control to Lua, don't let co throw */
+  /* Lua assumes that the allocator never fails when osize >= nsize */
+  if (NULL == np && ns > 0 && ns <= os) co_assert(0);
+  return np;
+}
+
+static void* co_xlloc(void* ud, void* p, size_t os, size_t ns)
 {
   void* x = NULL;
   co* Co = (co*)ud;

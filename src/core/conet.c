@@ -399,41 +399,18 @@ static cosock* cosockpool_getsock(cosockpool* po, int idx)
   return po->sp[idx];
 }
 
-static void* _cosockid2idx_alloc(void* ud, void* p, size_t os, size_t ns)
-{
-  co* Co = co_cast(co*, ud);
-  void* np = NULL;
-  /* when p == NULL, the un32_osize indicate the type of object lua, so, reset it to 0 */
-  os = (NULL == p && os > 0) ? 0 : os;
-  np = coM_xllocmem(Co, p, os, ns, 0);
-  /* Lua assumes that the allocator never fails when osize >= nsize */
-  if (NULL == np && ns > 0 && ns <= os) co_assert(0);
-  return np;
-}
-
-static void cosockid2idx_pnew(co* Co, void* ud)
-{
-  cosockid2idx* i2i = (cosockid2idx*)ud;
-  i2i->id2idx = lua_newstate(_cosockid2idx_alloc, Co);
-  if (!i2i->id2idx) coR_throw(Co, CO_ERRSCRIPTNEW);
-}
-
 static cosockid2idx* cosockid2idx_new(co* Co)
 {
-  int z = 0;
   cosockid2idx* i2i = NULL;
   i2i = coM_newobj(Co, cosockid2idx);
   i2i->nextid = 1;
-  i2i->id2idx = NULL;
-  z = coR_pcall(Co, cosockid2idx_pnew, i2i);
-  if (z){cosockid2idx_delete(Co, i2i);i2i = NULL;coR_throw(Co, z);}
+  i2i->id2idx = coS_lua(Co); co_assert(i2i->id2idx);
   return i2i;
 }
 
 static void cosockid2idx_delete(co* Co, cosockid2idx* id2idx)
 {
   if (!id2idx) return;
-  if (id2idx->id2idx) lua_close(id2idx->id2idx);
   coM_deleteobj(Co, id2idx);
 }
 
@@ -444,21 +421,31 @@ static int cosockid2idx_newid(cosockid2idx* id2idx)
 
 static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
 {
-  lua_pushglobaltable(id2idx->id2idx);
-  lua_pushnumber(id2idx->id2idx, id);
-  lua_pushnumber(id2idx->id2idx, idx);
-  lua_settable(id2idx->id2idx, -3);
-  lua_pop(id2idx->id2idx, 1);
+  lua_State* L = id2idx->id2idx;
+  int t = lua_gettop(L);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
+  lua_pushnumber(L, id);
+  lua_pushnumber(L, idx);
+  lua_settable(L, -3);
+  lua_pop(L, 3);
+  co_assert(lua_gettop(L) == t);
 }
 
 static int cosockid2idx_getidx(cosockid2idx* id2idx, int id)
 {
   int idx = 0;
-  lua_pushglobaltable(id2idx->id2idx);
-  lua_pushnumber(id2idx->id2idx, id);
-  lua_gettable(id2idx->id2idx, -2);
-  idx = (int)lua_tonumber(id2idx->id2idx, -1);
-  lua_pop(id2idx->id2idx, 2);
+  lua_State* L = id2idx->id2idx;
+  int t = lua_gettop(L);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
+  lua_pushnumber(L, id);
+  lua_gettable(L, -2);
+  idx = (int)lua_tonumber(L, -1);
+  lua_pop(L, 4);
+  co_assert(lua_gettop(L) == t);
   co_assertex(idx, "invalid id 2 idx");
   return idx;
 }

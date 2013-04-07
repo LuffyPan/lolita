@@ -11,7 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "codef.h"
 
-lolicore* lolicore_born(int argc, const char** argv, co_xlloc x, void* ud, co_tracef tf);
+lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf);
 void lolicore_active(lolicore* Co);
 void lolicore_die(lolicore* Co);
 size_t lolicore_getusedmem(lolicore* Co);

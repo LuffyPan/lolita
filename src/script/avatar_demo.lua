@@ -46,8 +46,8 @@ function avatar_demo:born()
     print("avatar si not a dir")
   end
 
-  core.image:register(16, self.image, self)
-  core.image:register(3200, self.imageclose, self)
+  core.image:register(8, self.image, self)
+  core.image:register(16 * 30, self.imageclose, self)
   local imaid = core.image:register(64, self.image, self)
   core.image:unregister(imaid)
   for i = 1, 1 do

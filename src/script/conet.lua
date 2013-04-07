@@ -6,6 +6,7 @@
 
 core.net = {}
 local net = core.net
+net.ids = {}
 
 function net:born()
   self.netstateset = {}

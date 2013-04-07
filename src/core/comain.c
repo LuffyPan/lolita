@@ -29,7 +29,7 @@ void externaltracef(lolicore* Co, int mod, int lv, const char* msg, va_list msgv
 int main(int argc, const char** argv)
 {
   lolicore* Co;
-  co_xlloc x = NULL;
+  co_xllocf x = NULL;
   /* Todo: hide plat */
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
   _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );

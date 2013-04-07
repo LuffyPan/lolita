@@ -51,7 +51,7 @@ typedef struct coN coN;
 typedef struct co_longjmp co_longjmp;
 typedef struct co co;
 typedef co lolicore;
-typedef void* (*co_xlloc)(void* ud, void* p, size_t olds, size_t news);
+typedef void* (*co_xllocf)(void* ud, void* p, size_t olds, size_t news);
 typedef void (*co_tracef)(lolicore* Co, int mod, int lv, const char* msg, va_list msgva);
 
 struct co_longjmp
@@ -64,7 +64,7 @@ struct co_longjmp
 struct co
 {
   int btrace;
-  co_xlloc xlloc;
+  co_xllocf xlloc;
   co_tracef tf;
   void* ud;
   size_t umem;
@@ -89,7 +89,7 @@ struct co
 #define CO_LVDEBUG 1
 #define CO_LVINFO 2
 
-#define  CO_MOD_CORE 0
+#define CO_MOD_CORE 0
 #define CO_MOD_NET 1
 #define CO_MOD_SCRIPT 2
 
