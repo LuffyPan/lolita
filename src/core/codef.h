@@ -75,6 +75,7 @@ struct co
   int bactive;
   lua_State* L;
   coN* N;
+  char core[256];
 };
 
 #define CO_OK 0

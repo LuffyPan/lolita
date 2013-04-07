@@ -7,6 +7,8 @@ Chamz Lau, Copyright (C) 2013-2017
 */
 
 #include "coos.h"
+#include "co.h"
+#include "cort.h"
 #include <sys/stat.h>
 
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
@@ -18,9 +20,71 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <sys/time.h>
 #endif
 
+static int coOs_export_sleep(lua_State* L);
+static int coOs_export_gettime(lua_State* L);
+static int coOs_export_isdir(lua_State* L);
+static int coOs_export_isfile(lua_State* L);
+static int coOs_export_ispath(lua_State* L);
+static int coOs_export_mkdir(lua_State* L);
+static int coOs_export_getcwd(lua_State* L);
+
+int coOs_pexportapi(lua_State* L)
+{
+  static const luaL_Reg coOs_funcs[] =
+  {
+    {"sleep", coOs_export_sleep},
+    {"gettime", coOs_export_gettime},
+    {"isdir", coOs_export_isdir},
+    {"isfile", coOs_export_isfile},
+    {"ispath", coOs_export_ispath},
+    {"mkdir", coOs_export_mkdir},
+    {"getcwd", coOs_export_getcwd},
+    {NULL, NULL},
+  };
+  co_assert(lua_gettop(L) == 0);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_newtable(L);
+  luaL_setfuncs(L, coOs_funcs, 0);
+  lua_setfield(L, -2, "os");
+  lua_pop(L, 1);
+  co_assert(lua_gettop(L) == 0);
+  return 0;
+}
+
+int coOs_pexport(lua_State* L)
+{
+  coOs_pexportapi(L);
+  return 0;
+}
+
+void coOs_export(co* Co)
+{
+  int z;
+  lua_State* L = co_L(Co);
+  co_assert(lua_gettop(L) == 0);
+  lua_pushcfunction(L, coOs_pexport);
+  z = lua_pcall(L, 0, 0, 0);
+  if (z)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
+    lua_pop(L,1); co_assert(lua_gettop(L) == 0);
+    coR_throw(Co, CO_ERRSCRIPTCALL);
+  }
+  co_assert(lua_gettop(L) == 0);
+}
+
+void coOs_born(co* Co)
+{
+  coOs_export(Co);
+}
+
+void coOs_die(co* Co)
+{
+}
+
 void coOs_sleep(int msec)
 {
-  co_assertex(msec >= 0 && msec < 1000 * 60, "fuck, need so long..");
+  co_assertex(msec >= 0 && msec < 1000 * 60, "fuck, need so long..\?");
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
   Sleep((DWORD)msec);
 #else
@@ -114,7 +178,7 @@ int coOs_getcwd(co* Co, char* buf, size_t bufs)
   return z;
 }
 
-int coOs_export_sleep(lua_State* L)
+static int coOs_export_sleep(lua_State* L)
 {
   int msec = 0;
   msec = luaL_checkint(L, 1);
@@ -122,13 +186,13 @@ int coOs_export_sleep(lua_State* L)
   return 0;
 }
 
-int coOs_export_gettime(lua_State* L)
+static int coOs_export_gettime(lua_State* L)
 {
   lua_pushnumber(L, coOs_gettime());
   return 1;
 }
 
-int coOs_export_isdir(lua_State* L)
+static int coOs_export_isdir(lua_State* L)
 {
   const char* path = NULL;
   path = luaL_checkstring(L, 1);
@@ -140,7 +204,7 @@ int coOs_export_isdir(lua_State* L)
   return 0;
 }
 
-int coOs_export_isfile(lua_State* L)
+static int coOs_export_isfile(lua_State* L)
 {
   const char* path = NULL;
   path = luaL_checkstring(L, 1);
@@ -152,7 +216,7 @@ int coOs_export_isfile(lua_State* L)
   return 0;
 }
 
-int coOs_export_ispath(lua_State* L)
+static int coOs_export_ispath(lua_State* L)
 {
   const char* path = NULL;
   path = luaL_checkstring(L, 1);
@@ -164,11 +228,11 @@ int coOs_export_ispath(lua_State* L)
   return 0;
 }
 
-int coOs_export_mkdir(lua_State* L)
+static int coOs_export_mkdir(lua_State* L)
 {
   co* Co = NULL;
   const char* path = NULL;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   path = luaL_checkstring(L, 1);
   if (coOs_mkdir(Co, path))
   {
@@ -178,12 +242,12 @@ int coOs_export_mkdir(lua_State* L)
   return 0;
 }
 
-int coOs_export_getcwd(lua_State* L)
+static int coOs_export_getcwd(lua_State* L)
 {
   char buf[1024];
   size_t bufs = 1024;
   co* Co = NULL;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   if (coOs_getcwd(Co, buf, bufs))
   {
     lua_pushstring(L, buf);

@@ -17,7 +17,7 @@ solution "lolicore"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corepath=../src/script", "avatar=../src/script/avatar_demo.lua"}
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "core=../src/script/co.lua", "avatar=../src/script/avatar_demo.lua"}
 
 project "lolicore"
   targetname "lolicore"

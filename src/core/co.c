@@ -8,7 +8,6 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "co.h"
 #include "cort.h"
-#include "cos.h"
 #include "conet.h"
 #include "coos.h"
 #include "comm.h"
@@ -18,13 +17,19 @@ static void* co_xlloc(void* ud, void* p, size_t os, size_t ns);
 static void* co_lualloc(void* ud, void* p, size_t os, size_t ns);
 static void co_newlua(co* Co);
 static void co_deletelua(co* Co);
+static void co_export(co* Co);
 static void co_born(co* Co, void* ud);
-static void co_active(co* Co, void* ud);
+static void co_alive(co* Co, void* ud);
 static void co_free(co* Co);
 static void co_fatalerror(co* Co, int e);
 static const char* co_modname(co* Co, int mod);
 static const char* co_lvname(co* Co, int lv);
 static const char* co_errorstr(co* Co, int e);
+
+static int co_export_setmaxmem(lua_State* L);
+static int co_export_getmem(lua_State* L);
+static int co_export_kill(lua_State* L);
+static int co_export_enabletrace(lua_State* L);
 
 lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf)
 {
@@ -39,7 +44,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
-  Co->maxmem = 4096 * 25;
+  Co->maxmem = 4096 * 5;
   if (Co->xlloc == co_xlloc)
   {
     Co->ud = (void*)Co;
@@ -51,6 +56,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   Co->bactive = 0;
   Co->L = NULL;
   Co->N = NULL;
+  Co->core[0] = 0;
   z = coR_pcall(Co, co_born, NULL);
   if (z)
   {
@@ -61,9 +67,9 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   return (lolicore*)Co;
 }
 
-void lolicore_active(lolicore* Co)
+void lolicore_alive(lolicore* Co)
 {
-  int z = coR_pcall(Co, co_active, NULL);
+  int z = coR_pcall(Co, co_alive, NULL);
   if (z)
   {
     co_fatalerror(Co, z);
@@ -99,24 +105,67 @@ const char* lolicore_getlvname(lolicore* Co, int lv)
 static void co_born(co* Co, void* ud)
 {
   co_newlua(Co);
+  co_export(Co);
+  coOs_born(Co);
   coN_born(Co);
-  coS_born(Co);
 }
 
-static void co_active(co* Co, void* ud)
+static int co_palive(lua_State* L)
 {
-  Co->bactive = 1;
-  while(Co->bactive)
+  int z;
+  co* Co = NULL;
+  co_C(L, Co);
+  strncpy(Co->core, "./co.lua", sizeof(Co->core));
+  co_assert(lua_gettop(L) == 0);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "core");
+  if (lua_isstring(L, -1))
   {
-    coN_active(Co);
-    coS_active(Co);
-    coOs_sleep(1);
+    const char* core = NULL;
+    size_t len = 0;
+    core = lua_tolstring(L, -1, &len);
+    if (len >= sizeof(Co->core))
+    {
+      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.core is larger than %u, use default %s", sizeof(Co->core), Co->core);
+    }
+    else
+    {
+      strncpy(Co->core, core, sizeof(Co->core));
+    }
+    lua_pop(L, 3); co_assert(lua_gettop(L) == 0);
   }
+  else
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.core is NIL, use default %s", Co->core);
+  }
+  z = luaL_loadfile(L, Co->core); if (z) lua_error(L);
+  z = lua_pcall(L, 0, 0, 0); if (z) lua_error(L);
+  co_assert(lua_gettop(L) == 0);
+  return 0;
+}
+
+static void co_alive(co* Co, void* ud)
+{
+  int z;
+  lua_State* L = NULL;
+  L = co_L(Co);
+  co_assert(lua_gettop(L) == 0);
+  lua_pushcfunction(L, co_palive);
+  z = lua_pcall(L, 0, 0, 0);
+  if (z)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
+    lua_pop(L, 1);
+    co_assert(lua_gettop(L) == 0);
+    coR_throw(Co, CO_ERRSCRIPTCALL);
+  }
+  co_assert(lua_gettop(L) == 0);
 }
 
 static void co_free(co* Co)
 {
-  coS_die(Co);
+  coOs_die(Co);
   coN_die(Co);
   co_deletelua(Co);
   co_assert((Co->xlloc == co_xlloc) == (Co->umem == sizeof(*Co)));
@@ -125,15 +174,116 @@ static void co_free(co* Co)
 
 static void co_newlua(co* Co)
 {
-  co_assert(!Co->L);
-  Co->L = lua_newstate(co_lualloc, Co);
-  if (!Co->L) coR_throw(Co, CO_ERRSCRIPTNEW);
-  lua_atpanic(Co->L, co_panic);
+  lua_State* L = co_L(Co);
+  co_assert(!L);
+  L = lua_newstate(co_lualloc, Co);
+  co_L(Co) = L;
+  if (!L) coR_throw(Co, CO_ERRSCRIPTNEW);
+  lua_atpanic(L, co_panic);
 }
 
 static void co_deletelua(co* Co)
 {
-  if (Co->L) lua_close(Co->L);
+  lua_State* L = co_L(Co);
+  if (L) lua_close(L);
+}
+
+static void co_pexportinfo(lua_State* L)
+{
+  co_assert(lua_gettop(L) == 0);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_newtable(L);
+  lua_pushvalue(L, -1); lua_setfield(L, -3, "info"); /* core.info */
+  lua_pushstring(L, LOLICORE_COPYRIGHT); lua_setfield(L, -2, "copyright");
+  lua_pushstring(L, LOLICORE_AUTHOR); lua_setfield(L, -2, "author");
+  lua_pushnumber(L, LOLICORE_VERSION); lua_setfield(L, -2, "version");
+  lua_pushstring(L, LOLICORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
+  lua_pushstring(L, LOLICORE_PLATSTR); lua_setfield(L, -2, "platform");
+  lua_pop(L, 2); /* core.info */
+  co_assert(lua_gettop(L) == 0);
+}
+
+static void co_pexportarg(lua_State* L)
+{
+  co* Co = NULL;
+  const char** argv = NULL;
+  int argc = 0, i = 0;
+  co_C(L, Co);
+  argv = Co->argv;
+  argc = Co->argc;
+  co_assert(lua_gettop(L) == 0);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_newtable(L);
+  lua_pushvalue(L, -1); lua_setfield(L, -3, "arg"); /* core.arg */
+  for (i = 1; i < argc; ++i)
+  {
+    const char* p = strchr(argv[i], '=');
+    if (p)
+    {
+      size_t len = p - argv[i];
+      if (!len) continue;
+      lua_pushlstring(L, argv[i], (int)len);
+      lua_pushstring(L, p + 1);
+    }
+    else
+    {
+      lua_pushstring(L, argv[i]);
+      lua_pushstring(L, "");
+    }
+    lua_settable(L, -3);
+  }
+  lua_pop(L, 2); /* core.arg */
+  co_assert(lua_gettop(L) == 0);
+}
+
+static void co_pexportapi(lua_State* L)
+{
+  co* Co = NULL;
+  static const luaL_Reg co_funcs[] =
+  {
+    {"kill", co_export_kill},
+    {"enabletrace", co_export_enabletrace},
+    {"getmem", co_export_getmem},
+    {"setmaxmem", co_export_setmaxmem},
+    {NULL, NULL},
+  };
+  co_C(L, Co);
+  co_assert(lua_gettop(L) == 0);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_newtable(L);
+  luaL_setfuncs(L, co_funcs, 0);
+  lua_setfield(L, -2, "base"); /* core.base */
+  lua_pop(L, 1); /* core */
+  co_assert(lua_gettop(L) == 0);
+}
+
+static int co_pexport(lua_State* L)
+{
+  co_assert(lua_gettop(L) == 0);
+  luaL_openlibs(L);
+  lua_newtable(L); /* core */
+  lua_setglobal(L, "core");
+  co_pexportinfo(L);
+  co_pexportarg(L);
+  co_pexportapi(L);
+  co_assert(lua_gettop(L) == 0);
+  return 0;
+}
+
+static void co_export(co* Co)
+{
+  int z;
+  lua_State* L = co_L(Co);
+  co_assert(lua_gettop(L) == 0);
+  lua_pushcfunction(L, co_pexport);
+  z = lua_pcall(L, 0, 0, 0);
+  if (z)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
+    lua_pop(L,1); co_assert(lua_gettop(L) == 0);
+    coR_throw(Co, CO_ERRSCRIPTCALL);
+  }
+  co_assert(lua_gettop(L) == 0);
 }
 
 static void co_fatalerror(co* Co, int e)
@@ -189,7 +339,7 @@ static const char* co_errorstr(co* Co, int e)
 static int co_panic(lua_State* L)
 {
   co* Co = NULL;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "atpanic\?!");
   coR_throw(Co, CO_ERRSCRIPTPANIC);
   return 0;
@@ -230,40 +380,38 @@ static void* co_xlloc(void* ud, void* p, size_t os, size_t ns)
   return x;
 }
 
-int co_export_kill(lua_State* L)
+static int co_export_kill(lua_State* L)
 {
   co* Co = NULL;
-  lua_getallocf(L, (void**)&Co);
-  co_assert(Co);
+  co_C(L, Co);
   Co->bactive = 0;
   return 0;
 }
 
-int co_export_enabletrace(lua_State* L)
+static int co_export_enabletrace(lua_State* L)
 {
   co* Co = NULL;
   int benable = 0;
-  lua_getallocf(L, (void**)&Co);
-  co_assert(Co);
+  co_C(L, Co);
   benable = luaL_checkint(L, 1);
   Co->btrace = benable;
   return 0;
 }
 
-int co_export_setmaxmem(lua_State* L)
+static int co_export_setmaxmem(lua_State* L)
 {
   co* Co = NULL;
   size_t maxmem;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   maxmem = co_cast(size_t, luaL_checkunsigned(L, 1));
   Co->maxmem = maxmem > Co->maxmem ? maxmem : Co->maxmem;
   return 0;
 }
 
-int co_export_getmem(lua_State* L)
+static int co_export_getmem(lua_State* L)
 {
   co* Co = NULL;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   lua_pushnumber(L, Co->umem);
   lua_pushnumber(L, Co->maxmem);
   return 2;

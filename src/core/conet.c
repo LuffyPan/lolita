@@ -7,9 +7,9 @@ Chamz Lau, Copyright (C) 2013-2017
 */
 
 #include "conet.h"
+#include "co.h"
 #include "cort.h"
 #include "comm.h"
-#include "cos.h"
 
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -232,6 +232,7 @@ static void cosock_deletefdt(co* Co, cosock* s);
 #define cosock_afunc(s) ((s)->afunc)
 #define cosock_fdt(s) ((s)->fdt)
 
+static void coN_export(co* Co);
 static void coN_initenv(co* Co);
 static void coN_uninitenv(co* Co);
 static void coN_initeventer(co* Co);
@@ -248,6 +249,13 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra);
 static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra);
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra);
 static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra);
+
+static int coN_export_register(lua_State* L);
+static int coN_export_connect(lua_State* L);
+static int coN_export_listen(lua_State* L);
+static int coN_export_push(lua_State* L);
+static int coN_export_close(lua_State* L);
+static int coN_export_active(lua_State* L);
 
 static void cosockbuf_pnew(co* Co, void* ud)
 {
@@ -404,7 +412,7 @@ static cosockid2idx* cosockid2idx_new(co* Co)
   cosockid2idx* i2i = NULL;
   i2i = coM_newobj(Co, cosockid2idx);
   i2i->nextid = 1;
-  i2i->id2idx = coS_lua(Co); co_assert(i2i->id2idx);
+  i2i->id2idx = co_L(Co); co_assert(i2i->id2idx);
   return i2i;
 }
 
@@ -462,6 +470,7 @@ void coN_born(co* Co)
   coN_newid2idx(Co);
   coN_initenv(Co);
   coN_newcosocks(Co);
+  coN_export(Co);
 }
 
 void coN_active(co* Co)
@@ -483,6 +492,50 @@ void coN_die(co* Co)
   coN_uninitenv(Co);
   coN_deleteid2idx(Co);
   coM_deleteobj(Co, Co->N);
+}
+
+int coN_pexportapi(lua_State* L)
+{
+  static const luaL_Reg coOs_funcs[] =
+  {
+    {"register", coN_export_register},
+    {"connect", coN_export_connect},
+    {"listen", coN_export_listen},
+    {"push", coN_export_push},
+    {"close", coN_export_close},
+    {"active", coN_export_active},
+    {NULL, NULL},
+  };
+  co_assert(lua_gettop(L) == 0);
+  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  lua_newtable(L);
+  luaL_setfuncs(L, coOs_funcs, 0);
+  lua_setfield(L, -2, "net");
+  lua_pop(L, 1);
+  co_assert(lua_gettop(L) == 0);
+  return 0;
+}
+
+int coN_pexport(lua_State* L)
+{
+  coN_pexportapi(L);
+  return 0;
+}
+
+static void coN_export(co* Co)
+{
+  int z;
+  lua_State* L = co_L(Co);
+  co_assert(lua_gettop(L) == 0);
+  lua_pushcfunction(L, coN_pexport);
+  z = lua_pcall(L, 0, 0, 0);
+  if (z)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
+    lua_pop(L,1); co_assert(lua_gettop(L) == 0);
+    coR_throw(Co, CO_ERRSCRIPTCALL);
+  }
+  co_assert(lua_gettop(L) == 0);
 }
 
 static void coN_initenv(co* Co)
@@ -686,7 +739,7 @@ static void coN_realclose(co* Co)
 
 static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
 {
-  lua_State* L = coS_lua(Co);
+  lua_State* L = co_L(Co);
   co_assert(!as);
   coN_tracedebug(Co, "id[%d,%d] connect event result[%d]", s->id, 0, extra);
   lua_getglobal(L, "core");
@@ -705,7 +758,7 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
 
 static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
 {
-  lua_State* L = coS_lua(Co);
+  lua_State* L = co_L(Co);
   co_assert(as);
   co_assert(lua_gettop(L) == 0);
   coN_tracedebug(Co, "id[%d,%d] accept event", s->id, as->id);
@@ -730,7 +783,7 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
 {
   cosock* ps = NULL;
-  lua_State* L = coS_lua(Co);
+  lua_State* L = co_L(Co);
   const char* data = NULL;
   size_t datasize = 0, leftsize = 0, usesize = 0;
   cosockpack_hdr* hdr = NULL;
@@ -787,7 +840,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
 static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
 {
   cosock* ps = NULL;
-  lua_State* L = coS_lua(Co);
+  lua_State* L = co_L(Co);
   co_assert(lua_gettop(L) == 0);
   coN_tracedebug(Co,"id[%d,%d] close event", s->id, as ? as->id : 0);
   lua_getglobal(L, "core");
@@ -1426,19 +1479,18 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
 
 #endif
 
-int coN_export_register(lua_State* L)
+static int coN_export_register(lua_State* L)
 {
   return 0;
 }
 
-int coN_export_connect(lua_State* L)
+static int coN_export_connect(lua_State* L)
 {
   int id = 0;
   co* Co = NULL;
   const char* addr = NULL;
   unsigned short port = 0;
-  lua_getallocf(L, (void**)&Co);
-  co_assert(Co);
+  co_C(L, Co);
   addr = luaL_checkstring(L, 1);
   port = (unsigned short)luaL_checkint(L, 2);
   id = coN_connect(Co, addr, port);
@@ -1450,14 +1502,13 @@ int coN_export_connect(lua_State* L)
   return 1;
 }
 
-int coN_export_listen(lua_State* L)
+static int coN_export_listen(lua_State* L)
 {
   int id = 0;
   co* Co = NULL;
   const char* addr = NULL;
   unsigned short port = 0;
-  lua_getallocf(L, (void**)&Co);
-  co_assert(Co);
+  co_C(L, Co);
   addr = luaL_checkstring(L, 1);
   port = (unsigned short)luaL_checkint(L, 2);
   id = coN_listen(Co, addr, port);
@@ -1469,13 +1520,13 @@ int coN_export_listen(lua_State* L)
   return 1;
 }
 
-int coN_export_push(lua_State* L)
+static int coN_export_push(lua_State* L)
 {
   co* Co = NULL;
   int id = 0, attaid = 0;
   const char* data = NULL;
   size_t datasize = 0;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   id = luaL_checkint(L, 1);
   attaid = luaL_checkint(L, 2);
   data = luaL_checklstring(L, 3, &datasize);
@@ -1488,17 +1539,26 @@ int coN_export_push(lua_State* L)
   return 1;
 }
 
-int coN_export_close(lua_State* L)
+static int coN_export_close(lua_State* L)
 {
   co* Co = NULL;
   int id = 0, attaid = 0;
-  lua_getallocf(L, (void**)&Co); co_assert(Co);
+  co_C(L, Co);
   id = luaL_checkint(L, 1);
   attaid = luaL_checkint(L, 2);
   if (!coN_close(Co, id, attaid))
   {
     return 0;
   }
+  lua_pushnumber(L, 1);
+  return 1;
+}
+
+static int coN_export_active(lua_State* L)
+{
+  co* Co = NULL;
+  co_C(L, Co);
+  coN_active(Co);
   lua_pushnumber(L, 1);
   return 1;
 }

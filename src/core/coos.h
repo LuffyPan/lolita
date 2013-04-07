@@ -11,13 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "codef.h"
 
-void coOs_sleep(int msec);
-int coOs_export_sleep(lua_State* L);
-int coOs_export_gettime(lua_State* L);
-int coOs_export_isdir(lua_State* L);
-int coOs_export_isfile(lua_State* L);
-int coOs_export_ispath(lua_State* L);
-int coOs_export_mkdir(lua_State* L);
-int coOs_export_getcwd(lua_State* L);
+void coOs_born(co* Co);
+void coOs_die(co* Co);
 
 #endif

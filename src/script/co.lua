@@ -4,6 +4,7 @@
 -- 2013/03/02 23:27:09
 --
 
+--[=====[
 core.avatar = {}
 
 function core:born()
@@ -87,4 +88,31 @@ end
 
 function core:onclose(netid, attanetid, extra)
   self.net:dispatchclose(netid, attanetid, extra)
+end
+--]=====]
+
+print("fuck")
+for k, v in pairs(_G) do
+  print(k, v)
+end
+print("")
+for k, v in pairs(core) do
+  print(k, v)
+end
+for k, v in pairs(core.info) do
+  print(k, v)
+end
+for k, v in pairs(core.arg) do
+  print(k, v)
+end
+for k, v in pairs(core.base) do
+  print(k, v)
+end
+for k, v in pairs(core.os) do
+  print(k, v)
+end
+print(string.format("mem:%u/%u", core.base.getmem()))
+
+for i = 1, 100 do
+  print(string.format("mem:%u/%u", core.base.getmem()))
 end
