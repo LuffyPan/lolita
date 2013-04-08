@@ -429,9 +429,11 @@ static int cosockid2idx_newid(cosockid2idx* id2idx)
 
 static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
 {
+  co* Co = NULL;
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_C(L, Co);
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
   lua_pushnumber(L, id);
@@ -444,9 +446,11 @@ static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
 static int cosockid2idx_getidx(cosockid2idx* id2idx, int id)
 {
   int idx = 0;
+  co* Co = NULL;
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_C(L, Co);
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
   lua_pushnumber(L, id);
@@ -494,9 +498,9 @@ void coN_die(co* Co)
   coM_deleteobj(Co, Co->N);
 }
 
-int coN_pexportapi(lua_State* L)
+int coN_pexportapi(co* Co, lua_State* L)
 {
-  static const luaL_Reg coOs_funcs[] =
+  static const luaL_Reg coN_funcs[] =
   {
     {"register", coN_export_register},
     {"connect", coN_export_connect},
@@ -507,9 +511,9 @@ int coN_pexportapi(lua_State* L)
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_pushcore(L, Co);
   lua_newtable(L);
-  luaL_setfuncs(L, coOs_funcs, 0);
+  luaL_setfuncs(L, coN_funcs, 0);
   lua_setfield(L, -2, "net");
   lua_pop(L, 1);
   co_assert(lua_gettop(L) == 0);
@@ -518,7 +522,9 @@ int coN_pexportapi(lua_State* L)
 
 int coN_pexport(lua_State* L)
 {
-  coN_pexportapi(L);
+  co* Co = NULL;
+  co_C(L, Co);
+  coN_pexportapi(Co, L);
   return 0;
 }
 
@@ -742,7 +748,7 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
   lua_State* L = co_L(Co);
   co_assert(!as);
   coN_tracedebug(Co, "id[%d,%d] connect event result[%d]", s->id, 0, extra);
-  lua_getglobal(L, "core");
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "onconnect");
   lua_pushvalue(L, -2);
   lua_pushnumber(L, s->id);
@@ -762,7 +768,7 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   co_assert(as);
   co_assert(lua_gettop(L) == 0);
   coN_tracedebug(Co, "id[%d,%d] accept event", s->id, as->id);
-  lua_getglobal(L, "core");
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "onaccept");
   lua_pushvalue(L, -2);
   lua_pushnumber(L, s->id);
@@ -792,7 +798,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   co_assert(lua_gettop(L) == 0);
   coN_tracedebug(Co, "id[%d,%d] package event", s->id, as ? as->id : 0);
   coN_tracedebug(Co, "id[%d,%d] trying process package", s->id, as ? as->id : 0);
-  lua_getglobal(L, "core");
+  co_pushcore(L, Co);
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
   else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
   /* Todo:hide low level data */
@@ -843,7 +849,7 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   lua_State* L = co_L(Co);
   co_assert(lua_gettop(L) == 0);
   coN_tracedebug(Co,"id[%d,%d] close event", s->id, as ? as->id : 0);
-  lua_getglobal(L, "core");
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "onclose");
   lua_pushvalue(L, -2);
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }

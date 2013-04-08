@@ -21,5 +21,6 @@ const char* lolicore_getlvname(lolicore* Co, int lv);
 
 #define co_L(Co) ((Co)->L)
 #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L)
+#define co_pushcore(L, Co) lua_rawgetp(L, LUA_REGISTRYINDEX, Co); co_assert(lua_istable(L, -1));
 
 #endif

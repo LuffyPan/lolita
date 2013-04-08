@@ -96,23 +96,23 @@ for k, v in pairs(_G) do
   print(k, v)
 end
 print("")
-for k, v in pairs(core) do
+for k, v in pairs(lolicore) do
   print(k, v)
 end
-for k, v in pairs(core.info) do
+for k, v in pairs(lolicore.info) do
   print(k, v)
 end
-for k, v in pairs(core.arg) do
+for k, v in pairs(lolicore.arg) do
   print(k, v)
 end
-for k, v in pairs(core.base) do
+for k, v in pairs(lolicore.base) do
   print(k, v)
 end
-for k, v in pairs(core.os) do
+for k, v in pairs(lolicore.os) do
   print(k, v)
 end
-print(string.format("mem:%u/%u", core.base.getmem()))
+print(string.format("mem:%u/%u", lolicore.base.getmem()))
 
 for i = 1, 100 do
-  print(string.format("mem:%u/%u", core.base.getmem()))
+  print(string.format("mem:%u/%u", lolicore.base.getmem()))
 end

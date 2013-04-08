@@ -117,7 +117,8 @@ static int co_palive(lua_State* L)
   co_C(L, Co);
   strncpy(Co->core, "./co.lua", sizeof(Co->core));
   co_assert(lua_gettop(L) == 0);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_pushcore(L, Co);
+  lua_pushvalue(L, -1);lua_setglobal(L, "lolicore");
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "core");
   if (lua_isstring(L, -1))
@@ -188,10 +189,19 @@ static void co_deletelua(co* Co)
   if (L) lua_close(L);
 }
 
-static void co_pexportinfo(lua_State* L)
+static void co_pexportcore(co* Co, lua_State* L)
 {
   co_assert(lua_gettop(L) == 0);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  luaL_openlibs(L);
+  lua_newtable(L); /* core? the name is not important */
+  lua_rawsetp(L, LUA_REGISTRYINDEX, Co);
+  co_assert(lua_gettop(L) == 0);
+}
+
+static void co_pexportinfo(co* Co, lua_State* L)
+{
+  co_assert(lua_gettop(L) == 0);
+  co_pushcore(L, Co);
   lua_newtable(L);
   lua_pushvalue(L, -1); lua_setfield(L, -3, "info"); /* core.info */
   lua_pushstring(L, LOLICORE_COPYRIGHT); lua_setfield(L, -2, "copyright");
@@ -203,16 +213,14 @@ static void co_pexportinfo(lua_State* L)
   co_assert(lua_gettop(L) == 0);
 }
 
-static void co_pexportarg(lua_State* L)
+static void co_pexportarg(co* Co, lua_State* L)
 {
-  co* Co = NULL;
   const char** argv = NULL;
   int argc = 0, i = 0;
-  co_C(L, Co);
   argv = Co->argv;
   argc = Co->argc;
   co_assert(lua_gettop(L) == 0);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_pushcore(L, Co);
   lua_newtable(L);
   lua_pushvalue(L, -1); lua_setfield(L, -3, "arg"); /* core.arg */
   for (i = 1; i < argc; ++i)
@@ -236,9 +244,8 @@ static void co_pexportarg(lua_State* L)
   co_assert(lua_gettop(L) == 0);
 }
 
-static void co_pexportapi(lua_State* L)
+static void co_pexportapi(co* Co, lua_State* L)
 {
-  co* Co = NULL;
   static const luaL_Reg co_funcs[] =
   {
     {"kill", co_export_kill},
@@ -247,9 +254,8 @@ static void co_pexportapi(lua_State* L)
     {"setmaxmem", co_export_setmaxmem},
     {NULL, NULL},
   };
-  co_C(L, Co);
   co_assert(lua_gettop(L) == 0);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_pushcore(L, Co);
   lua_newtable(L);
   luaL_setfuncs(L, co_funcs, 0);
   lua_setfield(L, -2, "base"); /* core.base */
@@ -259,13 +265,13 @@ static void co_pexportapi(lua_State* L)
 
 static int co_pexport(lua_State* L)
 {
+  co* Co = NULL;
+  co_C(L, Co);
   co_assert(lua_gettop(L) == 0);
-  luaL_openlibs(L);
-  lua_newtable(L); /* core */
-  lua_setglobal(L, "core");
-  co_pexportinfo(L);
-  co_pexportarg(L);
-  co_pexportapi(L);
+  co_pexportcore(Co, L);
+  co_pexportinfo(Co, L);
+  co_pexportarg(Co, L);
+  co_pexportapi(Co, L);
   co_assert(lua_gettop(L) == 0);
   return 0;
 }

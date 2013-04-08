@@ -28,7 +28,7 @@ static int coOs_export_ispath(lua_State* L);
 static int coOs_export_mkdir(lua_State* L);
 static int coOs_export_getcwd(lua_State* L);
 
-int coOs_pexportapi(lua_State* L)
+int coOs_pexportapi(co* Co, lua_State* L)
 {
   static const luaL_Reg coOs_funcs[] =
   {
@@ -42,7 +42,7 @@ int coOs_pexportapi(lua_State* L)
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
-  lua_getglobal(L, "core"); co_assert(lua_istable(L, -1));
+  co_pushcore(L, Co);
   lua_newtable(L);
   luaL_setfuncs(L, coOs_funcs, 0);
   lua_setfield(L, -2, "os");
@@ -53,7 +53,9 @@ int coOs_pexportapi(lua_State* L)
 
 int coOs_pexport(lua_State* L)
 {
-  coOs_pexportapi(L);
+  co* Co = NULL;
+  co_C(L, Co);
+  coOs_pexportapi(Co, L);
   return 0;
 }
 
