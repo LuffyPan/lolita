@@ -44,7 +44,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
-  Co->maxmem = 4096 * 5;
+  Co->maxmem = 4096 * 10;
   if (Co->xlloc == co_xlloc)
   {
     Co->ud = (void*)Co;
@@ -118,7 +118,7 @@ static int co_palive(lua_State* L)
   strncpy(Co->core, "./co.lua", sizeof(Co->core));
   co_assert(lua_gettop(L) == 0);
   co_pushcore(L, Co);
-  lua_pushvalue(L, -1);lua_setglobal(L, "lolicore");
+  lua_pushvalue(L, -1);lua_setglobal(L, "core");
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "core");
   if (lua_isstring(L, -1))
