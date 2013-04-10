@@ -121,12 +121,13 @@ LoliCore.ExtendManifest =
 {
   "coext.lua",
   "coosext.lua",
+  "coioext.lua",
   "coimext.lua",
   "conext.lua",
   "coavext.lua",
 }
 
-function LoliCore.Extend()
+function LoliCore:Extend()
   local s = 0
   local e = nil
   local laste = nil
@@ -147,8 +148,8 @@ function LoliCore.Extend()
   end
 end
 
-LoliCore.Extend()
-LoliCore.Avatar.Attach()
+LoliCore:Extend()
+LoliCore.Avatar:Attach()
 
 --[[
 LoliCore = {}

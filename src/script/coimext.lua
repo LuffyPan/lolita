@@ -5,4 +5,74 @@
 --
 
 LoliCore.Imagination = {}
-print("LoliCore.Imagination Extend....")
+
+local Imagination = LoliCore.Imagination
+local Os = LoliCore.Os
+
+function Imagination:Extend()
+  self.NextId = 1
+  self.Ims = {}
+  self.ClosedIms = {}
+  self.LastTime = Imagination.GetTime()
+  self.ImCount = 0
+end
+
+function Imagination:GetTime()
+  return Os.GetTime()
+end
+
+function Imagination:Begin(ImCount, Fn, FnParam)
+  local Id = self.NextId
+  local Im =
+  {
+    Id = Id,
+    ImCount = self.ImCount + ImCount,
+    Fn = Fn,
+    FnParam = FnParam,
+    IsClosed = 0,
+  }
+  self.Ims[Id] = Im
+  self.NextId = self.NextId + 1
+  return Id
+end
+
+function Imagination:End(Id)
+  local Im = self.Ims[Id]
+  assert(Im, string.format("Invalid Imagination Id[%d]", Id))
+  Im.IsClosed = 1
+  table.insert(self.ClosedIms, Im)
+end
+
+function Imagination:EndAll()
+  for k, v in pairs(self.Ims) do
+    self:End(k)
+  end
+end
+
+function Imagination:Active()
+  local Cur = self.GetTime()
+  local Elapse = Cur - self.LastTime
+  if Elapse > 1 / 16 then
+    self.ImCount = Imagination.ImCount + 1
+    self.LastTime = Cur
+  end
+
+  if #self.ClosedIms > 0 then
+    for _, v in ipairs(self.ClosedIms) do
+      self.ClosedIms[v.Id] = nil
+    end
+    self.ClosedIms = {}
+  end
+
+  for k, v in pairs(self.Ims) do
+    if self.ImCount >= v.ImCount and v.IsClosed == 0 then
+      --Todo:pcall ?
+      v.Fn(v.FnParam, v)
+      v.IsClosed = 1
+      table.insert(self.ClosedIms, v)
+    end
+  end
+end
+
+Imagination:Extend()
+print("LoliCore.Imagination Extended")
