@@ -26,6 +26,57 @@ function Base:SetDebug(lv)
   return core.base.enabletraceback(lv)
 end
 
+function Base:_SnapNew(Snap)
+  local NewField = {}
+  local NewFieldCount = 0
+  while 1 do
+    for k, v in pairs(Snap.__NewField) do
+      Snap[k] = v
+      if Snap.__Ignore[v] then goto continue end
+      Snap.__Ignore[v] = 1
+      if type(v) == "table" then
+        for sk, sv in pairs(v) do
+          local sk = k .. "." .. tostring(sk)
+          Snap[sk] = sv
+          if not Snap.__Ignore[sv] then
+            NewField[sk] = sv
+            NewFieldCount = NewFieldCount + 1
+          end
+        end
+      end
+      ::continue::
+    end
+    Snap.__NewField = NewField
+    if NewFieldCount <= 0 then return end
+    NewField = {}
+    NewFieldCount = 0
+  end
+end
+
+function Base:Snap(Ignore)
+  local Snap = {}
+  Snap.__NewField = {Global = _G,}
+  Snap.__Ignore = {}
+  Snap.__Ignore[package] = 1
+  Snap.__Ignore[Snap] = 1
+  Snap.__Ignore[Ignore] = 1
+  for _, v in ipairs(Ignore) do
+    Snap.__Ignore[v] = 1
+  end
+  self:_SnapNew(Snap)
+  return Snap
+end
+
+function Base:ParseSnap(Old, New)
+  local Parse = {}
+  for k, v in pairs(New) do
+    if not Old[k] then
+      Parse[k] = v
+    end
+  end
+  return Parse
+end
+
 --Remove later
 function Base:Kill()
   return core.base.kill()

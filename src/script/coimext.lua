@@ -59,7 +59,8 @@ function Imagination:Active()
 
   if #self.ClosedIms > 0 then
     for _, v in ipairs(self.ClosedIms) do
-      self.ClosedIms[v.Id] = nil
+      --self.Ims's Timer is not be cleared!! memleak
+      self.Ims[v.Id] = nil
     end
     self.ClosedIms = {}
   end

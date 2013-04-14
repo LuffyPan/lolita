@@ -27,7 +27,7 @@ local function Serialize(Obj)
 end
 
 function Io:Serialize(ObjTable)
-  assert(type(ObjTable) == "table", "Must be a Table, But Give a %s??" .. type(ObjTable))
+  assert(type(ObjTable) == "table", "Must be a Table, But Give a %s" .. type(ObjTable))
   return "return \n" .. Serialize(ObjTable)
 end
 

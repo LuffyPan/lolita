@@ -15,13 +15,20 @@ local Imagination = LoliCore.Imagination
 local Net = LoliCore.Net
 local Avatar = LoliCore.Avatar
 
-
 function Avatar:Extend()
   self.Alive = 0
   --Load Avatar Script
-  Imagination:Begin(16, self.ImageTestIo, self)
-  Imagination:Begin(16, self.ImageMem, self)
-  Imagination:Begin(16 * 30, self.ImageClose, self)
+  local AvatarFile = Arg:Get("avatar")
+  local AvatarPath = Arg:Get("avatarpath")
+  local AvatarManifest = dofile(AvatarFile)
+  assert(type(AvatarManifest) == "table")
+  for _, FN in ipairs(AvatarManifest) do
+    dofile(AvatarPath .. "/" .. FN)
+  end
+  --Imagination:Begin(16, self.ImageTestIo, self)
+  --Imagination:Begin(16, self.ImageTestNet, self)
+  --Imagination:Begin(16 * 5, self.ImageMem, self)
+  Imagination:Begin(16 * 3600 * 2, self.ImageClose, self)
 end
 
 function Avatar:Attach()
@@ -30,6 +37,10 @@ function Avatar:Attach()
   print(string.format("%s", Info:GetVersion()))
   print(string.format("%s", Info:GetAuthor()))
   print(string.format("%s", Info:GetCopyright()))
+  print(string.format("Core:%s", Arg:Get("core")))
+  print(string.format("Avatar:%s", Arg:Get("avatar")))
+  print(string.format("CorePath:%s", Arg:Get("corepath")))
+  print(string.format("AvatarPath:%s", Arg:Get("avatarpath")))
   print("LoliCore.Avatar Attaching...")
 
   self:Extend()
@@ -69,4 +80,18 @@ function Avatar:ImageTestIo(Im)
     print(k, v)
   end
   Imagination:Begin(16, self.ImageTestIo, self)
+end
+
+function Avatar:ImageTestNet(Im)
+  local Ip = "127.0.0.1"
+  local Port = 7000
+  for i = 1, 20 do
+    assert(Net:Listen(Ip, Port), string.format("Listen Failed @ %s:%d", Ip, Port))
+    Port = Port + 1
+  end
+  Port = 7000
+  for i = 1, 20 do
+    assert(Net:Connect(Ip, Port), string.format("Connect Failed 2 %s:%d", Ip, Port))
+    Port = Port + 1
+  end
 end
