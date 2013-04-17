@@ -160,6 +160,7 @@ struct cosock
   void* ud; /* user data */
   cosock* attaed2s; /* attached to s */
   cosockpool* closedpo; /* closed */
+  cosockpool* attaclosedpo; /* closed attach cosocks, TATTA used */
   cosockpool* attapo; /* cosocks, TATTA used */
   cosockbuf* revbuf; /* rev buf, TCONN, TATTA used */
   cosockbuf* sndbuf; /* send buf TCONN, ATTA used */
@@ -172,6 +173,7 @@ struct coN
 {
   cosockpool* po;
   cosockpool* closedpo;
+  cosockpool* attaclosedpo;
   cosockid2idx* id2idx;
   cosockevent eventer;
 };
@@ -203,7 +205,7 @@ static void cosockid2idx_delete(co* Co, cosockid2idx* id2idx);
 static int cosockid2idx_newid(cosockid2idx* id2idx);
 static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx);
 
-static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosock* attached2s, cosockevent* eventer, int fdt);
+static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt);
 static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short port);
 static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short port);
 static int cosock_accept(co* Co, cosock* s, cosock** psn);
@@ -470,6 +472,8 @@ void coN_born(co* Co)
   co_assert(!Co->N);
   N = co_cast(coN*, coM_newobj(Co, coN));
   N->po = NULL;
+  N->attaclosedpo = NULL;
+  N->closedpo = NULL;
   N->id2idx = NULL;
   Co->N = N;
   coN_initeventer(Co);
@@ -485,10 +489,10 @@ void coN_active(co* Co)
   coN* N = Co->N;
   cosock** ps = NULL;
   int cnt = 0;
+  coN_realclose(Co);
   ps = cosockpool_cosocks(N->po);
   cnt = cosockpool_cosockcnt(N->po);
-  for (i = 1; i < cnt; ++i) { cosock_active(Co, ps[i]); }
-  coN_realclose(Co);
+  for (i = 1; i < cnt; ++i) {cosock_active(Co, ps[i]);}
 }
 
 void coN_die(co* Co)
@@ -587,6 +591,7 @@ static void coN_newcosocks(co* Co)
   coN* N = Co->N;
   N->po = cosockpool_new(Co, CON_COSOCK_INITCNT, CON_COSOCK_STEPCNT, CON_COSOCK_LIMITCNT);
   N->closedpo = cosockpool_new(Co, CON_COSOCK_INITCNT, CON_COSOCK_STEPCNT, CON_COSOCK_LIMITCNT);
+  N->attaclosedpo = cosockpool_new(Co, CON_COSOCK_INITCNT, CON_COSOCK_STEPCNT, CON_COSOCK_LIMITCNT);
 }
 
 static void coN_deletecosocks(co* Co)
@@ -606,9 +611,9 @@ static void coN_deletecosocks(co* Co)
     cosock_delete(Co, s);
     --cnt;
   }
-  cosockpool_delete(Co, N->po);
-  cosockpool_delete(Co, N->closedpo);
-  N->po = NULL;
+  cosockpool_delete(Co, N->po); N->po = NULL;
+  if (N->closedpo) {cosockpool_delete(Co, N->closedpo); N->closedpo = NULL;}
+  if (N->attaclosedpo) {cosockpool_delete(Co, N->attaclosedpo); N->attaclosedpo = NULL;}
 }
 
 #define coN_seteventer(Co, N) lua_rawsetp(co_L(Co), LUA_REGISTRYINDEX, (N)->eventer.accept);\
@@ -635,7 +640,7 @@ static int coN_listen(co* Co, const char* addr, unsigned short port)
   {
     return 0;
   }
-  s = cosock_new(Co, N->id2idx, N->closedpo, NULL, &N->eventer, COSOCKFD_TACCP);
+  s = cosock_new(Co, N->id2idx, N->closedpo, N->attaclosedpo, NULL, &N->eventer, COSOCKFD_TACCP);
   if (!cosock_listen(Co, s, addr, port))
   {
     cosock_delete(Co, s);
@@ -653,7 +658,7 @@ static int coN_connect(co* Co, const char* addr, unsigned short port)
   {
     return 0;
   }
-  s = cosock_new(Co, N->id2idx, N->closedpo, NULL, &N->eventer, COSOCKFD_TCONN);
+  s = cosock_new(Co, N->id2idx, N->closedpo, NULL, NULL, &N->eventer, COSOCKFD_TCONN);
   if (!cosock_connect(Co, s, addr, port))
   {
     cosock_delete(Co, s);
@@ -737,26 +742,34 @@ static void coN_realclose(co* Co)
 {
   int i = 0;
   coN* N = Co->N;
-  cosock** ps = cosockpool_cosocks(N->closedpo);
-  int cnt = cosockpool_cosockcnt(N->closedpo);
+  cosock** ps = NULL;
+  int cnt = 0;
+  ps = cosockpool_cosocks(N->attaclosedpo);
+  cnt = cosockpool_cosockcnt(N->attaclosedpo);
   for (i = 1; i < cnt; ++i)
   {
     cosock* s = ps[i];
     cosock* attaed2s = s->attaed2s;
-    if (attaed2s)
-    {
-      co_assert(COSOCKFD_TATTA == s->fdt);
-      coN_tracedebug(Co, "id[%d,%d] attacher real closed", attaed2s->id, s->id);
-      cosockpool_del(Co, attaed2s->attapo, s);
-      cosock_delete(Co, s);
-    }
-    else
-    {
-      co_assert(COSOCKFD_TACCP == s->fdt || COSOCKFD_TCONN == s->fdt);
-      coN_tracedebug(Co, "id[%d,%d] connector real closed", s->id, 0);
-      cosockpool_del(Co, N->po, s);
-      cosock_delete(Co, s);
-    }
+    co_assert(COSOCKFD_TATTA == s->fdt);
+    co_assert(attaed2s && attaed2s->fdt == COSOCKFD_TACCP);
+    coN_tracedebug(Co, "id[%d,%d] attacher real closed", attaed2s->id, s->id);
+    cosock_eventclose(Co, attaed2s, s, 0);
+    cosockpool_del(Co, attaed2s->attapo, s);
+    cosock_delete(Co, s);
+  }
+  cosockpool_clear(N->attaclosedpo);
+  ps = cosockpool_cosocks(N->closedpo);
+  cnt = cosockpool_cosockcnt(N->closedpo);
+  for (i = 1; i < cnt; ++i)
+  {
+    cosock* s = ps[i];
+    cosock* attaed2s = s->attaed2s;
+    co_assert(NULL == attaed2s);
+    co_assert(COSOCKFD_TACCP == s->fdt || COSOCKFD_TCONN == s->fdt);
+    coN_tracedebug(Co, "id[%d,%d] [%s] real closed", s->id, 0, s->fdt == COSOCKFD_TACCP ? "acceptor" : "connector");
+    cosock_eventclose(Co, s, NULL, 0);
+    cosockpool_del(Co, N->po, s);
+    cosock_delete(Co, s);
   }
   cosockpool_clear(N->closedpo);
 }
@@ -779,7 +792,7 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
     coN_tracedebug(Co, "id[%d,%d] failed while call onconnect, %s", s->id, 0, lua_tostring(L, -1));
     lua_pop(L, 1);
     co_assert(top == lua_gettop(L));
-    return;
+    coR_throw(Co, CO_ERRSCRIPTCALL);
   }
   co_assert(top == lua_gettop(L));
 }
@@ -801,7 +814,7 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
     coN_tracedebug(Co, "id[%d,%d] failed while call onaccept, %s", s->id, as->id, lua_tostring(L, -1));
     lua_pop(L, 1);
     co_assert(lua_gettop(L) ==top);
-    return;
+    coR_throw(Co, CO_ERRSCRIPTCALL);
   }
   co_assert(lua_gettop(L) == top);
 }
@@ -844,7 +857,8 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     {
       coN_tracedebug(Co, "id[%d,%d] failed while call onpack, %s", s->id, as ? as->id : 0, lua_tostring(L, -1));
       lua_pop(L, 1);
-      co_assert(lua_gettop(L) == 1);
+      co_assert(lua_gettop(L) == top);
+      coR_throw(Co, CO_ERRSCRIPTCALL);
     }
     usesize += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
     data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
@@ -856,7 +870,6 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   if (bclose)
   {
     cosock_close(Co, ps);
-    cosock_eventclose(Co, s, as, extra);
     coN_tracedebug(Co, "id[%d,%d] closed while process package because of exception", s->id, as ? as->id : 0);
   }
   co_assert(lua_gettop(L) == top);
@@ -871,7 +884,7 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   top = lua_gettop(L); co_assert(top == 0);
   coN_tracedebug(Co,"id[%d,%d] close event", s->id, as ? as->id : 0);
   coN_geteventer(Co, N);
-  if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
+  if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP); ps = s; }
   else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
   lua_pushnumber(L, 113);
   lua_pushnumber(L, s->id);
@@ -880,7 +893,7 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   {
     coN_tracedebug(Co, "id[%d,%d] failed while call onclose, %s", s->id, as ? as->id : 0, lua_tostring(L, -1));
     lua_pop(L, 1);
-    return;
+    coR_throw(Co, CO_ERRSCRIPTCALL);
   }
   co_assert(lua_gettop(L) == top);
 }
@@ -891,7 +904,7 @@ static void cosock_pnew(co* Co, void* ud)
   cosock_newfdt(Co, s);
 }
 
-static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosock* attached2s, cosockevent* eventer, int fdt)
+static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt)
 {
   int z = 0;
   cosock* s = co_cast(cosock*, coM_newobj(Co, cosock));
@@ -907,6 +920,7 @@ static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosoc
   s->sndbuf = NULL;
   s->id2idx = i2i;
   s->closedpo = closedpo;
+  s->attaclosedpo = attaclosedpo;
   s->attaed2s = attached2s;
   s->eventer = eventer;
   s->ec = 0;
@@ -994,10 +1008,17 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
     coN_tracedebug(Co, "id[%d,%d] accept failed [%s:%d]", s->id, cosockfd_errstr(s->ec), s->ec);
     return 0;
   }
-  sn = cosock_new(Co, s->id2idx, s->closedpo, s, s->eventer, COSOCKFD_TATTA);
+  sn = cosock_new(Co, s->id2idx, s->attaclosedpo, NULL, s, s->eventer, COSOCKFD_TATTA);
   if (!cosock_attachfd(Co, sn, nfd))
   {
     coN_tracedebug(Co, "id[%d,%d] accept failed while attachfd, [%s:%d]", s->id, sn->id, cosockfd_errstr(s->ec), s->ec);
+    /* attachfd must set nfd to sn, nfd must be released while delete */
+    cosock_delete(Co, sn);
+    return 0;
+  }
+  if (cosockpool_isfull(Co, s->attapo, 1))
+  {
+    coN_tracefatal(Co, "id[%d, %d] accept failed while attapo is full");
     cosock_delete(Co, sn);
     return 0;
   }
@@ -1120,13 +1141,11 @@ static int cosock_pop(co* Co, cosock* s, const char** pdata, size_t* pdatasize)
 
 static void cosock_active(co* Co, cosock* s)
 {
-  /*
   if (s->bclosed)
   {
-    printf("cosock id=%d, already in close, don't active any more\n", s->id);
+    coN_tracefatal(Co, "id[%d,%d] already closed, don't active any more", s->id, 0);
     return;
   }
-  */
   co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP);
   s->bactive = 1;
   if (COSOCKFD_TCONN == s->fdt)
@@ -1236,6 +1255,7 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
   maxfd = s->fd;
   ps = cosockpool_cosocks(s->attapo);
   cnt = cosockpool_cosockcnt(s->attapo);
+  co_assertex(cnt < FD_SETSIZE, "select mode only support FD_SETSIZE!!");
   for (i = 1; i < cnt; ++i)
   {
     FD_SET(ps[i]->fd, &rfds); FD_SET(ps[i]->fd, &wfds); FD_SET(ps[i]->fd, &efds);
@@ -1248,7 +1268,6 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     cosock_logec(s);
     coN_tracefatal(Co, "id[%d,%d] acceptor active failed while select, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     cosock_close(Co, s);
-    cosock_eventclose(Co, s, NULL, 0);
     return;
   }
   co_assert(r >= 1);
@@ -1272,14 +1291,12 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
         /* close gracely, need process package first */
         cosock_close(Co, as);
         cosock_eventprocesspack(Co, s, as, 0);
-        cosock_eventclose(Co, s, as, 0);
       }
       else if (-1 == r)
       {
         /* close exceptly */
         cosock_close(Co, as);
         cosock_eventprocesspack(Co, s, as, 0);
-        cosock_eventclose(Co, s, as, 0);
       }
       else
       {
@@ -1294,12 +1311,10 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
       if (0 == r)
       {
         cosock_close(Co, as);
-        cosock_eventclose(Co, s, as, 0);
       }
       else if (-1 == r)
       {
         cosock_close(Co, as);
-        cosock_eventclose(Co, s, as, 0);
       }
       else { co_assert(1 == r); }
     }
@@ -1307,7 +1322,6 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     {
       coN_tracedebug(Co, "id[%d,%d] attacher is in exceptfds\?", s->id, as->id);
       cosock_close(Co, as);
-      cosock_eventclose(Co, s, as, 0);
     }
   }
 }
@@ -1329,7 +1343,6 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
     cosock_logec(s);
     cosock_close(Co, s);
     coN_tracedebug(Co, "id[%d,%d] connector active failed while select, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
-    cosock_eventclose(Co, s, NULL, 0);
     return;
   }
   co_assert(r >= 1);
@@ -1341,13 +1354,11 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
       /* closed gracely, process package first */
       cosock_close(Co, s);
       cosock_eventprocesspack(Co, s, NULL, 0);
-      cosock_eventclose(Co, s, NULL, 0);
     }
     else if (-1 == r)
     {
       cosock_close(Co, s);
       cosock_eventprocesspack(Co, s, NULL, 0);
-      cosock_eventclose(Co, s, NULL, 0);
     }
     else
     {
@@ -1364,12 +1375,10 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
       if (0 == r)
       {
         cosock_close(Co, s);
-        cosock_eventclose(Co, s, NULL, 0);
       }
       else if (-1 == r)
       {
         cosock_close(Co, s);
-        cosock_eventclose(Co, s, NULL, 0);
       }
       else
       {
@@ -1391,7 +1400,6 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
     {
       /* just close it as an exception */
       coN_tracefatal(Co, "id[%d,%d] connector is in exceptfds while connected\?", s->id, 0);
-      cosock_eventclose(Co, s, NULL, 0);
       return;
     }
     else
@@ -1419,7 +1427,6 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
     cosock_logec(s);
     cosock_close(Co, s);
     coN_tracedebug(Co, "id[%d,%d] connecter active failed while select, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
-    cosock_eventclose(Co, s, NULL, 0);
     return;
   }
   co_assert(r >= 1);
@@ -1441,7 +1448,6 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
         else
         {
           coN_tracefatal(Co, "id[%d,%d] failed while getpeername, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
-          cosock_eventclose(Co, s, NULL, 0);
         }
         return;
       }
@@ -1452,13 +1458,11 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
       /* closed gracely, process package first */
       cosock_close(Co, s);
       cosock_eventprocesspack(Co, s, NULL, 0);
-      cosock_eventclose(Co, s, NULL, 0);
     }
     else if (-1 == r)
     {
       cosock_close(Co, s);
       cosock_eventprocesspack(Co, s, NULL, 0);
-      cosock_eventclose(Co, s, NULL, 0);
     }
     else
     {
@@ -1475,12 +1479,10 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
       if (0 == r)
       {
         cosock_close(Co, s);
-        cosock_eventclose(Co, s, NULL, 0);
       }
       else if (-1 == r)
       {
         cosock_close(Co, s);
-        cosock_eventclose(Co, s, NULL, 0);
       }
       else
       {
@@ -1498,7 +1500,6 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
   {
     coN_tracefatal(Co, "id[%d,%d] is in exceptfds\?", s->id, 0);
     cosock_close(Co, s);
-    cosock_eventclose(Co, s, NULL, 0);
   }
 }
 

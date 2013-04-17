@@ -44,7 +44,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
-  Co->maxmem =  1 * 1024 * 1024;
+  Co->maxmem =  4 * 1024 * 1024;
   if (Co->xlloc == co_xlloc)
   {
     Co->ud = (void*)Co;

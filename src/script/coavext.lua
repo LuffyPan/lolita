@@ -47,8 +47,8 @@ function Avatar:Attach()
 
   self.Alive = 1
   while self.Alive == 1 do
+    Imagination:Active() -- May be dump Net
     Net:Active()
-    Imagination:Active()
     Os:Sleep(1)
   end
 end

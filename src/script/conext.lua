@@ -25,7 +25,8 @@ function Net:Extend()
   core.net.register(Net.Event, self)
 end
 
-function Net:Connect(Addr, Port)
+function Net:Connect(Addr, Port, EventFuncs)
+  assert(EventFuncs)
   local Id = core.net.connect(Addr, Port)
   if Id then
     self.States[Id] =
@@ -33,12 +34,14 @@ function Net:Connect(Addr, Port)
       Id = Id,
       IsConnector = 1,
       Attached2Id = 0,
+      EventFuncs = EventFuncs,
     }
   end
   return Id
 end
 
-function Net:Listen(Addr, Port)
+function Net:Listen(Addr, Port, EventFuncs)
+  assert(EventFuncs)
   local Id = core.net.listen(Addr, Port)
   if Id then
     self.States[Id] =
@@ -46,6 +49,7 @@ function Net:Listen(Addr, Port)
       Id = Id,
       IsConnector = 0,
       Attached2Id = 0,
+      EventFuncs = EventFuncs,
     }
   end
   return Id
@@ -64,7 +68,6 @@ end
 
 function Net:Close(Id)
   local State = assert(self.States[Id])
-  self.States[Id] = nil
   if State.Attached2Id > 0 then
     return core.net.close(State.Attached2Id, Id)
   else
@@ -86,6 +89,7 @@ function Net:EventConnect(Id, AttachId, Extra)
   assert(Extra)
   local State = assert(self.States[Id])
   --Call Logic
+  assert(State.EventFuncs.Connect)(State.EventFuncs.Param, Id, Extra)
   if Extra == 0 then self.States[Id] = nil end
 end
 
@@ -102,6 +106,7 @@ function Net:EventAccept(Id, AttachId, Extra)
   }
   self.States[AttachId] = AttachState
   --Call Logic
+  assert(State.EventFuncs.Accept)(State.EventFuncs.Param, AttachId)
 end
 
 function Net:EventPackage(Id, AttachId, Extra)
@@ -110,19 +115,22 @@ function Net:EventPackage(Id, AttachId, Extra)
   if AttachId > 0 then
     local AttachState = assert(self.States[AttachId])
     --Call Logic
+    assert(State.EventFuncs.Package)(State.EventFuncs.Param, AttachId, Pack)
   else
     --Call Logic
+    assert(State.EventFuncs.Package)(State.EventFuncs.Param, Id, Pack)
   end
 end
 
 function Net:EventClose(Id, AttachId, Extra)
-  print("Event Close")
   local State = assert(self.States[Id])
   if AttachId > 0 then
     --Call Logic
+    assert(State.EventFuncs.Close)(State.EventFuncs.Param, AttachId)
     self.States[AttachId] = nil
   else
     --Call Logic
+    assert(State.EventFuncs.Close)(State.EventFuncs.Param, Id)
     self.States[Id] = nil
   end
 end
