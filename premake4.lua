@@ -44,6 +44,7 @@ project "lolicore"
 
   configuration "gmake"
     defines { "LOLICORE_PLAT=LOLICORE_PLAT_LINUX" }
+    buildoptions { "-g" }
 
   configuration "debug"
     targetdir ("_bin/" .. _ACTION .. "/debug")
