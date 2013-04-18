@@ -25,7 +25,14 @@ function LoliSrvTest:TestInit()
   self.TestConnectPushCount = 0
   self.TestAttachPushCount = 0
   self.TestCount = 0
-  LoliCore.Imagination:Begin(8, self.TestListen, self)
+
+  local Target = LoliCore.Arg:Get("target")
+  print(Target)
+  if Target == "login" then
+    LoliCore.Imagination:Begin(16, self.TestLoginConnect, self)
+  else
+    LoliCore.Imagination:Begin(8, self.TestListen, self)
+  end
 end
 
 function LoliSrvTest:TestListenAccept(Id)
@@ -132,14 +139,14 @@ end
 
 --Test Step 2, one Listen Net, And many Net Connect to this Net, Push Data, Close Net, For Loop
 function LoliSrvTest:TestStep2Listen()
-  local Id = assert(LoliCore.Net:Listen("127.0.0.1", 8000, self.TestListenEventFuncs))
+  local Id = assert(LoliCore.Net:Listen("127.0.0.1", 9110, self.TestListenEventFuncs))
   self.TestListenNets[Id] = 1
   self.TestListenCount = self.TestListenCount + 1
   LoliCore.Imagination:Begin(16, self.TestStep2Connect, self)
 end
 
 function LoliSrvTest:TestStep2Connect()
-  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 8000, self.TestConnectEventFuncs))
+  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 9110, self.TestConnectEventFuncs))
   self.TestConnectNets[Id] = 1
   self.TestConnectCount = self.TestConnectCount + 1
   if self.TestConnectCount >= 62 then
@@ -184,11 +191,10 @@ function LoliSrvTest:TestStep2Close()
   for k, v in pairs(self.TestListenNets) do
     LoliCore.Net:Close(k)
   end
-  LoliCore.Imagination:Begin(16 * 5, self.TestDetach, self)
+  LoliCore.Imagination:Begin(16 * 5, self.TestStep2Assert, self)
 end
 
-function LoliSrvTest:TestDetach()
-  debug.debug()
+function LoliSrvTest:TestStep2Assert()
   local idsCount = 0
   for k, v in pairs(core.net.ids) do
     print(k, v)
@@ -229,7 +235,59 @@ function LoliSrvTest:TestDetach()
   assert(ConnectNetsCount ==0)
   assert(ListenNetsCount == 0)
   assert(AttachNetsCount == 0)
-  LoliCore.Avatar:Detach()
+  LoliCore.Imagination:Begin(16 * 5, self.TestLoginConnect, self)
+end
+
+function LoliSrvTest:TestLoginConnect()
+  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 7000, self.TestConnectEventFuncs))
+  self.TestConnectNets[Id] = Id
+  self.TestConnectCount = self.TestConnectCount + 1
+  if self.TestConnectCount >= 1 then
+    LoliCore.Imagination:Begin(16, self.TestLoginRegister, self)
+  else
+    LoliCore.Imagination:Begin(16, self.TestLoginConnect, self)
+  end
+end
+
+function LoliSrvTest:TestLoginRegister()
+  local PackRegister =
+  {
+    ProcId = "Register",
+    Account = string.format("account_%s", self.TestConnectPushCount),
+    Password = string.format("password_%s", self.TestConnectPushCount),
+    Age = self.TestConnectPushCount,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackRegister)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 100 then
+    debug.debug()
+    LoliCore.Imagination:Begin(16 * 2, self.TestLoginAuth, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestLoginRegister, self)
+  end
+end
+
+function LoliSrvTest:TestLoginAuth()
+  local PackAuth =
+  {
+    ProcId = "Auth",
+    Account = string.format("account_%s", self.TestConnectPushCount),
+    Password = string.format("password_%s", self.TestConnectPushCount),
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackAuth)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 100 then
+    debug.debug()
+    LoliCore.Avatar:Detach()
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestLoginAuth, self)
+  end
 end
 
 LoliSrvTest:Main()

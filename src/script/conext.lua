@@ -90,7 +90,6 @@ function Net:EventConnect(Id, AttachId, Extra)
   local State = assert(self.States[Id])
   --Call Logic
   assert(State.EventFuncs.Connect)(State.EventFuncs.Param, Id, Extra)
-  if Extra == 0 then self.States[Id] = nil end
 end
 
 function Net:EventAccept(Id, AttachId, Extra)
