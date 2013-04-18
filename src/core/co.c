@@ -30,6 +30,7 @@ static int co_export_setmaxmem(lua_State* L);
 static int co_export_getmem(lua_State* L);
 static int co_export_kill(lua_State* L);
 static int co_export_enabletrace(lua_State* L);
+static int co_export_settracelv(lua_State* L);
 
 lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf)
 {
@@ -51,6 +52,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
     Co->umem = sizeof(*Co);
     co_assertex(Co->umem <= Co->maxmem, "maxmem is set to small!");
   }
+  Co->tracelv = CO_LVFATAL;
   Co->btrace = 1; /* process specially */
   Co->errjmp = NULL;
   Co->bactive = 0;
@@ -100,6 +102,11 @@ const char* lolicore_getmodname(lolicore* Co, int mod)
 const char* lolicore_getlvname(lolicore* Co, int lv)
 {
   return co_lvname(Co, lv);
+}
+
+int lolicore_gettracelv(lolicore* Co)
+{
+  return Co->tracelv;
 }
 
 static void co_born(co* Co, void* ud)
@@ -252,6 +259,7 @@ static void co_pexportapi(co* Co, lua_State* L)
     {"enabletrace", co_export_enabletrace},
     {"getmem", co_export_getmem},
     {"setmaxmem", co_export_setmaxmem},
+    {"settracelv", co_export_settracelv},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -421,6 +429,14 @@ static int co_export_getmem(lua_State* L)
   lua_pushnumber(L, Co->umem);
   lua_pushnumber(L, Co->maxmem);
   return 2;
+}
+
+static int co_export_settracelv(lua_State* L)
+{
+  co* Co = NULL;
+  co_C(L, Co);
+  Co->tracelv = luaL_checkint(L, 1);
+  return 0;
 }
 
 void co_trace(co* Co, int mod, int lv, const char* msg, ...)

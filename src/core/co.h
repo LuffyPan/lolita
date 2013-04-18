@@ -14,6 +14,7 @@ Chamz Lau, Copyright (C) 2013-2017
 lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf);
 void lolicore_alive(lolicore* Co);
 void lolicore_die(lolicore* Co);
+int lolicore_gettracelv(lolicore* Co);
 size_t lolicore_getusedmem(lolicore* Co);
 size_t lolicore_getmaxmem(lolicore* Co);
 const char* lolicore_getmodname(lolicore* Co, int mod);

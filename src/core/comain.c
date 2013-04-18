@@ -21,6 +21,7 @@ void* externalxlloc(void* ud, void* p, size_t os, size_t ns)
 
 void externaltracef(lolicore* Co, int mod, int lv, const char* msg, va_list msgva)
 {
+  if (lv > lolicore_gettracelv(Co)) return;
   printf("<%s><%s> ", lolicore_getmodname(Co, mod), lolicore_getlvname(Co, lv));
   vprintf(msg, msgva);
   printf("\n");
