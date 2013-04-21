@@ -38,4 +38,37 @@ function Io:Deserialize(ObjStr)
   return ObjTable
 end
 
+function Io:LoadFile(Path)
+  local Fn = loadfile(Path, "t", {})
+  return Fn and Fn() or nil
+end
+
+function Io:SaveFile(Table, Path)
+  local Seria = LoliCore.Io:Serialize(Table)
+  if not Seria then return nil, "Serialize Failed" end
+  local Fh, e = LoliCore.Io:OpenFile(Path, "wb")
+  if not Fh then return Fh, e end
+  local r
+  r, e = LoliCore.Io:WriteFile(Fh, Seria)
+  if not r then LoliCore.Io:CloseFile(Fh) return r, e end
+  LoliCore.Io:CloseFile(Fh)
+  return 1
+end
+
+function Io:OpenFile(Path, Mode)
+  return io.open(Path, Mode)
+end
+
+function Io:CloseFile(Fh)
+  Fh:close()
+end
+
+function Io:ReadFile(Fh, ...)
+  return Fh:read(...)
+end
+
+function Io:WriteFile(Fh, ...)
+  return Fh:write(...)
+end
+
 print("LoliCore.Io Extended")

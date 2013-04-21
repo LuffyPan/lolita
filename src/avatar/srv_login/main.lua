@@ -4,12 +4,81 @@
 --
 
 LoliSrvLogin = {}
+local p = print
+local function pf(fmt, ...)
+  print(string.format(fmt, ...))
+end
 
 function LoliSrvLogin:Init()
+  self:InitRoot()
+  self:LoadAccounts()
   self:InitNet()
   self:InitImagination()
   self:InitLogic()
   self:LOGO()
+end
+
+function LoliSrvLogin:InitRoot()
+  self.RootPath = "srv_login"
+  self.AccountPath = self.RootPath .. "/accout"
+  pf("Current Work Directory:%s", LoliCore.Os:GetCwd())
+  if LoliCore.Os:IsPath(self.RootPath) then
+    pf("%s Is Exist, Checking....", self.RootPath)
+    assert(LoliCore.Os:IsDir(self.RootPath), string.format("%s Is NOT Directory", self.RootPath))
+  else
+    pf("%s Is NOT Exist, Init....", self.RootPath)
+    assert(LoliCore.Os:MkDir(self.RootPath), string.format("%s Init Error", self.RootPath))
+    assert(LoliCore.Os:MkDir(self.AccountPath), string.format("%s Init Error", self.AccountPath))
+    pf("%s Inited", self.RootPath)
+  end
+end
+
+function LoliSrvLogin:LoadAccounts()
+  self.Accounts = {}
+  self.AccountMetaFile = self.AccountPath .. "/meta.lua"
+  if not LoliCore.Os:IsFile(self.AccountMetaFile) then
+    --Save AccountMeta to File
+    self.AccountMeta = {AccountId = 0, AccountCount = 0, Accounts = {},}
+    assert(LoliCore.Io:SaveFile(self.AccountMeta, self.AccountMetaFile))
+    pf("%s Is Not Exist, Create And Init It.", self.AccountMetaFile)
+  else
+    --Load AccountMeta from File
+    self.AccountMeta = assert(LoliCore.Io:LoadFile(self.AccountMetaFile))
+    pf("%s Is Exist, Load And Init It.", self.AccountMetaFile)
+  end
+
+  pf("Account Next Id: %u", self.AccountMeta.AccountId)
+  pf("Account Count: %u", self.AccountMeta.AccountCount)
+  for k, v in pairs(self.AccountMeta.Accounts) do
+    pf("Loading Account[%s]", k)
+    assert(self:LoadAccount(k), string.format("Load Account[%s] Failed", k))
+  end
+  pf("Load Accounts ----- ok")
+end
+
+function LoliSrvLogin:SaveAccounts()
+  for k, v in pairs(self.Accounts) do
+    --If one Account Save Failed, All Account Last Will Not Do Save, TODO
+    local AccountFile = self.AccountPath .. "/" .. k .. ".lua"
+    pf("Saving Account[%s] To %s", k, AccountFile)
+    assert(LoliCore.Io:SaveFile(v, AccountFile))
+  end
+  pf("Saving Accounts Meta To %s", self.AccountMetaFile)
+  assert(LoliCore.Io:SaveFile(self.AccountMeta, self.AccountMetaFile))
+  pf("Save Accounts ----- ok")
+end
+
+function LoliSrvLogin:LoadAccount(Account)
+  local AccountFile = self.AccountPath .. "/" .. Account .. ".lua"
+  assert(not self.Accounts[Account])
+  self.Accounts[Account] = LoliCore.Io:LoadFile(AccountFile)
+  return self.Accounts[Account]
+end
+
+function LoliSrvLogin:SaveAccount(Account)
+  local AccountFile = self.AccountPath .. "/" .. Account
+  assert(self.Accounts[Account])
+  return LoliCore.Io:SaveFile(self.Accounts[Account], AccountFile)
 end
 
 function LoliSrvLogin:InitLogic()
@@ -18,12 +87,13 @@ function LoliSrvLogin:InitLogic()
     Register = self.LogicRegister,
     Auth = self.LogicAuth,
   }
-  self.Accounts = {}
 end
 
 function LoliSrvLogin:LogicRegister(Id, Pack)
   assert(not self.Accounts[Pack.Account], "Account Exist")
-  self.Accounts[Pack.Account] = {Password = Pack.Password,}
+  self.Accounts[Pack.Account] = {Account = Pack.Account, Password = Pack.Password, bNew = 1,}
+  self.AccountMeta.Accounts[Pack.Account] = 1
+  self.AccountMeta.AccountCount = self.AccountMeta.AccountCount + 1
   Pack.Result = 1
 end
 
@@ -78,7 +148,7 @@ end
 
 function LoliSrvLogin:InitImagination()
   LoliCore.Imagination:Begin(16 * 10, self.ImageMem, self)
-  LoliCore.Imagination:Begin(16 * 20, self.ImageSaveAccount, self)
+  LoliCore.Imagination:Begin(16 * 20, self.ImageSaveAccounts, self)
 end
 
 function LoliSrvLogin:ImageMem(Im)
@@ -86,12 +156,17 @@ function LoliSrvLogin:ImageMem(Im)
   LoliCore.Imagination:Begin(16 * 10, self.ImageMem, self)
 end
 
-function LoliSrvLogin:ImageSaveAccount(Im)
-  LoliCore.Imagination:Begin(16 * 20, self.ImageSaveAccount, self)
-  for k, v in pairs(self.Accounts) do
-    print(string.format("Saved Account[%s]", k))
+local function msgh(x)
+  pf("%s", x)
+  pf("%s", debug.traceback())
+end
+
+function LoliSrvLogin:ImageSaveAccounts(Im)
+  LoliCore.Imagination:Begin(16 * 20, self.ImageSaveAccounts, self)
+  local r, e = xpcall(self.SaveAccounts, msgh, self)
+  if not r then
+    pf("Save Accounts ----- failed, %s", e)
   end
-  print("Save Account Done")
 end
 
 LoliSrvLogin:Init()
