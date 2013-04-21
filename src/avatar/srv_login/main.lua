@@ -38,7 +38,7 @@ function LoliSrvLogin:LoadAccounts()
   self.AccountMetaFile = self.AccountPath .. "/meta.lua"
   if not LoliCore.Os:IsFile(self.AccountMetaFile) then
     --Save AccountMeta to File
-    self.AccountMeta = {AccountId = 0, AccountCount = 0, Accounts = {},}
+    self.AccountMeta = {bDirty = 0, AccountId = 0, AccountCount = 0, Accounts = {},}
     assert(LoliCore.Io:SaveFile(self.AccountMeta, self.AccountMetaFile))
     pf("%s Is Not Exist, Create And Init It.", self.AccountMetaFile)
   else
@@ -58,13 +58,21 @@ end
 
 function LoliSrvLogin:SaveAccounts()
   for k, v in pairs(self.Accounts) do
-    --If one Account Save Failed, All Account Last Will Not Do Save, TODO
+    if v.bNew ~= 1 then goto continue end
+    -- Set bNew first, may cause fatal error, TODO
+    v.bNew = 0
+    -- If one Account Save Failed, All Account Last Will Not Do Save, TODO
     local AccountFile = self.AccountPath .. "/" .. k .. ".lua"
     pf("Saving Account[%s] To %s", k, AccountFile)
     assert(LoliCore.Io:SaveFile(v, AccountFile))
+    ::continue::
   end
-  pf("Saving Accounts Meta To %s", self.AccountMetaFile)
-  assert(LoliCore.Io:SaveFile(self.AccountMeta, self.AccountMetaFile))
+
+  if self.AccountMeta.bDirty == 1 then
+    self.AccountMeta.bDirty = 0
+    pf("Saving Accounts Meta To %s", self.AccountMetaFile)
+    assert(LoliCore.Io:SaveFile(self.AccountMeta, self.AccountMetaFile))
+  end
   pf("Save Accounts ----- ok")
 end
 
@@ -94,6 +102,7 @@ function LoliSrvLogin:LogicRegister(Id, Pack)
   self.Accounts[Pack.Account] = {Account = Pack.Account, Password = Pack.Password, bNew = 1,}
   self.AccountMeta.Accounts[Pack.Account] = 1
   self.AccountMeta.AccountCount = self.AccountMeta.AccountCount + 1
+  self.AccountMeta.bDirty = 1
   Pack.Result = 1
 end
 
@@ -105,7 +114,7 @@ end
 
 function LoliSrvLogin:LOGO()
   print(string.format("                         Lolita Login Server."))
-  print(string.format("                             %s", "Chamz Lau's Production"))
+  print(string.format("                             %s", "Works Of Chamz Lau's"))
 end
 
 function LoliSrvLogin:InitNet()
