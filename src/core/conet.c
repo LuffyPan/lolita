@@ -105,8 +105,11 @@ static void cosock_activeconn_ux(co* Co, cosock* s);
 struct cosockpack_hdr
 {
   char flag;
-  int ver;
-  size_t dsize;
+  char reserved[3];
+  int16_t ver;
+  /* This data type is not so good, it's size will change on diff platform */
+  /* size_t dsize; */
+  int32_t dsize;
 };
 
 struct cosockpack_tail
@@ -675,6 +678,7 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
   int idx = 0, attaidx = 0;
   cosockpack_hdr hdr;
   cosockpack_tail tail;
+  co_assertex(dsize < 1024 * 1024, "package must be so large\?");
   co_assert(id > 0 && attaid >= 0);
   co_assert(!(id == 0 && attaid == 0));
   idx = cosockid2idx_getidx(N->id2idx, id); co_assert(idx);
@@ -700,8 +704,9 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
     return 0;
   }
   hdr.flag = COSOCKPACK_HDR_FLAG;
+  hdr.reserved[0] = hdr.reserved[1] = hdr.reserved[2] = 0;
   hdr.ver = COSOCKPACK_VERSION;
-  hdr.dsize = dsize;
+  hdr.dsize = (int32_t)dsize;
   tail.flag = COSOCKPACK_TAIL_FLAG;
   cosock_push(Co, ps, (const char*)&hdr, sizeof(hdr));
   cosock_push(Co, ps, data, dsize);
@@ -834,25 +839,28 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   coN_tracedebug(Co, "id[%d,%d] package event", s->id, as ? as->id : 0);
   coN_tracedebug(Co, "id[%d,%d] trying process package", s->id, as ? as->id : 0);
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN); ps = s; }
-  else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
+  else {co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as;}
   /* Todo:hide low level data */
   data = cosockbuf_data(ps->revbuf);
   datasize = cosockbuf_datasize(ps->revbuf);
   leftsize = datasize;
   while (1)
   {
+    size_t dsize = 0;
     if (leftsize < sizeof(cosockpack_hdr) + sizeof(cosockpack_tail)) break;
     hdr = (cosockpack_hdr*)data;
-    if (hdr->flag != COSOCKPACK_HDR_FLAG || hdr->ver != COSOCKPACK_VERSION) { bclose = 1; break; }
-    if (leftsize < sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize) break;
-    tail = (cosockpack_tail*)(data + sizeof(cosockpack_hdr) + hdr->dsize);
-    if (tail->flag != COSOCKPACK_TAIL_FLAG) { bclose = 1; break; }
-    coN_tracedebug(Co, "id[%d,%d] trying process one package, package size[%u]", s->id, as ? as->id : 0, hdr->dsize);
+    if (hdr->flag != COSOCKPACK_HDR_FLAG || hdr->ver != COSOCKPACK_VERSION) {bclose = 1; break;}
+    if (hdr->dsize >= 1024 * 1024) {bclose = 1; break;}
+    dsize = co_cast(size_t, hdr->dsize);
+    if (leftsize < sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + dsize) break;
+    tail = (cosockpack_tail*)(data + sizeof(cosockpack_hdr) + dsize);
+    if (tail->flag != COSOCKPACK_TAIL_FLAG) {bclose = 1; break;}
+    coN_tracedebug(Co, "id[%d,%d] trying process one package, package size[%u]", s->id, as ? as->id : 0, dsize);
     coN_geteventer(Co, N);
     lua_pushnumber(L, 112);
     lua_pushnumber(L, s->id);
     lua_pushnumber(L, as ? as->id : 0);
-    lua_pushlstring(L, data + sizeof(cosockpack_hdr), hdr->dsize);
+    lua_pushlstring(L, data + sizeof(cosockpack_hdr), dsize);
     if (LUA_OK != lua_pcall(L, 5, 0, 0))
     {
       coN_tracedebug(Co, "id[%d,%d] failed while call onpack, %s", s->id, as ? as->id : 0, lua_tostring(L, -1));
@@ -860,9 +868,9 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
       co_assert(lua_gettop(L) == top);
       coR_throw(Co, CO_ERRSCRIPTCALL);
     }
-    usesize += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
-    data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
-    leftsize -= sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + hdr->dsize;
+    usesize += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + dsize;
+    data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + dsize;
+    leftsize -= sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + dsize;
   }
   if (usesize == datasize) { cosockbuf_clear(ps->revbuf); }
   else { co_assert(usesize < datasize); cosockbuf_lmove(ps->revbuf, usesize); }
@@ -933,8 +941,7 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
 {
   struct sockaddr_in sin = { 0 };
   co_assert(COSOCKFD_TACCP == cosock_fdt(s));
-  co_assert(addr);
-  coN_tracedebug(Co, "id[%d,%d] trying listen at [%s:%d]", s->id, 0, addr, (int)port);
+  coN_tracedebug(Co, "id[%d,%d] trying listen at [%s:%d]", s->id, 0, addr ? addr : "Any", (int)port);
   if (!cosock_newfd(Co, s))
   {
     coN_tracedebug(Co, "id[%d,%d] listen failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
@@ -1546,7 +1553,7 @@ static int coN_export_listen(lua_State* L)
   co_C(L, Co);
   addr = luaL_checkstring(L, 1);
   port = (unsigned short)luaL_checkint(L, 2);
-  id = coN_listen(Co, addr, port);
+  id = coN_listen(Co, addr[0] == 0 ? NULL : addr, port);
   if (!id)
   {
     return 0;

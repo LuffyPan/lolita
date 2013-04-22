@@ -96,6 +96,10 @@ function Arg:All()
 end
 
 --Info
+function Info:GetName()
+  return "LoliCore"
+end
+
 function Info:GetAuthor()
   return core.info.author
 end

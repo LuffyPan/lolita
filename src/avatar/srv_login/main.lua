@@ -113,8 +113,9 @@ function LoliSrvLogin:LogicAuth(Id, Pack)
 end
 
 function LoliSrvLogin:LOGO()
-  print(string.format("                         Lolita Login Server."))
-  print(string.format("                             %s", "Works Of Chamz Lau's"))
+  pf("               Lolita Login Server.")
+  pf("               Based On %s %s", LoliCore.Info:GetName(), LoliCore.Info:GetReposVersion())
+  pf("                             %s", "Works Of Chamz Lau's")
 end
 
 function LoliSrvLogin:InitNet()
@@ -126,7 +127,9 @@ function LoliSrvLogin:InitNet()
     Close = self.LoginNetEventClose,
   }
   self.LoginNetAttachIds = {}
-  self.LoginNetId = assert(LoliCore.Net:Listen("127.0.0.1", 7000, self.LoginNetEventFuncs))
+  core.base.settracelv(4)
+  self.LoginNetId = assert(LoliCore.Net:Listen("", 7000, self.LoginNetEventFuncs))
+  core.base.settracelv(0)
 end
 
 function LoliSrvLogin:LoginNetEventAccept(Id)
