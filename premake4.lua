@@ -189,8 +189,9 @@ local function _docheck()
   cfiles = os.matchfiles("src/core/**.c")
   chdrfiles = os.matchfiles("src/core/**.h")
   sfiles = os.matchfiles("src/script/**.lua")
+  afiles = os.matchfiles("src/avatar/**.lua")
   table.insert(sfiles, "premake4.lua")
-  local files = {cfiles, chdrfiles, sfiles}
+  local files = {cfiles, chdrfiles, sfiles, afiles}
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)
