@@ -9,12 +9,21 @@ LoliSrvSA.LoginNet = {}
 local LoginNet = LoliSrvSA.LoginNet
 
 function LoginNet:Init()
+  self.LogicFuncs = {}
+  self.LogicParam = nil
   self.Connected = 0
   self.Id = assert(LoliCore.Net:Connect("127.0.0.1", 7000, self:__GetEventFuncs()))
 end
 
 function LoginNet:UnInit()
   if self.Id > 0 then LoliCore.Net:Close(self.Id) end
+end
+
+function LoginNet:RegisterLogic(LogicFuncs, LogicParam)
+  for k, v in pairs(LogicFuncs) do
+    self.LogicFuncs[k] = v
+  end
+  self.LogicParam = LogicParam
 end
 
 function LoginNet:EventConnect(Id, Result)
@@ -24,6 +33,16 @@ end
 
 function LoginNet:EventPackage(Id, Pack)
   assert(Id == self.Id)
+  local Souler = SoulerMgr:GetById(Pack.Id)
+  if not Souler then
+    --Log this
+    return
+  end
+  local Fn = assert(self.LogicFuncs[Pack.ProcId])
+  local r, e = pcall(Fn, self.LogicParam, Souler)
+  if not r then
+    print(e)
+  end
 end
 
 function LoginNet:EventClose(Id)

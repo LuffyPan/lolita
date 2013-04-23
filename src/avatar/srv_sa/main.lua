@@ -9,6 +9,7 @@ local function pf(fmt, ...)
 end
 
 function LoliSrvSA:Init()
+  self.SoulerMgr:Init()
   self.SoulerNet:Init()
   self.LoginNet:Init()
   self.Logic:Init()
