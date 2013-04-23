@@ -9,6 +9,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifndef _CODEF_H_
 #define _CODEF_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
