@@ -32,6 +32,8 @@ function LoliSrvTest:TestInit()
     LoliCore.Imagination:Begin(16, self.TestLoginConnect, self)
   elseif Target == "sa" then
     LoliCore.Imagination:Begin(16, self.TestSAConnect, self)
+  elseif Target == "gss" then
+    LoliCore.Imagination:Begin(16, self.TestGSSConnect, self)
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
   end
@@ -341,6 +343,77 @@ function LoliSrvTest:TestSAAuth()
     self.TestConnectPushCount = 0
   else
     LoliCore.Imagination:Begin(16 * 2, self.TestSAAuth, self)
+  end
+end
+
+function LoliSrvTest:TestGSSConnect()
+  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 7200, self.TestConnectEventFuncs))
+  self.TestConnectNets[Id] = Id
+  self.TestConnectCount = self.TestConnectCount + 1
+  if self.TestConnectCount >= 1 then
+    LoliCore.Imagination:Begin(16, self.TestGSSRequestLock, self)
+  else
+    LoliCore.Imagination:Begin(16, self.TestGSSConnect, self)
+  end
+end
+
+function LoliSrvTest:TestGSSRequestLock()
+  local RequestLockPack =
+  {
+    ProcId = "RequestLock",
+    SoulerId = 1,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestLockPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    debug.debug()
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestGet, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestLock, self)
+  end
+end
+
+function LoliSrvTest:TestGSSRequestGet()
+  local RequestGetPack =
+  {
+    ProcId = "RequestGet",
+    SoulerId = 1,
+    LockKey = 119,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestGetPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    debug.debug()
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSet, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestGet, self)
+  end
+end
+
+function LoliSrvTest:TestGSSRequestSet()
+  local RequestSetPack =
+  {
+    ProcId = "RequestSet",
+    SoulerId = 1,
+    LockKey = 119,
+    Field = "State",
+    Value = 1,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestSetPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    debug.debug()
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSet, self)
   end
 end
 
