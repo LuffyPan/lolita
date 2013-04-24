@@ -30,6 +30,8 @@ function LoliSrvTest:TestInit()
   print(Target)
   if Target == "login" then
     LoliCore.Imagination:Begin(16, self.TestLoginConnect, self)
+  elseif Target == "sa" then
+    LoliCore.Imagination:Begin(16, self.TestSAConnect, self)
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
   end
@@ -287,6 +289,58 @@ function LoliSrvTest:TestLoginAuth()
     self.TestConnectPushCount = 0
   else
     LoliCore.Imagination:Begin(16 * 2, self.TestLoginAuth, self)
+  end
+end
+
+function LoliSrvTest:TestSAConnect()
+  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 7100, self.TestConnectEventFuncs))
+  self.TestConnectNets[Id] = Id
+  self.TestConnectCount = self.TestConnectCount + 1
+  if self.TestConnectCount >= 1 then
+    LoliCore.Imagination:Begin(16, self.TestSARegister, self)
+  else
+    LoliCore.Imagination:Begin(16, self.TestSAConnect, self)
+  end
+end
+
+function LoliSrvTest:TestSARegister()
+  local PackRegister =
+  {
+    ProcId = "Register",
+    Account = string.format("account_%s", self.TestConnectPushCount),
+    Password = string.format("password_%s", self.TestConnectPushCount),
+    Age = self.TestConnectPushCount,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackRegister)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    debug.debug()
+    LoliCore.Imagination:Begin(16 * 2, self.TestSAAuth, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSARegister, self)
+  end
+end
+
+function LoliSrvTest:TestSAAuth()
+  local PackAuth =
+  {
+    ProcId = "Auth",
+    Account = string.format("account_%s", self.TestConnectPushCount),
+    Password = string.format("password_%s", self.TestConnectPushCount),
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackAuth)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    --LoliCore.Avatar:Detach()
+    --debug.debug()
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSAAuth, self)
   end
 end
 

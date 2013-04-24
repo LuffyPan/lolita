@@ -7,6 +7,7 @@
 LoliSrvSA.SoulerNet = {}
 
 local SoulerNet = LoliSrvSA.SoulerNet
+local SoulerMgr = LoliSrvSA.SoulerMgr
 
 function SoulerNet:Init()
   self.LogicFuncs = {}
@@ -24,6 +25,15 @@ function SoulerNet:RegisterLogic(LogicFuncs, LogicParam)
     self.LogicFuncs[k] = v
   end
   self.LogicParam = LogicParam
+end
+
+function SoulerNet:PushPackage(Souler, Pack)
+  if not LoliCore.Net:PushPackage(Souler.Id, Pack) then
+    --May be full, Close it.
+    assert(LoliCore.Net:Close(Souler.Id))
+    return
+  end
+  return 1
 end
 
 function SoulerNet:EventAccept(Id)

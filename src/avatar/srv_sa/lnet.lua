@@ -7,6 +7,7 @@
 LoliSrvSA.LoginNet = {}
 
 local LoginNet = LoliSrvSA.LoginNet
+local SoulerMgr = LoliSrvSA.SoulerMgr
 
 function LoginNet:Init()
   self.LogicFuncs = {}
@@ -26,6 +27,17 @@ function LoginNet:RegisterLogic(LogicFuncs, LogicParam)
   self.LogicParam = LogicParam
 end
 
+function LoginNet:PushPackage(Souler, Pack)
+  -- Need a number to represent this Pack globally ToDo
+  Pack.Id = Souler.Id
+  if not LoliCore.Net:PushPackage(self.Id, Pack) then
+    --May be full, Close it.
+    assert(LoliCore.Net:Close(self.Id))
+    return
+  end
+  return 1
+end
+
 function LoginNet:EventConnect(Id, Result)
   assert(Id == self.Id)
   self.Connected = Result
@@ -36,13 +48,16 @@ function LoginNet:EventPackage(Id, Pack)
   local Souler = SoulerMgr:GetById(Pack.Id)
   if not Souler then
     --Log this
+    print(string.format("Souler[%u] is not already agency", Pack.Id))
     return
   end
+  Souler.Pack = Pack
   local Fn = assert(self.LogicFuncs[Pack.ProcId])
   local r, e = pcall(Fn, self.LogicParam, Souler)
   if not r then
     print(e)
   end
+  Souler.Pack = nil
 end
 
 function LoginNet:EventClose(Id)

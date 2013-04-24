@@ -9,6 +9,7 @@ local function pf(fmt, ...)
 end
 
 function LoliSrvSA:Init()
+  core.base.settracelv(4)
   self.SoulerMgr:Init()
   self.SoulerNet:Init()
   self.LoginNet:Init()
