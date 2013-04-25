@@ -77,11 +77,6 @@ function Base:ParseSnap(Old, New)
   return Parse
 end
 
---Remove later
-function Base:Kill()
-  return core.base.kill()
-end
-
 --Arg
 function Arg:Get(key)
   return core.arg[key]

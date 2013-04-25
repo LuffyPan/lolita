@@ -74,7 +74,6 @@ struct co
   co_longjmp* errjmp;
   int argc;
   const char** argv;
-  int bactive;
   lua_State* L;
   coN* N;
   char core[256];

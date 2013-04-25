@@ -28,7 +28,6 @@ static const char* co_errorstr(co* Co, int e);
 
 static int co_export_setmaxmem(lua_State* L);
 static int co_export_getmem(lua_State* L);
-static int co_export_kill(lua_State* L);
 static int co_export_enabletrace(lua_State* L);
 static int co_export_settracelv(lua_State* L);
 
@@ -55,7 +54,6 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   Co->tracelv = CO_LVFATAL;
   Co->btrace = 1; /* process specially */
   Co->errjmp = NULL;
-  Co->bactive = 0;
   Co->L = NULL;
   Co->N = NULL;
   Co->core[0] = 0;
@@ -255,7 +253,6 @@ static void co_pexportapi(co* Co, lua_State* L)
 {
   static const luaL_Reg co_funcs[] =
   {
-    {"kill", co_export_kill},
     {"enabletrace", co_export_enabletrace},
     {"getmem", co_export_getmem},
     {"setmaxmem", co_export_setmaxmem},
@@ -392,14 +389,6 @@ static void* co_xlloc(void* ud, void* p, size_t os, size_t ns)
   else{x = realloc(p, ns);}
   if (Co){Co->umem = m;}
   return x;
-}
-
-static int co_export_kill(lua_State* L)
-{
-  co* Co = NULL;
-  co_C(L, Co);
-  Co->bactive = 0;
-  return 0;
 }
 
 static int co_export_enabletrace(lua_State* L)
