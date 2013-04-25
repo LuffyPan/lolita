@@ -8,6 +8,11 @@ LoliCore.Io = {}
 
 local Io = LoliCore.Io
 
+function Io:Extend()
+  self.LogId = 1
+  self.Logs = {}
+end
+
 local function Serialize(Obj)
   local S = ""
   if type(Obj) == "number" then
@@ -71,4 +76,30 @@ function Io:WriteFile(Fh, ...)
   return Fh:write(...)
 end
 
+-- Log
+function Io:OpenLog(Path)
+  local Fh, e = self:OpenFile(Path, "wb")
+  if not Fh then return Fh, e end
+  local Logh = {}
+  Logh.Id = self.LogId
+  Logh.Fh = Fh
+  self.Logs[self.LogId] = Logh
+  self.LogId = self.LogId + 1
+  return Logh
+end
+
+function Io:CloseLog(Logh)
+  local Logh2 = assert(self.Logs[Logh.Id])
+  assert(Logh == Logh2)
+  self:CloseFile(Logh.Fh)
+  self.Logs[Logh.Id] = nil
+end
+
+function Io:Log(Logh, fmt, ...)
+  local l = string.format(fmt, ...)
+  print(l)
+  Io:WriteFile(Logh.Fh, os.date(), " ", l, "\n")
+end
+
+Io:Extend()
 print("LoliCore.Io Extended")

@@ -58,6 +58,7 @@ function SrvNet:EventPackage(Id, Pack)
   if not r then
     print(e)
   end
+  self:PushPackage(Srv, Srv.Pack)
   Srv.Pack = nil
 end
 

@@ -368,7 +368,6 @@ function LoliSrvTest:TestGSSRequestLock()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    debug.debug()
     LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestGet, self)
     self.TestConnectPushCount = 0
   else
@@ -381,14 +380,13 @@ function LoliSrvTest:TestGSSRequestGet()
   {
     ProcId = "RequestGet",
     SoulerId = 1,
-    LockKey = 119,
+    LockKey = 1991,
   }
   for k, v in pairs(self.TestConnectNets) do
     LoliCore.Net:PushPackage(k, RequestGetPack)
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    debug.debug()
     LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSet, self)
     self.TestConnectPushCount = 0
   else
@@ -401,7 +399,7 @@ function LoliSrvTest:TestGSSRequestSet()
   {
     ProcId = "RequestSet",
     SoulerId = 1,
-    LockKey = 119,
+    LockKey = 1991,
     Field = "State",
     Value = 1,
   }
@@ -410,10 +408,27 @@ function LoliSrvTest:TestGSSRequestSet()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    debug.debug()
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestClose, self)
     self.TestConnectPushCount = 0
   else
     LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSet, self)
+  end
+end
+
+function LoliSrvTest:TestGSSRequestClose()
+  local RequestClosePack =
+  {
+    ProcId = "RequestClose",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestClosePack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    debug.debug()
+    self.TestConnectPushCount = 0
+  else
+    debug.debug()
   end
 end
 

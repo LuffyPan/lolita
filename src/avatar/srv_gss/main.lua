@@ -10,6 +10,7 @@ end
 
 function LoliSrvGSS:Init()
   self:InitTraceLevel()
+  self.GMgr:Init()
   self.SrvMgr:Init()
   self.SrvNet:Init()
   self.Logic:Init()
