@@ -91,6 +91,21 @@ function Logic:OnRequestLockAndGet(Srv)
   self:Log("LockAndGet Succeed, LockKey[%u], Field[%s], Value[%s]", LockKey, Srv.Pack.Field, Value)
 end
 
+function Logic:OnRequestSetAndUnlock(Srv)
+  self:Log("SoulerId[%u], RequestSetAndUnlock", Srv.Pack.SoulerId)
+  local r, ec, ed = GMgr:Set(Srv.Pack.SoulerId, Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
+  if not r then
+    Srv.Pack.ErrorCode = ec
+    Srv.Pack.ErrorDesc = ed
+    self:Log("Set Failed, [%u], [%s]", ec, ed)
+    return
+  end
+  r, ec, ed = GMgr:Unlock(Srv.Pack.SoulerId, Srv.Pack.LockKey)
+  assert(r, "Failed To Unlock With A Good Key?")
+  Srv.Pack.Result = 1
+  self:Log("SetAndUnlock Succeed, LockKey[%u], Field[%s], Value[%s]", Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
+end
+
 function Logic:OnRequestClose(Srv)
   self:Log("OnRequestClose")
   LoliCore.Avatar:Detach()
@@ -105,6 +120,7 @@ function Logic:__GetLogic()
     RequestGet = self.OnRequestGet,
     RequestSet = self.OnRequestSet,
     RequestLockAndGet = self.OnRequestLockAndGet,
+    RequestSetAndUnlock = self.OnRequestSetAndUnlock,
     RequestClose = self.OnRequestClose,
   }
   return self.__Logic

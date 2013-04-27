@@ -427,14 +427,14 @@ function LoliSrvTest:TestGSSRequestUnlock()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestLockAndGetAndUnlock, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestLockAndGet, self)
     self.TestConnectPushCount = 0
   else
     LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestUnlock, self)
   end
 end
 
-function LoliSrvTest:TestGSSRequestLockAndGetAndUnlock()
+function LoliSrvTest:TestGSSRequestLockAndGet()
   local RequestLockAndGetPack =
   {
     ProcId = "RequestLockAndGet",
@@ -446,10 +446,31 @@ function LoliSrvTest:TestGSSRequestLockAndGetAndUnlock()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSetAndUnlock, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestLockAndGet, self)
+  end
+end
+
+function LoliSrvTest:TestGSSRequestSetAndUnlock()
+  local RequestSetAndUnlockPack =
+  {
+    ProcId = "RequestSetAndUnlock",
+    SoulerId = 1,
+    LockKey = 1992, --I Planned About This
+    Field = "Name",
+    Value = "Chamz Lau",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestSetAndUnlockPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
     LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestClose, self)
     self.TestConnectPushCount = 0
   else
-    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestLockAndGetAndUnlock, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSetAndUnlock, self)
   end
 end
 
