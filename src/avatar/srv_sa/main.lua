@@ -9,12 +9,18 @@ local function pf(fmt, ...)
 end
 
 function LoliSrvSA:Init()
-  core.base.settracelv(4)
+  self:InitTraceLevel()
   self.SoulerMgr:Init()
   self.SoulerNet:Init()
   self.LoginNet:Init()
   self.Logic:Init()
   self:LOGO()
+end
+
+function LoliSrvSA:InitTraceLevel()
+  local Lv = LoliCore.Arg:Get("tracelv")
+  Lv = Lv and tonumber(Lv) or 0
+  core.base.settracelv(Lv)
 end
 
 function LoliSrvSA:LOGO()

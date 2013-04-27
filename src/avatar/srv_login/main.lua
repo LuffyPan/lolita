@@ -38,7 +38,7 @@ function LoliSrvLogin:LoadAccounts()
   self.AccountMetaFile = self.AccountPath .. "/meta.lua"
   if not LoliCore.Os:IsFile(self.AccountMetaFile) then
     --Save AccountMeta to File
-    self.AccountMeta = {bDirty = 0, AccountId = 0, AccountCount = 0, Accounts = {},}
+    self.AccountMeta = {bDirty = 0, SoulId = 1987, AccountCount = 0, Accounts = {},}
     assert(LoliCore.Io:SaveFile(self.AccountMeta, self.AccountMetaFile))
     pf("%s Is Not Exist, Create And Init It.", self.AccountMetaFile)
   else
@@ -47,7 +47,7 @@ function LoliSrvLogin:LoadAccounts()
     pf("%s Is Exist, Load And Init It.", self.AccountMetaFile)
   end
 
-  pf("Account Next Id: %u", self.AccountMeta.AccountId)
+  pf("Next SoulId: %u", self.AccountMeta.SoulId)
   pf("Account Count: %u", self.AccountMeta.AccountCount)
   for k, v in pairs(self.AccountMeta.Accounts) do
     pf("Loading Account[%s]", k)
@@ -99,16 +99,20 @@ end
 
 function LoliSrvLogin:LogicRegister(Id, Pack)
   assert(not self.Accounts[Pack.Account], "Account Exist")
-  self.Accounts[Pack.Account] = {Account = Pack.Account, Password = Pack.Password, bNew = 1,}
+  local Account = {Account = Pack.Account, Password = Pack.Password, SoulId = self.AccountMeta.SoulId, bNew = 1,}
+  self.Accounts[Account.Account] = Account
   self.AccountMeta.Accounts[Pack.Account] = 1
   self.AccountMeta.AccountCount = self.AccountMeta.AccountCount + 1
+  self.AccountMeta.SoulId = self.AccountMeta.SoulId + 1
   self.AccountMeta.bDirty = 1
+  Pack.SoulId = Account.SoulId
   Pack.Result = 1
 end
 
 function LoliSrvLogin:LogicAuth(Id, Pack)
   local Account = assert(self.Accounts[Pack.Account], "Account NOT Exist")
   assert(Account.Password == Pack.Password, "Password Is NOT Correct")
+  Pack.SoulId = Account.SoulId
   Pack.Result = 1
 end
 
