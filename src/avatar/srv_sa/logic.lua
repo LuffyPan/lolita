@@ -10,6 +10,7 @@ local Logic = LoliSrvSA.Logic
 local SoulerNet = LoliSrvSA.SoulerNet
 local LoginNet = LoliSrvSA.LoginNet
 local GNet = LoliSrvSA.GNet
+local GovermentNet = LoliSrvSA.GovermentNet
 
 Logic.SS =
 {
@@ -30,6 +31,7 @@ function Logic:Init()
   SoulerNet:RegisterLogic(self:__GetSoulerLogic(), self)
   LoginNet:RegisterLogic(self:__GetLoginLogic(), self)
   GNet:RegisterLogic(self:__GetGLogic(), self)
+  GovermentNet:RegisterLogic(self:__GetGovermentLogic(), self)
 end
 
 function Logic:SoulerAccept(Souler)
@@ -185,6 +187,18 @@ function Logic:GSetAndUnlock(Souler)
   assert(SoulerNet:PushPackage(Souler, AuthPack))
 end
 
+function Logic:GovermentQuerySouler(Souler)
+end
+
+function Logic:GovermentCreateSouler(Souler)
+end
+
+function Logic:GovermentDestroySouler(Souler)
+end
+
+function Logic:GovermentSelectSouler(Souler)
+end
+
 function Logic:__GetSoulerLogic()
   self.__SoulerLogic =
   {
@@ -210,6 +224,17 @@ function Logic:__GetGLogic()
   {
     RequestLockAndGet = self.GLockAndGet,
     RequestSetAndUnlock = self.GSetAndUnlock,
+  }
+  return self.__GLogic
+end
+
+function Logic:__GetGovermentLogic()
+  self.__GovermentLogic =
+  {
+    RequestQuerySouler = self.GovermentQuerySouler,
+    RequestCreateSouler = self.GovermentCreateSouler,
+    RequestDestroySouler = self.GovermentDestroySouler,
+    RequestSelectSouler = self.GovermentSelectSouler,
   }
   return self.__GLogic
 end

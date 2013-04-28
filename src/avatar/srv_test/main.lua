@@ -34,6 +34,8 @@ function LoliSrvTest:TestInit()
     LoliCore.Imagination:Begin(16, self.TestSAConnect, self)
   elseif Target == "gss" then
     LoliCore.Imagination:Begin(16, self.TestGSSConnect, self)
+  elseif Target == "goverment" then
+    LoliCore.Imagination:Begin(16, self.TestGovermentRequestConnect, self)
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
   end
@@ -475,6 +477,107 @@ function LoliSrvTest:TestGSSRequestSetAndUnlock()
 end
 
 function LoliSrvTest:TestGSSRequestClose()
+  local RequestClosePack =
+  {
+    ProcId = "RequestClose",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestClosePack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    debug.debug()
+    self.TestConnectPushCount = 0
+  else
+    debug.debug()
+  end
+end
+
+function LoliSrvTest:TestGovermentRequestConnect()
+  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 7300, self.TestConnectEventFuncs))
+  self.TestConnectNets[Id] = Id
+  self.TestConnectCount = self.TestConnectCount + 1
+  if self.TestConnectCount >= 1 then
+    LoliCore.Imagination:Begin(16, self.TestGovermentRequestQuerySouler, self)
+  else
+    LoliCore.Imagination:Begin(16, self.TestGovermentRequestConnect, self)
+  end
+end
+
+function LoliSrvTest:TestGovermentRequestQuerySouler()
+  local RequestQuerySoulerPack =
+  {
+    ProcId = "RequestQuerySouler",
+    SoulId = 1,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestQuerySoulerPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestCreateSouler, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestQuerySouler, self)
+  end
+end
+
+function LoliSrvTest:TestGovermentRequestCreateSouler()
+  local RequestCreateSoulerPack =
+  {
+    ProcId = "RequestCreateSouler",
+    SoulId = 1,
+    Name = "Chamz",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestCreateSoulerPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestDestroySouler, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestCreateSouler, self)
+  end
+end
+
+function LoliSrvTest:TestGovermentRequestDestroySouler()
+  local RequestDestroySoulerPack =
+  {
+    ProcId = "RequestDestroySouler",
+    SoulId = 1,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestDestroySoulerPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestSelectSouler, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestDestroySouler, self)
+  end
+end
+
+function LoliSrvTest:TestGovermentRequestSelectSouler()
+  local RequestSelectSoulerPack =
+  {
+    ProcId = "RequestSelectSouler",
+    SoulId = 1,
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestSelectSoulerPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestClose, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestSelectSouler, self)
+  end
+end
+
+function LoliSrvTest:TestGovermentRequestClose()
   local RequestClosePack =
   {
     ProcId = "RequestClose",
