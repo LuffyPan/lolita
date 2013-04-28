@@ -361,7 +361,7 @@ function LoliSrvTest:TestGSSRequestLock()
   local RequestLockPack =
   {
     ProcId = "RequestLock",
-    SoulerId = 1,
+    SoulId = 1,
   }
   for k, v in pairs(self.TestConnectNets) do
     LoliCore.Net:PushPackage(k, RequestLockPack)
@@ -379,7 +379,7 @@ function LoliSrvTest:TestGSSRequestGet()
   local RequestGetPack =
   {
     ProcId = "RequestGet",
-    SoulerId = 1,
+    SoulId = 1,
     LockKey = 1991,
   }
   for k, v in pairs(self.TestConnectNets) do
@@ -398,7 +398,7 @@ function LoliSrvTest:TestGSSRequestSet()
   local RequestSetPack =
   {
     ProcId = "RequestSet",
-    SoulerId = 1,
+    SoulId = 1,
     LockKey = 1991,
     Field = "State",
     Value = 1,
@@ -419,7 +419,7 @@ function LoliSrvTest:TestGSSRequestUnlock()
   local RequestUnlockPack =
   {
     ProcId = "RequestUnlock",
-    SoulerId = 1,
+    SoulId = 1,
     LockKey = 1991,
   }
   for k, v in pairs(self.TestConnectNets) do
@@ -438,7 +438,7 @@ function LoliSrvTest:TestGSSRequestLockAndGet()
   local RequestLockAndGetPack =
   {
     ProcId = "RequestLockAndGet",
-    SoulerId = 1,
+    SoulId = 1,
     Field = "State",
   }
   for k, v in pairs(self.TestConnectNets) do
@@ -457,7 +457,7 @@ function LoliSrvTest:TestGSSRequestSetAndUnlock()
   local RequestSetAndUnlockPack =
   {
     ProcId = "RequestSetAndUnlock",
-    SoulerId = 1,
+    SoulId = 1,
     LockKey = 1992, --I Planned About This
     Field = "Name",
     Value = "Chamz Lau",

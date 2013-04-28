@@ -20,8 +20,8 @@ function Logic:Log(fmt, ...)
 end
 
 function Logic:OnRequestLock(Srv)
-  self:Log("SoulerId[%u], RequestLock", Srv.Pack.SoulerId)
-  local LockKey, ec, ed = GMgr:Lock(Srv.Pack.SoulerId)
+  self:Log("SoulId[%u], RequestLock", Srv.Pack.SoulId)
+  local LockKey, ec, ed = GMgr:Lock(Srv.Pack.SoulId)
   if not LockKey then
     Srv.Pack.ErrorCode = ec
     Srv.Pack.ErrorDesc = ed
@@ -34,8 +34,8 @@ function Logic:OnRequestLock(Srv)
 end
 
 function Logic:OnRequestUnlock(Srv)
-  self:Log("SoulerId[%u], RequestUnlock", Srv.Pack.SoulerId)
-  local r, ec, ed = GMgr:Unlock(Srv.Pack.SoulerId, Srv.Pack.LockKey)
+  self:Log("SoulId[%u], RequestUnlock", Srv.Pack.SoulId)
+  local r, ec, ed = GMgr:Unlock(Srv.Pack.SoulId, Srv.Pack.LockKey)
   if not r then
     Srv.Pack.ErrorCode = ec
     Srv.Pack.ErrorDesc = ed
@@ -47,8 +47,8 @@ function Logic:OnRequestUnlock(Srv)
 end
 
 function Logic:OnRequestGet(Srv)
-  self:Log("SoulerId[%u], RequestGet", Srv.Pack.SoulerId)
-  local r, ec, ed = GMgr:Get(Srv.Pack.SoulerId, Srv.Pack.LockKey, Srv.Pack.Field)
+  self:Log("SoulId[%u], RequestGet", Srv.Pack.SoulId)
+  local r, ec, ed = GMgr:Get(Srv.Pack.SoulId, Srv.Pack.LockKey, Srv.Pack.Field)
   if not r then
     Srv.Pack.ErrorCode = ec
     Srv.Pack.ErrorDesc = ed
@@ -61,8 +61,8 @@ function Logic:OnRequestGet(Srv)
 end
 
 function Logic:OnRequestSet(Srv)
-  self:Log("SoulerId[%u], RequestSet", Srv.Pack.SoulerId)
-  local r, ec, ed = GMgr:Set(Srv.Pack.SoulerId, Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
+  self:Log("SoulId[%u], RequestSet", Srv.Pack.SoulId)
+  local r, ec, ed = GMgr:Set(Srv.Pack.SoulId, Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
   if not r then
     Srv.Pack.ErrorCode = ec
     Srv.Pack.ErrorDesc = ed
@@ -74,8 +74,8 @@ function Logic:OnRequestSet(Srv)
 end
 
 function Logic:OnRequestLockAndGet(Srv)
-  self:Log("SoulerId[%u], RequestLockAndGet", Srv.Pack.SoulerId)
-  local LockKey, ec, ed = GMgr:Lock(Srv.Pack.SoulerId)
+  self:Log("SoulId[%u], RequestLockAndGet", Srv.Pack.SoulId)
+  local LockKey, ec, ed = GMgr:Lock(Srv.Pack.SoulId)
   if not LockKey then
     Srv.Pack.ErrorCode = ec
     Srv.Pack.ErrorDesc = ed
@@ -83,7 +83,7 @@ function Logic:OnRequestLockAndGet(Srv)
     return
   end
   local Value
-  Value, ec, ed = GMgr:Get(Srv.Pack.SoulerId, LockKey, Srv.Pack.Field)
+  Value, ec, ed = GMgr:Get(Srv.Pack.SoulId, LockKey, Srv.Pack.Field)
   assert(Value, "Failed To Get With A New Key?")
   Srv.Pack.LockKey = LockKey
   Srv.Pack.Value = Value
@@ -92,15 +92,15 @@ function Logic:OnRequestLockAndGet(Srv)
 end
 
 function Logic:OnRequestSetAndUnlock(Srv)
-  self:Log("SoulerId[%u], RequestSetAndUnlock", Srv.Pack.SoulerId)
-  local r, ec, ed = GMgr:Set(Srv.Pack.SoulerId, Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
+  self:Log("SoulId[%u], RequestSetAndUnlock", Srv.Pack.SoulId)
+  local r, ec, ed = GMgr:Set(Srv.Pack.SoulId, Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
   if not r then
     Srv.Pack.ErrorCode = ec
     Srv.Pack.ErrorDesc = ed
     self:Log("Set Failed, [%u], [%s]", ec, ed)
     return
   end
-  r, ec, ed = GMgr:Unlock(Srv.Pack.SoulerId, Srv.Pack.LockKey)
+  r, ec, ed = GMgr:Unlock(Srv.Pack.SoulId, Srv.Pack.LockKey)
   assert(r, "Failed To Unlock With A Good Key?")
   Srv.Pack.Result = 1
   self:Log("SetAndUnlock Succeed, LockKey[%u], Field[%s], Value[%s]", Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)

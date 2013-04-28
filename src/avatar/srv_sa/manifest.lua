@@ -9,6 +9,7 @@ LoliSrvSA = {}
 return
 {
   "smgr.lua",
+  "gnet.lua",
   "lnet.lua",
   "snet.lua",
   "logic.lua",

@@ -13,6 +13,7 @@ function LoliSrvSA:Init()
   self.SoulerMgr:Init()
   self.SoulerNet:Init()
   self.LoginNet:Init()
+  self.GNet:Init()
   self.Logic:Init()
   self:LOGO()
 end
