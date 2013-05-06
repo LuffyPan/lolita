@@ -8,6 +8,8 @@ LoliSrvGoverment = {}
 
 return
 {
+  "smgr.lua",
+  "gnet.lua",
   "srvmgr.lua",
   "srvnet.lua",
   "logic.lua",
