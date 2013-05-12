@@ -35,7 +35,9 @@ function LoliSrvTest:TestInit()
   elseif Target == "gss" then
     LoliCore.Imagination:Begin(16, self.TestGSSConnect, self)
   elseif Target == "goverment" then
-    LoliCore.Imagination:Begin(16, self.TestGovermentRequestConnect, self)
+    --LoliCore.Imagination:Begin(16, self.TestGovermentRequestConnect, self)
+  elseif Target == "god" then
+    LoliCore.Imagination:Begin(16, self.TestGodRequestConnect, self)
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
   end
@@ -493,18 +495,18 @@ function LoliSrvTest:TestGSSRequestClose()
   end
 end
 
-function LoliSrvTest:TestGovermentRequestConnect()
-  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 7300, self.TestConnectEventFuncs))
+function LoliSrvTest:TestGodRequestConnect()
+  local Id = assert(LoliCore.Net:Connect("127.0.0.1", 7700, self.TestConnectEventFuncs))
   self.TestConnectNets[Id] = Id
   self.TestConnectCount = self.TestConnectCount + 1
   if self.TestConnectCount >= 1 then
-    LoliCore.Imagination:Begin(16, self.TestGovermentRequestQuerySouler, self)
+    LoliCore.Imagination:Begin(16, self.TestGodRequestQuerySouler, self)
   else
-    LoliCore.Imagination:Begin(16, self.TestGovermentRequestConnect, self)
+    LoliCore.Imagination:Begin(16, self.TestGodRequestConnect, self)
   end
 end
 
-function LoliSrvTest:TestGovermentRequestQuerySouler()
+function LoliSrvTest:TestGodRequestQuerySouler()
   local RequestQuerySoulerPack =
   {
     ProcId = "RequestQuerySouler",
@@ -515,14 +517,14 @@ function LoliSrvTest:TestGovermentRequestQuerySouler()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestCreateSouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestCreateSouler, self)
     self.TestConnectPushCount = 0
   else
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestQuerySouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestQuerySouler, self)
   end
 end
 
-function LoliSrvTest:TestGovermentRequestCreateSouler()
+function LoliSrvTest:TestGodRequestCreateSouler()
   local RequestCreateSoulerPack =
   {
     ProcId = "RequestCreateSouler",
@@ -534,14 +536,14 @@ function LoliSrvTest:TestGovermentRequestCreateSouler()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestDestroySouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestDestroySouler, self)
     self.TestConnectPushCount = 0
   else
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestCreateSouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestCreateSouler, self)
   end
 end
 
-function LoliSrvTest:TestGovermentRequestDestroySouler()
+function LoliSrvTest:TestGodRequestDestroySouler()
   local RequestDestroySoulerPack =
   {
     ProcId = "RequestDestroySouler",
@@ -552,14 +554,14 @@ function LoliSrvTest:TestGovermentRequestDestroySouler()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestSelectSouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestSelectSouler, self)
     self.TestConnectPushCount = 0
   else
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestDestroySouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestDestroySouler, self)
   end
 end
 
-function LoliSrvTest:TestGovermentRequestSelectSouler()
+function LoliSrvTest:TestGodRequestSelectSouler()
   local RequestSelectSoulerPack =
   {
     ProcId = "RequestSelectSouler",
@@ -570,14 +572,14 @@ function LoliSrvTest:TestGovermentRequestSelectSouler()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestClose, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestClose, self)
     self.TestConnectPushCount = 0
   else
-    LoliCore.Imagination:Begin(16 * 2, self.TestGovermentRequestSelectSouler, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestSelectSouler, self)
   end
 end
 
-function LoliSrvTest:TestGovermentRequestClose()
+function LoliSrvTest:TestGodRequestClose()
   local RequestClosePack =
   {
     ProcId = "RequestClose",

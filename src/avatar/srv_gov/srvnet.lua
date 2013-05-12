@@ -1,6 +1,6 @@
 --
--- Goverment's Server Net
--- Other Server's Connects
+-- Goverment's SoulerAgency Server Net
+-- SoulerAgency Connects
 -- Chamz Lau, Copyright (C) 2013-2017
 -- 2013/04/28 13:46:21
 --
