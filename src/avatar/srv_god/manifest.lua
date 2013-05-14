@@ -9,6 +9,7 @@ LoliSrvGod = {}
 return
 {
   "sanet.lua",
+  "slogic.lua",
   "salogic.lua",
   "main.lua",
 }

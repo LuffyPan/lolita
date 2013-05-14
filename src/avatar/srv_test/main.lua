@@ -529,7 +529,13 @@ function LoliSrvTest:TestGodRequestCreateSouler()
   {
     ProcId = "RequestCreateSouler",
     SoulId = 1,
-    Name = "Chamz",
+    SoulInfo = 
+    {
+      Sex = 1,
+      Job = 110,
+      Name = "Chamz",
+      GovId = 1,
+    },
   }
   for k, v in pairs(self.TestConnectNets) do
     LoliCore.Net:PushPackage(k, RequestCreateSoulerPack)

@@ -11,6 +11,7 @@ end
 function LoliSrvGod:Init()
   self:InitTraceLevel()
   self.SANet:Init()
+  self.LogicSouler:Init()
   self.LogicSA:Init()
   self:LOGO()
 end
