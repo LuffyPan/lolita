@@ -106,6 +106,33 @@ function Logic:OnRequestSetAndUnlock(Srv)
   self:Log("SetAndUnlock Succeed, LockKey[%u], Field[%s], Value[%s]", Srv.Pack.LockKey, Srv.Pack.Field, Srv.Pack.Value)
 end
 
+function Logic:OnRequestSetEx(Srv)
+  self:Log("SoulId[%u], RequestSetEx", Srv.Pack.SoulId)
+  local r, ec, ed = GMgr:SetEx(Srv.Pack.SoulId, Srv.Pack.Conds, Srv.Pack.Values)
+  if not r then
+    Srv.Pack.ErrorCode = ec
+    Srv.Pack.ErrorDesc = ed
+    self:Log("SetEx Failed, [%u], [%s]", ec, ed)
+    return
+  end
+  Srv.Pack.Result = 1
+  self:Log("SetEx Succeed!!......")
+end
+
+function Logic:OnRequestGetEx(Srv)
+  self:Log("SoulId[%u], RequestGetEx", Srv.Pack.SoulId)
+  local r, ec, ed = GMgr:GetEx(Srv.Pack.SoulId, Srv.Pack.Conds)
+  if not r then
+    Srv.Pack.ErrorCode = ec
+    Srv.Pack.ErrorDesc = ed
+    self:Log("GetEx Failed, [%u], [%s]", ec, ed)
+    return
+  end
+  Srv.Pack.Values = r
+  Srv.Pack.Result = 1
+  self:Log("GetEx Succeed!!.....")
+end
+
 function Logic:OnRequestClose(Srv)
   self:Log("OnRequestClose")
   LoliCore.Avatar:Detach()
@@ -121,6 +148,8 @@ function Logic:__GetLogic()
     RequestSet = self.OnRequestSet,
     RequestLockAndGet = self.OnRequestLockAndGet,
     RequestSetAndUnlock = self.OnRequestSetAndUnlock,
+    RequestSetEx = self.OnRequestSetEx,
+    RequestGetEx = self.OnRequestGetEx,
     RequestClose = self.OnRequestClose,
   }
   return self.__Logic

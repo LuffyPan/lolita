@@ -54,6 +54,38 @@ function GMgr:Set(SoulerId, LockKey, Field, Value)
   return 1
 end
 
+function GMgr:SetEx(SoulId, Conds, Values)
+  assert(SoulId)
+  local g = assert(self:__GetGSoulerState(SoulId))
+  if g.LockKey ~= 0 then
+    return nil, 1, "Is Locked"
+  end
+  for k, v in pairs(Conds) do
+    local f = g.Fields[k] or 0
+    if f ~= v then
+      return nil, 2, string.format("Conds [%s] [%s] != [%s]", tostring(k), tostring(f), tostring(v))
+    end
+  end
+  for k, v in pairs(Values) do
+    g.Fields[k] = v
+  end
+  return 1
+end
+
+function GMgr:GetEx(SoulId, Conds)
+  assert(SoulId)
+  local g = assert(self:__GetGSoulerState(SoulId))
+  if g.LockKey ~= 0 then
+    return nil, 1, "Is Locked"
+  end
+  local r = {}
+  for k, v in pairs(Conds) do
+    local f = g.Fields[k] or 0
+    r[k] = f
+  end
+  return r
+end
+
 function GMgr:__GetGSoulerState(SoulerId)
   local GSoulerState = self.GSoulerStates[SoulerId]
   GSoulerState = GSoulerState and GSoulerState or self:__NewGSoulerState(SoulerId)

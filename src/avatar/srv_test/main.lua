@@ -355,12 +355,65 @@ function LoliSrvTest:TestGSSConnect()
   self.TestConnectNets[Id] = Id
   self.TestConnectCount = self.TestConnectCount + 1
   if self.TestConnectCount >= 1 then
-    LoliCore.Imagination:Begin(16, self.TestGSSRequestLock, self)
+    LoliCore.Imagination:Begin(16, self.TestGSSRequestSetEx, self)
   else
     LoliCore.Imagination:Begin(16, self.TestGSSConnect, self)
   end
 end
 
+function LoliSrvTest:TestGSSRequestSetEx()
+  local RequestSetExPack =
+  {
+    ProcId = "RequestSetEx",
+    SoulId = 1,
+    Conds =
+    {
+      xixi = 0,
+      haha = 0,
+      hehe = 0,
+    },
+    Values =
+    {
+      xixi = 1,
+      haha = 2,
+      hehe = 3,
+    },
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestSetExPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestGetEx, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestSetEx, self)
+  end
+end
+
+function LoliSrvTest:TestGSSRequestGetEx()
+  local RequestGetExPack =
+  {
+    ProcId = "RequestGetEx",
+    SoulId = 1,
+    Conds =
+    {
+      xixi = 0,
+      haha = 0,
+      hehe = 0,
+    },
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestGetExPack)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestLock, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestGSSRequestGetEx, self)
+  end
+end
 function LoliSrvTest:TestGSSRequestLock()
   local RequestLockPack =
   {
