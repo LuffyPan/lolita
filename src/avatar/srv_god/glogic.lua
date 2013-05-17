@@ -135,6 +135,53 @@ function Logic:OnRequestClose(Srv)
   LoliCore.Avatar:Detach()
 end
 
+function Logic:OnRequestSetEx(Srv)
+  local Pack = Srv.Pack
+  print(string.format("Souler[%u], RequestSetEx", Pack.SoulId))
+  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  if Souler.LockKey ~= 0 then
+    Pack.Result = 0
+    Pack.ErrorCode = 1
+    print(string.format("Souler[%u] Is Already Locked", Pack.SoulId))
+    return
+  end
+  for k, v in pairs(Pack.Conds) do
+    local n = Souler.Moments[k] or 0
+    if n ~= v then
+      Pack.Result = 0
+      Pack.ErrorCode = 1
+      print(string.format("Cond[%s] = [%s] != [%s]", tostring(k), tostring(n), tostring(v)))
+      return
+    end
+  end
+  for k, v in pairs(Pack.Values) do
+    Souler.Moments[k] = v
+  end
+  Pack.Result = 1
+  return
+  print("SetEx Succeed!!......")
+end
+
+function Logic:OnRequestGetEx(Srv)
+  local Pack = Srv.Pack
+  print(string.format("Souler[%u], RequestGetEx", Pack.SoulId))
+  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  if Souler.LockKey ~= 0 then
+    Pack.Result = 0
+    Pack.ErrorCode = 1
+    print(string.format("Souler[%u] Is Already Locked", Pack.SoulId))
+    return
+  end
+  local Values = {}
+  for k, v in pairs(Pack.Conds) do
+    local n = Souler.Moments[k] or 0
+    Values[k] = n
+  end
+  Srv.Pack.Values = Values
+  Srv.Pack.Result = 1
+  print("GetEx Succeed!!.....")
+end
+
 function Logic:__GetLogic()
   if self.__Logic then return self.__Logic end
   self.__Logic =
@@ -144,6 +191,9 @@ function Logic:__GetLogic()
     RequestSelectSouler = self.OnRequestSelectSouler,
     RequestDestroySouler = self.OnRequestDestroySouler,
     RequestClose = self.OnRequestClose,
+
+    RequestSetEx = self.OnRequestSetEx,
+    RequestGetEx = self.OnRequestGetEx,
   }
   return self.__Logic
 end
