@@ -8,10 +8,11 @@ local function pf(fmt, ...)
   print(string.format(fmt, ...))
 end
 
+--AreaSrvNet and SaSrvNet almost is same, so, them can be provide by LoliCore.Net
 function LoliSrvGoverment:Init()
   self:InitTraceLevel()
-  self.SrvMgr:Init()
-  self.SrvNet:Init()
+  self.SaSrvNet:Init()
+  self.AreaSrvNet:Init()
   self.Logic:Init()
   self:LOGO()
 end

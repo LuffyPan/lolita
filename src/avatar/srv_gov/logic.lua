@@ -7,31 +7,25 @@
 LoliSrvGoverment.Logic = {}
 
 local Logic = LoliSrvGoverment.Logic
-local SrvNet = LoliSrvGoverment.SrvNet
+local SaSrvNet = LoliSrvGoverment.SaSrvNet
+local AreaSrvNet = LoliSrvGoverment.AreaSrvNet
 
 function Logic:Init()
   self.Logh = assert(LoliCore.Io:OpenLog("srv_gov.log"))
-  SrvNet:RegisterLogic(self:__GetLogic(), self)
+  SaSrvNet:RegisterLogic(self:__GetSaLogic(), self)
+  AreaSrvNet:RegisterLogic(self:__GetAreaLogic(), self)
 end
 
 function Logic:Log(fmt, ...)
   LoliCore.Io:Log(self.Logh, fmt, ...)
 end
 
-function Logic:OnRequestQuerySouler(Srv)
-  self:Log("OnRequestQuerySouler")
+function Logic:OnRequestArrival(Srv)
+  self:Log("OnRequestArrival")
 end
 
-function Logic:OnRequestCreateSouler(Srv)
-  self:Log("OnRequestCreateSouler")
-end
-
-function Logic:OnRequestDestroySouler(Srv)
-  self:Log("OnRequestDestroySouler")
-end
-
-function Logic:OnRequestSelectSouler(Srv)
-  self:Log("OnRequestSelectSouler")
+function Logic:OnRequestDeparture(Srv)
+  self:Log("OnRequestDeparture")
 end
 
 function Logic:OnRequestClose(Srv)
@@ -39,15 +33,21 @@ function Logic:OnRequestClose(Srv)
   LoliCore.Avatar:Detach()
 end
 
-function Logic:__GetLogic()
+function Logic:__GetSaLogic()
   if self.__Logic then return self.__Logic end
   self.__Logic =
   {
-    RequestQuerySouler = self.OnRequestQuerySouler,
-    RequestCreateSouler = self.OnRequestCreateSouler,
-    RequestDestroySouler = self.OnRequestDestroySouler,
-    RequestSelectSouler = self.OnRequestSelectSouler,
+    RequestArrival = self.OnRequestArrival,
+    RequestDeparture = self.OnRequestDeparture,
     RequestClose = self.OnRequestClose,
+  }
+  return self.__Logic
+end
+
+function Logic:__GetAreaLogic()
+  if self.__Logic then return self.__Logic end
+  self.__Logic =
+  {
   }
   return self.__Logic
 end
