@@ -10,6 +10,7 @@ return
 {
   "sanet.lua",
   "areanet.lua",
+  "godnet.lua",
   "logic.lua",
   "main.lua",
 }

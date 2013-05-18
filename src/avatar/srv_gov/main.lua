@@ -13,6 +13,7 @@ function LoliSrvGoverment:Init()
   self:InitTraceLevel()
   self.SaNet:Init()
   self.AreaNet:Init()
+  self.GodNet:Init()
   self.Logic:Init()
   self:LOGO()
 end

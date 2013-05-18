@@ -48,6 +48,7 @@ function SrvNet:EventPackage(NetId, Pack)
   local Fn = self.LogicFuncs[Pack.ProcId]
   if not Fn then
     --Log this
+    print(string.format("ProcId[%s] Is Not Register", tostring(Pack.ProcId)))
     assert()
     return
   end

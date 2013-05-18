@@ -57,7 +57,7 @@ function SaNet:EventPackage(NetId, Pack)
   if not R then
     print(E)
   end
-  self:PushPackage(NetId, Pack)
+  --self:PushPackage(NetId, Pack)
 end
 
 function SaNet:EventClose(NetId)

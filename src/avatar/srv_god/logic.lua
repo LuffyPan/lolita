@@ -124,6 +124,32 @@ function Logic:OnRequestSelectSouler(NetId, Pack)
   Pack.Result = 1
 end
 
+function Logic:OnRequestGetSouler(NetId, Pack)
+  print("OnRequestGetSouler")
+  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  if not Souler.Fragments then
+    Pack.Result = 0
+    Pack.ErrorCode = 2
+    print(string.format("Souler[%u]'s Fragments Has Not Create", Souler.SoulId))
+    return
+  end
+  if Souler.Moments.Selected ~= 1 then
+    Pack.Result = 0
+    Pack.ErrorCode = 3
+    print(string.format("Souler[%u] Not Already Selected", Souler.SoulId))
+    return
+  end
+  if Souler.Fragments.GovId ~= Pack.GovId then
+    Pack.Result = 0
+    Pack.ErrorCode = 4
+    print(string.format("Souler[%u] GovId[%u] Is Not Match", Souler.Fragments.GovId))
+    return
+  end
+  Pack.Souler = Souler.Fragments
+  Pack.Result = 1
+  print("RequestGetSouler Succeed")
+end
+
 function Logic:OnRequestDestroySouler(NetId, Pack)
   print("OnRequestDestroySouler")
 end
@@ -185,6 +211,7 @@ function Logic:__GetLogic()
     RequestCreateSouler = self.OnRequestCreateSouler,
     RequestSelectSouler = self.OnRequestSelectSouler,
     RequestDestroySouler = self.OnRequestDestroySouler,
+    RequestGetSouler = self.OnRequestGetSouler,
     RequestClose = self.OnRequestClose,
 
     RequestSetEx = self.OnRequestSetEx,
