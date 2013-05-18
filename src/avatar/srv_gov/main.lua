@@ -11,8 +11,8 @@ end
 --AreaSrvNet and SaSrvNet almost is same, so, them can be provide by LoliCore.Net
 function LoliSrvGoverment:Init()
   self:InitTraceLevel()
-  self.SaSrvNet:Init()
-  self.AreaSrvNet:Init()
+  self.SaNet:Init()
+  self.AreaNet:Init()
   self.Logic:Init()
   self:LOGO()
 end

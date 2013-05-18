@@ -8,8 +8,8 @@ LoliSrvGoverment = {}
 
 return
 {
-  "vsasrvnet.lua",
-  "vareasrvnet.lua",
+  "sanet.lua",
+  "areanet.lua",
   "logic.lua",
   "main.lua",
 }

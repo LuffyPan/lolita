@@ -7,28 +7,28 @@
 LoliSrvGoverment.Logic = {}
 
 local Logic = LoliSrvGoverment.Logic
-local SaSrvNet = LoliSrvGoverment.SaSrvNet
-local AreaSrvNet = LoliSrvGoverment.AreaSrvNet
+local SaNet = LoliSrvGoverment.SaNet
+local AreaNet = LoliSrvGoverment.AreaNet
 
 function Logic:Init()
   self.Logh = assert(LoliCore.Io:OpenLog("srv_gov.log"))
-  SaSrvNet:RegisterLogic(self:__GetSaLogic(), self)
-  AreaSrvNet:RegisterLogic(self:__GetAreaLogic(), self)
+  SaNet:RegisterLogic(self:__GetSaLogic(), self)
+  AreaNet:RegisterLogic(self:__GetAreaLogic(), self)
 end
 
 function Logic:Log(fmt, ...)
   LoliCore.Io:Log(self.Logh, fmt, ...)
 end
 
-function Logic:OnRequestArrival(Srv)
+function Logic:OnRequestArrival(NetId, Pack)
   self:Log("OnRequestArrival")
 end
 
-function Logic:OnRequestDeparture(Srv)
+function Logic:OnRequestDeparture(NetId, Pack)
   self:Log("OnRequestDeparture")
 end
 
-function Logic:OnRequestClose(Srv)
+function Logic:OnRequestClose(NetId, Pack)
   self:Log("OnRequestClose")
   LoliCore.Avatar:Detach()
 end

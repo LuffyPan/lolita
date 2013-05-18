@@ -5,54 +5,46 @@
 -- 2013/04/28 13:46:21
 --
 
-LoliSrvGoverment.SaSrvNet = {}
+LoliSrvGoverment.SaNet = {}
 
-local SaSrvNet = LoliSrvGoverment.SaSrvNet
+local SaNet = LoliSrvGoverment.SaNet
 
-function SaSrvNet:Init()
-  self.Srvs = {}
+function SaNet:Init()
   self.LogicFuncs = {}
   self.LogicFuncParam = nil
-  self.Id = assert(LoliCore.Net:Listen("", 7300, self:__GetEventFuncs()))
+  self.NetId = assert(LoliCore.Net:Listen("", 7300, self:__GetEventFuncs()))
 end
 
-function SaSrvNet:UnInit()
+function SaNet:UnInit()
   -- Is Not Supported Very Good.. So ToDo
   assert()
 end
 
-function SaSrvNet:RegisterLogic(LogicFuncs, LogicParam)
+function SaNet:RegisterLogic(LogicFuncs, LogicParam)
   for k, v in pairs(LogicFuncs) do
     self.LogicFuncs[k] = v
   end
   self.LogicParam = LogicParam
 end
 
-function SaSrvNet:PushPackage(Srv, Pack)
-  if not LoliCore.Net:PushPackage(Srv.SrvId, Pack) then
+function SaNet:PushPackage(NetId, Pack)
+  if not LoliCore.Net:PushPackage(NetId, Pack) then
     -- May Be Full, Close It
-    assert(LoliCore.Net:Close(Srv.SrvId))
+    assert(LoliCore.Net:Close(NetId))
   end
   return 1
 end
 
-function SaSrvNet:EventAccept(SrvId)
-  assert(not self.Srvs[SrvId])
-  local Srv =
-  {
-    SrvId = SrvId,
-  }
-  self.Srvs[SrvId] = Srv
+function SaNet:EventAccept(NetId)
   local Fn = self.LogicFuncs.Accept
   if not Fn then return end
-  local R, E = pcall(Fn, self.LogicParam, Srv)
+  local R, E = pcall(Fn, self.LogicParam, NetId)
   if not R then
     print(E)
   end
 end
 
-function SaSrvNet:EventPackage(SrvId, Pack)
-  local Srv = assert(self.Srvs[SrvId])
+function SaNet:EventPackage(NetId, Pack)
   local Fn = self.LogicFuncs[Pack.ProcId]
   if not Fn then
     -- Log this
@@ -61,31 +53,27 @@ function SaSrvNet:EventPackage(SrvId, Pack)
   end
   Pack.Result = 0
   Pack.ErrorCode = 0
-  Srv.Pack = Pack
-  local R, E = pcall(Fn, self.LogicParam, Srv)
+  local R, E = pcall(Fn, self.LogicParam, NetId, Pack)
   if not R then
     print(E)
   end
-  self:PushPackage(Srv, Srv.Pack)
-  Srv.Pack = nil
+  self:PushPackage(NetId, Pack)
 end
 
-function SaSrvNet:EventClose(SrvId)
-  if Id == self.Id then
+function SaNet:EventClose(NetId)
+  if NetId == self.NetId then
     -- ToDo
     return
   end
-  local Srv = assert(self.Srvs[SrvId])
-  self.Srvs[SrvId] = nil
   local Fn = self.LogicFuncs.Close
   if not Fn then return end
-  local R, E = pcall(Fn, self.LogicParam, Srv)
+  local R, E = pcall(Fn, self.LogicParam, NetId)
   if not R then
     print(E)
   end
 end
 
-function SaSrvNet:__GetEventFuncs()
+function SaNet:__GetEventFuncs()
   if self.__EventFuncs then return self.__EventFuncs end
   self.__EventFuncs =
   {
