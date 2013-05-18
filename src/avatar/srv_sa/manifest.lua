@@ -8,6 +8,7 @@ LoliSrvSa = {}
 
 return
 {
+  "godnet.lua",
   "govnet.lua",
   "loginnet.lua",
   "soulernet.lua",

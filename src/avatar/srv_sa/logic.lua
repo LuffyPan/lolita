@@ -10,6 +10,7 @@ local Logic = LoliSrvSa.Logic
 local SoulerNet = LoliSrvSa.SoulerNet
 local LoginNet = LoliSrvSa.LoginNet
 local GovNet = LoliSrvSa.GovNet
+local GodNet = LoliSrvSa.GodNet
 
 local SoulerRepos = {}
 
@@ -64,6 +65,7 @@ function Logic:Init()
   SoulerNet:RegisterLogic(self:__GetSoulerLogic(), self)
   LoginNet:RegisterLogic(self:__GetLoginLogic(), self)
   GovNet:RegisterLogic(self:__GetGovLogic(), self)
+  GodNet:RegisterLogic(self:__GetGodLogic(), self)
 end
 
 function Logic:OnRequestAccept(NetId)
@@ -105,6 +107,42 @@ function Logic:OnRequestRegister(NetId, Pack)
   assert(LoginNet:PushPackage(RegisterPack))
 end
 
+function Logic:OnRequestQuerySouler(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestQuerySouler", Souler.NetId, Souler.SoulId))
+  if Souler.SoulId == 0 then
+    Pack.ErrorCode = 2
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end
+  Pack.SoulId = Souler.SoulId
+  assert(GodNet:PushPackage(Pack))
+end
+
+function Logic:OnRequestCreateSouler(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestCreateSouler", Souler.NetId, Souler.SoulId))
+  if Souler.SoulId == 0 then
+    Pack.ErrorCode = 3
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end
+  Pack.SoulId = Souler.SoulId
+  assert(GodNet:PushPackage(Pack))
+end
+
+function Logic:OnRequestSelectSouler(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestSelectSouler", Souler.NetId, Souler.SoulId))
+  if Souler.SoulId == 0 then
+    Pack.ErrorCode = 4
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end
+  Pack.SoulId = Souler.SoulId
+  assert(GodNet:PushPackage(Pack))
+end
+
 function Logic:OnRespondAuth(NetId, Pack)
   local Souler = assert(SoulerRepos:GetByNetId(Pack.NetId))
   local AuthPack = {ProcId = "Auth"}
@@ -138,6 +176,40 @@ function Logic:OnRespondRegister(NetId, Pack)
   assert(SoulerNet:PushPackage(Souler.NetId, RegisterPack))
 end
 
+function Logic:OnRespondQuerySouler(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetBySoulId(Pack.SoulId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RespondQuerySouler", Souler.NetId, Souler.SoulId))
+  if Pack.Result == 1 then
+    print(string.format("Query Souler Succedd"))
+  else
+    print(string.format("Query Souler Failed"))
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+end
+
+function Logic:OnRespondCreateSouler(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetBySoulId(Pack.SoulId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RespondCreateSouler", Souler.NetId, Souler.SoulId))
+  if Pack.Result == 1 then
+    print(string.format("Create Souler Succedd"))
+  else
+    print(string.format("Create Souler Failed"))
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+end
+
+function Logic:OnRespondSelectSouler(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetBySoulId(Pack.SoulId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RespondSelectSouler", Souler.NetId, Souler.SoulId))
+  if Pack.Result == 1 then
+    print(string.format("Select Souler Succedd"))
+    Souler.GovId = Pack.GovId
+  else
+    print(string.format("Select Souler Failed"))
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+end
+
 function Logic:__GetSoulerLogic()
   self.__SoulerLogic =
   {
@@ -145,6 +217,10 @@ function Logic:__GetSoulerLogic()
     Close = self.OnRequestClose,
     Auth = self.OnRequestAuth,
     Register = self.OnRequestRegister,
+
+    RequestCreateSouler = self.OnRequestCreateSouler,
+    RequestQuerySouler = self.OnRequestQuerySouler,
+    RequestSelectSouler = self.OnRequestSelectSouler,
   }
   return self.__SoulerLogic
 end
@@ -165,4 +241,14 @@ function Logic:__GetGovLogic()
     RequestDeparture = self.OnRequestDeparture,
   }
   return self.__GovLogic
+end
+
+function Logic:__GetGodLogic()
+  self.__GodLogic =
+  {
+    RequestCreateSouler = self.OnRespondCreateSouler,
+    RequestQuerySouler = self.OnRespondQuerySouler,
+    RequestSelectSouler = self.OnRespondSelectSouler,
+  }
+  return self.__GodLogic
 end
