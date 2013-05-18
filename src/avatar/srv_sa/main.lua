@@ -8,27 +8,25 @@ local function pf(fmt, ...)
   print(string.format(fmt, ...))
 end
 
-function LoliSrvSA:Init()
+function LoliSrvSa:Init()
   self:InitTraceLevel()
-  self.SoulerMgr:Init()
   self.SoulerNet:Init()
   self.LoginNet:Init()
-  self.GNet:Init()
-  self.GovermentNet:Init()
+  self.GovNet:Init()
   self.Logic:Init()
   self:LOGO()
 end
 
-function LoliSrvSA:InitTraceLevel()
+function LoliSrvSa:InitTraceLevel()
   local Lv = LoliCore.Arg:Get("tracelv")
   Lv = Lv and tonumber(Lv) or 0
   core.base.settracelv(Lv)
 end
 
-function LoliSrvSA:LOGO()
+function LoliSrvSa:LOGO()
   pf("               Lolita SoulerAgency Server.")
   pf("               Based On %s %s", LoliCore.Info:GetName(), LoliCore.Info:GetReposVersion())
-  pf("                             %s", "Works Of Chamz Lau's")
+  pf("                             %s", "Chamz Lau Original")
 end
 
-LoliSrvSA:Init()
+LoliSrvSa:Init()

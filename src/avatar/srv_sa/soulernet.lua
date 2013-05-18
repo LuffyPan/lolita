@@ -1,18 +1,17 @@
 --
--- Souler Net
+-- Client Net
 -- Chamz Lau, Copyright (C) 2013-2017
 -- 2013/04/23 15:23:34
 --
 
-LoliSrvSA.SoulerNet = {}
+LoliSrvSa.SoulerNet = {}
 
-local SoulerNet = LoliSrvSA.SoulerNet
-local SoulerMgr = LoliSrvSA.SoulerMgr
+local SoulerNet = LoliSrvSa.SoulerNet
 
 function SoulerNet:Init()
   self.LogicFuncs = {}
   self.LogicFuncParam = nil
-  self.Id = assert(LoliCore.Net:Listen("", 7100, self:__GetEventFuncs()))
+  self.NetId = assert(LoliCore.Net:Listen("", 7100, self:__GetEventFuncs()))
 end
 
 function SoulerNet:UnInit()
@@ -27,54 +26,50 @@ function SoulerNet:RegisterLogic(LogicFuncs, LogicParam)
   self.LogicParam = LogicParam
 end
 
-function SoulerNet:PushPackage(Souler, Pack)
-  if not LoliCore.Net:PushPackage(Souler.Id, Pack) then
+function SoulerNet:PushPackage(NetId, Pack)
+  if not LoliCore.Net:PushPackage(NetId, Pack) then
     --May be full, Close it.
-    assert(LoliCore.Net:Close(Souler.Id))
+    assert(LoliCore.Net:Close(NetId))
     return
   end
   return 1
 end
 
-function SoulerNet:EventAccept(Id)
-  local Souler = assert(SoulerMgr:New(Id))
+function SoulerNet:EventAccept(NetId)
   local Fn = self.LogicFuncs.Accept
   if Fn then
-    local r, e = pcall(Fn, self.LogicParam, Souler)
-    if not r then
-      print(e)
+    local R, E = pcall(Fn, self.LogicParam, NetId)
+    if not R then
+      print(E)
     end
   end
 end
 
-function SoulerNet:EventPackage(Id, Pack)
-  local Souler = assert(SoulerMgr:GetById(Id))
+function SoulerNet:EventPackage(NetId, Pack)
   local Fn = self.LogicFuncs[Pack.ProcId]
   if Fn then
-    Souler.Pack = Pack
-    local r, e = pcall(Fn, self.LogicParam, Souler)
-    if not r then
-      print(e)
+    Pack.Result = 0
+    Pack.ErrorCode = 0
+    local R, E = pcall(Fn, self.LogicParam, NetId, Pack)
+    if not R then
+      print(E)
     end
-    Souler.Pack = nil
   else
     --Log this
   end
 end
 
-function SoulerNet:EventClose(Id)
-  if Id == self.Id then
+function SoulerNet:EventClose(NetId)
+  if NetId == self.NetId then
     --ToDo
   else
-    local Souler = assert(SoulerMgr:GetById(Id))
     local Fn = self.LogicFuncs.Close
     if Fn then
-      local r, e = pcall(Fn, self.LogicParam, Souler)
-      if not r then
-        print(e)
+      local R, E = pcall(Fn, self.LogicParam, NetId)
+      if not R then
+        print(E)
       end
     end
-    SoulerMgr:Delete(Id)
   end
 end
 

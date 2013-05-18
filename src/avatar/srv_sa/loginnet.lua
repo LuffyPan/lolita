@@ -1,46 +1,47 @@
 --
--- Goverment Net
+-- Login Net
 -- Chamz Lau, Copyright (C) 2013-2017
--- 2013/04/28 16:53:23
+-- 2013/04/23 15:58:29
 --
 
-LoliSrvSa.GovNet = {}
+LoliSrvSa.LoginNet = {}
 
-local GovNet = LoliSrvSa.GovNet
+local LoginNet = LoliSrvSa.LoginNet
 
-function GovNet:Init()
+function LoginNet:Init()
   self.LogicFuncs = {}
   self.LogicParam = nil
   self.Connected = 0
-  self.NetId = assert(LoliCore.Net:Connect("127.0.0.1", 7300, self:__GetEventFuncs()))
+  self.NetId = assert(LoliCore.Net:Connect("127.0.0.1", 7000, self:__GetEventFuncs()))
 end
 
-function GovNet:UnInit()
+function LoginNet:UnInit()
   if self.NetId > 0 then LoliCore.Net:Close(self.NetId) end
 end
 
-function GovNet:RegisterLogic(LogicFuncs, LogicParam)
+function LoginNet:RegisterLogic(LogicFuncs, LogicParam)
   for k, v in pairs(LogicFuncs) do
     self.LogicFuncs[k] = v
   end
   self.LogicParam = LogicParam
 end
 
-function GovNet:PushPackage(Pack)
+function LoginNet:PushPackage(Pack)
   assert(self.NetId > 0)
   if not LoliCore.Net:PushPackage(self.NetId, Pack) then
+    --May be full, Close it.
     assert(LoliCore.Net:Close(self.NetId))
     return
   end
   return 1
 end
 
-function GovNet:EventConnect(NetId, Result)
+function LoginNet:EventConnect(NetId, Result)
   assert(NetId == self.NetId)
   self.Connected = Result
 end
 
-function GovNet:EventPackage(NetId, Pack)
+function LoginNet:EventPackage(NetId, Pack)
   assert(NetId == self.NetId)
   local Fn = assert(self.LogicFuncs[Pack.ProcId])
   local R, E = pcall(Fn, self.LogicParam, NetId, Pack)
@@ -49,13 +50,13 @@ function GovNet:EventPackage(NetId, Pack)
   end
 end
 
-function GovNet:EventClose(NetId)
+function LoginNet:EventClose(NetId)
   assert(NetId == self.NetId)
   self.NetId = 0
   self.Connected = 0
 end
 
-function GovNet:__GetEventFuncs()
+function LoginNet:__GetEventFuncs()
   if self.__EventFuncs then return self.__EventFuncs end
   self.__EventFuncs =
   {

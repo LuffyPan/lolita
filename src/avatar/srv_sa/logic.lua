@@ -4,208 +4,147 @@
 -- 2013/04/23 16:09:44
 --
 
-LoliSrvSA.Logic = {}
+LoliSrvSa.Logic = {}
 
-local Logic = LoliSrvSA.Logic
-local SoulerNet = LoliSrvSA.SoulerNet
-local LoginNet = LoliSrvSA.LoginNet
-local GNet = LoliSrvSA.GNet
-local GovermentNet = LoliSrvSA.GovermentNet
+local Logic = LoliSrvSa.Logic
+local SoulerNet = LoliSrvSa.SoulerNet
+local LoginNet = LoliSrvSa.LoginNet
+local GovNet = LoliSrvSa.GovNet
 
-Logic.SS =
-{
-  NORMAL = "Normal",
-  REGISTER = "Register",
-  AUTH = "Auth",
-  CHECKANDSETSTATE = "CheckAndSetState",
-  SOULER =
+local SoulerRepos = {}
+
+function SoulerRepos:Init()
+  self._NetId2Soulers = {}
+  self._SoulId2Soulers = {}
+end
+
+function SoulerRepos:New(NetId)
+  assert(not self._NetId2Soulers[NetId])
+  local Souler =
   {
-    QUERY = "QuerySoulers",
-    CREATE = "CreateSouler",
-    DESTROY = "DestroySouler",
-    SELECT = "SelectSouler",
-  },
-}
+    NetId = NetId,
+    SoulId = 0,
+  }
+  self._NetId2Soulers[NetId] = Souler
+  return Souler
+end
+
+function SoulerRepos:Delete(NetId)
+  local Souler = assert(self._NetId2Soulers[NetId])
+  assert(Souler.NetId == NetId)
+  self._SoulId2Soulers[Souler.SoulId] = nil
+  self._NetId2Soulers[Souler.NetId] = nil
+  return Souler
+end
+
+function SoulerRepos:AttachSoulId(NetId, SoulId)
+  local Souler = assert(self._NetId2Soulers[NetId])
+  assert(Souler.SoulId == 0)
+  Souler.SoulId = SoulId
+  assert(not self._SoulId2Soulers[SoulId])
+  self._SoulId2Soulers[SoulId] = Souler
+  return Souler
+end
+
+function SoulerRepos:GetByNetId(NetId)
+  local Souler = self._NetId2Soulers[NetId]
+  return Souler
+end
+
+function SoulerRepos:GetBySoulId(SoulId)
+  local Souler = self._SoulId2Soulers[SoulId]
+  return Souler
+end
+
+
+
 
 function Logic:Init()
+  SoulerRepos:Init()
   SoulerNet:RegisterLogic(self:__GetSoulerLogic(), self)
   LoginNet:RegisterLogic(self:__GetLoginLogic(), self)
-  GNet:RegisterLogic(self:__GetGLogic(), self)
-  GovermentNet:RegisterLogic(self:__GetGovermentLogic(), self)
+  GovNet:RegisterLogic(self:__GetGovLogic(), self)
 end
 
-function Logic:SoulerAccept(Souler)
-  --for k, v in pairs(Souler) do print(k,v) end
-  assert(not Souler.Souler)
-  assert(not Souler.State)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] RequestAccept", Souler.Id, Souler.SoulId, Souler.State))
-  Souler.State = self.SS.NORMAL
-  print(string.format("Set State To [%s]", Souler.State))
+function Logic:OnRequestAccept(NetId)
+  local Souler = assert(SoulerRepos:New(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestAccept", Souler.NetId, Souler.SoulId))
 end
 
-function Logic:SoulerClose(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] RequestClose", Souler.Id, Souler.SoulId, Souler.State))
+function Logic:OnRequestClose(NetId)
+  local Souler = assert(SoulerRepos:Delete(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestClose", Souler.NetId, Souler.SoulId))
 end
 
-function Logic:SoulerAuth(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] RequestAuth", Souler.Id, Souler.SoulId, Souler.State))
-  if Souler.State ~= self.SS.NORMAL then
+function Logic:OnRequestAuth(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestAuth", Souler.NetId, Souler.SoulId))
+  if Souler.SoulId > 0 then
     --Send Back
-    --Just assert, ToDo
-    Souler.Pack.Result = 0
-    Souler.Pack.ErrorCode = 1
-    assert(SoulerNet:PushPackage(Souler, Souler.Pack))
+    Pack.ErrorCode = 1
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
     return
   end
   local AuthPack = {}
   AuthPack.ProcId = "Auth"
-  AuthPack.Account = Souler.Pack.Account
-  AuthPack.Password = Souler.Pack.Password
-  assert(LoginNet:PushPackage(Souler, AuthPack))
-  Souler.State = self.SS.AUTH
+  AuthPack.Account = Pack.Account
+  AuthPack.Password = Pack.Password
+  AuthPack.NetId = Souler.NetId
+  assert(LoginNet:PushPackage(AuthPack))
 end
 
-function Logic:SoulerRegister(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] RequestRegister", Souler.Id, Souler.SoulId, Souler.State))
-  if Souler.State ~= self.SS.NORMAL then
-    Souler.Pack.Result = 0
-    Souler.Pack.ErrorCode = 2
-    assert(SoulerNet:PushPackage(Souler, Souler.Pack))
-    return
-  end
-  local RegisterPack = {ProcId = "Register"}
-  RegisterPack.Account = Souler.Pack.Account
-  RegisterPack.Password = Souler.Pack.Password
-  RegisterPack.Age = Souler.Pack.Age
-  assert(LoginNet:PushPackage(Souler, RegisterPack))
-  Souler.State = self.SS.REGISTER
+function Logic:OnRequestRegister(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RequestRegister", Souler.NetId, Souler.SoulId))
+  local RegisterPack = {}
+  RegisterPack.ProcId = "Register"
+  RegisterPack.Account = Pack.Account
+  RegisterPack.Password = Pack.Password
+  RegisterPack.Age = Pack.Age
+  RegisterPack.NetId = Souler.NetId
+  assert(LoginNet:PushPackage(RegisterPack))
 end
 
-function Logic:LoginAuth(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] Login ResponedAuth", Souler.Id, Souler.SoulId, Souler.State))
-  if Souler.State ~= self.SS.AUTH then
-    print(string.format("State[%s] Is Not [%s]", Souler.State, self.SS.AUTH))
-    return
-  end
-  if Souler.Pack.Result ~= 1 then
-    Souler.State = self.SS.NORMAL
-    print(string.format("Auth Failed, ErrorCode[%s]", Souler.Pack.ErrorCode))
-    local AuthPack = {ProcId = "Auth"}
-    AuthPack.Result = Souler.Pack.Result
-    AuthPack.ErrorCode = Souler.Pack.ErrorCode
-    assert(SoulerNet:PushPackage(Souler, AuthPack))
-    return
-  end
-  Souler.State = self.SS.CHECKANDSETSTATE
-  Souler.SoulId = Souler.Pack.SoulId
-  print(string.format("Auth Succeed, SoulId[%s]", Souler.SoulId))
-  -- local AuthPack = {ProcId = "Auth"}
-  -- AuthPack.Account = Souler.Pack.Account
-  -- AuthPack.Password = Souler.Pack.Password
-  -- AuthPack.Result = Souler.Pack.Result
-  -- AuthPack.ErrorCode = Souler.Pack.ErrorCode
-  -- assert(SoulerNet:PushPackage(Souler, AuthPack))
-
-  -- LockAndGet Global Souler State
-  local RequestLockAndGetPack = {ProcId = "RequestLockAndGet"}
-  RequestLockAndGetPack.Field = "State"
-  assert(GNet:PushPackage(Souler, RequestLockAndGetPack))
-end
-
-function Logic:LoginRegister(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] Login RespondRegister", Souler.Id, Souler.SoulId, Souler.State))
-  if Souler.State ~= self.SS.REGISTER then
-    print(string.format("State[%s] Is Not [%s]", Souler.State, self.SS.REGISTER))
-    return
-  end
-  if Souler.Pack.Result == 1 then
-    print(string.format("Register Succedd, Account[%s], SoulId[%s]", Souler.Pack.Account, Souler.Pack.SoulId))
-  else
-    print(string.format("Register Failed, ErrorCode[%s]", Souler.Pack.ErrorCode))
-  end
-  Souler.State = self.SS.NORMAL
-  local RegisterPack = {ProcId = "Register"}
-  RegisterPack.Account = Souler.Pack.Account
-  RegisterPack.Password = Souler.Pack.Password
-  RegisterPack.Age = Souler.Pack.Age
-  RegisterPack.Result = Souler.Pack.Result
-  RegisterPack.ErrorCode = Souler.Pack.ErrorCode
-  assert(SoulerNet:PushPackage(Souler, RegisterPack))
-end
-
-function Logic:GLockAndGet(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] GSS RespondLockAndGet", Souler.Id, Souler.SoulId, Souler.State))
-  if Souler.State ~= self.SS.CHECKANDSETSTATE then
-    print(string.format("State[%s] Is Not [%s]", Souler.State, self.SS.CHECKANDSETSTATE))
-    return
-  end
-  if Souler.Pack.Result ~= 1 then
-    Souler.State = self.SS.NORMAL
-    print(string.format("RequestLockAndGet Failed, ErrorCode[%s]", Souler.Pack.ErrorCode))
-    local AuthPack = {ProcId = "Auth"}
-    AuthPack.Result = Souler.Pack.Result
-    AuthPack.ErrorCode = Souler.Pack.ErrorCode
-    assert(SoulerNet:PushPackage(Souler, AuthPack))
-    return
-  end
-  if Souler.Pack.Field ~= "State" or Souler.Pack.Value ~= 0 then
-    Souler.State = self.SS.NORMAL
-    print(string.format("Global Souler State, Field[%s] Value[%s] Is Not Match", Souler.Pack.Field, Souler.Pack.Value))
-    local AuthPack = {ProcId = "Auth"}
-    AuthPack.Result = 0
-    AuthPack.ErrorCode = 1111 --ToDo, Define A ErrorCode
-    assert(SoulerNet:PushPackage(Souler, AuthPack))
-  end
-  -- SetAndUnlock Global Souler State
-  local RequestSetAndUnlockPack = {ProcId = "RequestSetAndUnlock"}
-  RequestSetAndUnlockPack.LockKey = Souler.Pack.LockKey
-  RequestSetAndUnlockPack.Field = "State"
-  RequestSetAndUnlockPack.Value = 1
-  assert(GNet:PushPackage(Souler, RequestSetAndUnlockPack))
-end
-
-function Logic:GSetAndUnlock(Souler)
-  print(string.format("Souler Id[%u], SoulId[%s], State[%s] GSS RespondSetAndUnlock", Souler.Id, Souler.SoulId, Souler.State))
-  assert(Souler.SoulId == Souler.Pack.SoulId)
-  if Souler.State ~= self.SS.CHECKANDSETSTATE then
-    print(string.format("State[%s] Is Not [%s]", Souler.State, self.SS.CHECKANDSETSTATE))
-    return
-  end
-  if Souler.Pack.Result ~= 1 then
-    Souler.State = self.SS.NORMAL
-    print(string.format("RequestSetAndUnlock Failed, ErrorCode[%s]", Souler.Pack.ErrorCode))
-    local AuthPack = {ProcId = "Auth"}
-    AuthPack.Result = Souler.Pack.Result
-    AuthPack.ErrorCode = Souler.Pack.ErrorCode
-    assert(SoulerNet:PushPackage(Souler, AuthPack))
-    return
-  end
-  Souler.State = self.SS.SOULER.QUERY
+function Logic:OnRespondAuth(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(Pack.NetId))
   local AuthPack = {ProcId = "Auth"}
-  AuthPack.Result = Souler.Pack.Result
-  AuthPack.ErrorCode = 0
-  assert(SoulerNet:PushPackage(Souler, AuthPack))
+  AuthPack.Result = Pack.Result
+  AuthPack.ErrorCode = Pack.ErrorCode
+  print(string.format("Souler NetId[%u], SoulId[%s], ResponedAuth", Souler.NetId, Souler.SoulId))
+  if Pack.Result ~= 1 then
+    print(string.format("Auth Failed, ErrorCode[%s]", Pack.ErrorCode))
+  else
+    print(string.format("Auth Succeed, SoulId[%s]", Souler.SoulId))
+    SoulerRepos:AttachSoulId(Souler.NetId, Pack.SoulId)
+    assert(Souler.SoulId > 0)
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, AuthPack))
 end
 
-function Logic:GovermentQuerySouler(Souler)
-end
-
-function Logic:GovermentCreateSouler(Souler)
-end
-
-function Logic:GovermentDestroySouler(Souler)
-end
-
-function Logic:GovermentSelectSouler(Souler)
+function Logic:OnRespondRegister(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(Pack.NetId))
+  local RegisterPack = {ProcId = "Register"}
+  RegisterPack.Account = Pack.Account
+  RegisterPack.Password = Pack.Password
+  RegisterPack.Age = Pack.Age
+  RegisterPack.Result = Pack.Result
+  RegisterPack.ErrorCode = Pack.ErrorCode
+  print(string.format("Souler NetId[%u], SoulId[%s], RespondRegister", Souler.NetId, Souler.SoulId))
+  if Pack.Result == 1 then
+    print(string.format("Register Succedd, Account[%s], SoulId[%s]", Pack.Account, Pack.SoulId))
+  else
+    print(string.format("Register Failed, ErrorCode[%s]", Pack.ErrorCode))
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, RegisterPack))
 end
 
 function Logic:__GetSoulerLogic()
   self.__SoulerLogic =
   {
-    Accept = self.SoulerAccept,
-    Close = self.SoulerClose,
-    Auth = self.SoulerAuth,
-    Register = self.SoulerRegister,
+    Accept = self.OnRequestAccept,
+    Close = self.OnRequestClose,
+    Auth = self.OnRequestAuth,
+    Register = self.OnRequestRegister,
   }
   return self.__SoulerLogic
 end
@@ -213,28 +152,17 @@ end
 function Logic:__GetLoginLogic()
   self.__LoginLogic =
   {
-    Auth = self.LoginAuth,
-    Register = self.LoginRegister,
+    Auth = self.OnRespondAuth,
+    Register = self.OnRespondRegister,
   }
   return self.__LoginLogic
 end
 
-function Logic:__GetGLogic()
-  self.__GLogic =
+function Logic:__GetGovLogic()
+  self.__GovLogic =
   {
-    RequestLockAndGet = self.GLockAndGet,
-    RequestSetAndUnlock = self.GSetAndUnlock,
+    RequestArrival = self.OnRequestArrival,
+    RequestDeparture = self.OnRequestDeparture,
   }
-  return self.__GLogic
-end
-
-function Logic:__GetGovermentLogic()
-  self.__GovermentLogic =
-  {
-    RequestQuerySouler = self.GovermentQuerySouler,
-    RequestCreateSouler = self.GovermentCreateSouler,
-    RequestDestroySouler = self.GovermentDestroySouler,
-    RequestSelectSouler = self.GovermentSelectSouler,
-  }
-  return self.__GLogic
+  return self.__GovLogic
 end

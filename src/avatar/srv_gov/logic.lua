@@ -34,20 +34,20 @@ function Logic:OnRequestClose(Srv)
 end
 
 function Logic:__GetSaLogic()
-  if self.__Logic then return self.__Logic end
-  self.__Logic =
+  if self.__SaLogic then return self.__SaLogic end
+  self.__SaLogic =
   {
     RequestArrival = self.OnRequestArrival,
     RequestDeparture = self.OnRequestDeparture,
     RequestClose = self.OnRequestClose,
   }
-  return self.__Logic
+  return self.__SaLogic
 end
 
 function Logic:__GetAreaLogic()
-  if self.__Logic then return self.__Logic end
-  self.__Logic =
+  if self.__AreaLogic then return self.__AreaLogic end
+  self.__AreaLogic =
   {
   }
-  return self.__Logic
+  return self.__AreaLogic
 end

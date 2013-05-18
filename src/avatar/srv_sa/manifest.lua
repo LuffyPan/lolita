@@ -4,15 +4,13 @@
 -- 2013/04/23 15:13:23
 -- 
 
-LoliSrvSA = {}
+LoliSrvSa = {}
 
 return
 {
-  "smgr.lua",
   "govnet.lua",
-  "gnet.lua",
-  "lnet.lua",
-  "snet.lua",
+  "loginnet.lua",
+  "soulernet.lua",
   "logic.lua",
   "main.lua",
 }
