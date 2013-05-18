@@ -51,13 +51,10 @@ function AreaNet:EventPackage(NetId, Pack)
     assert()
     return
   end
-  Pack.Result = 0
-  Pack.ErrorCode = 0
   local R, E = pcall(Fn, self.LogicParam, NetId, Pack)
   if not R then
     print(E)
   end
-  self:PushPackage(NetId, Pack)
 end
 
 function AreaNet:EventClose(NetId)

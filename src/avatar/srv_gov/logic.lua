@@ -41,12 +41,45 @@ function SoulerRepos:GetBySoulId(SoulId)
   return Souler
 end
 
+local AreaRepos = {}
+
+function AreaRepos:Init()
+  self._NetId2Area = {}
+end
+
+function AreaRepos:New(NetId)
+  assert(not self._NetId2Area[NetId])
+  local Area =
+  {
+    NetId = NetId,
+  }
+  self._NetId2Area[NetId] = Area
+  return Area
+end
+
+function AreaRepos:Delete(NetId)
+  local Area = assert(self._NetId2Area[NetId])
+  self._NetId2Area[NetId] = nil
+  return Area
+end
+
+function AreaRepos:GetByNetId(NetId)
+  return self._NetId2Area[NetId]
+end
+
+function AreaRepos:GetAny()
+  for k, v in pairs(self._NetId2Area) do
+    return v
+  end
+end
+
 function Logic:Init()
   self.Logh = assert(LoliCore.Io:OpenLog("srv_gov.log"))
   SaNet:RegisterLogic(self:__GetSaLogic(), self)
   AreaNet:RegisterLogic(self:__GetAreaLogic(), self)
   GodNet:RegisterLogic(self:__GetGodLogic(), self)
   SoulerRepos:Init()
+  AreaRepos:Init()
 end
 
 function Logic:Log(fmt, ...)
@@ -92,13 +125,28 @@ function Logic:OnRespondGetSouler(NetId, Pack)
     return
   else
     ArrivalPack.Souler = Pack.Souler
-    --assert(AreaNet:PushPackage(Souler.AreaNetId, ArrivalPack))
+    assert(AreaNet:PushPackage(AreaRepos:GetAny().NetId, ArrivalPack))
     self:Log("GetSouler Succeed")
   end
 end
 
+function Logic:OnAreaAccept(NetId)
+  assert(AreaRepos:New(NetId))
+end
+
+function Logic:OnAreaClose(NetId)
+  assert(AreaRepos:Delete(NetId))
+end
+
 function Logic:OnRespondArrival(NetId, Pack)
-  self:Log("OnRespondArrival")
+  self:Log("Souler SoulId[%u] RespondArrival", Pack.SoulId)
+  local Souler = assert(SoulerRepos:GetBySoulId(Pack.SoulId))
+  if Pack.Result == 1 then
+    self:Log("Arrival Succeed")
+  else
+    self:Log("Arrival Failed")
+  end
+  SaNet:PushPackage(Souler.SaNetId, Pack)
 end
 
 function Logic:OnRespondDeparture(NetId, Pack)

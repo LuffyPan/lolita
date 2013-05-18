@@ -12,7 +12,7 @@ function GovNet:Init()
   self.LogicFuncs = {}
   self.LogicParam = nil
   self.Connected = 0
-  self.NetId = assert(LoliCore.Net:Connect("127.0.0.1", 7300, self:__GetEventFuncs()))
+  self.NetId = assert(LoliCore.Net:Connect("127.0.0.1", 7400, self:__GetEventFuncs()))
 end
 
 function GovNet:UnInit()
