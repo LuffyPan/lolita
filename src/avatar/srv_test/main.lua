@@ -342,11 +342,101 @@ function LoliSrvTest:TestSAAuth()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    --LoliCore.Avatar:Detach()
-    --debug.debug()
+    LoliCore.Imagination:Begin(16 * 2, self.TestSAQuerySouler, self)
     self.TestConnectPushCount = 0
   else
     LoliCore.Imagination:Begin(16 * 2, self.TestSAAuth, self)
+  end
+end
+
+function LoliSrvTest:TestSAQuerySouler()
+  local PackQuerySouler =
+  {
+    ProcId = "RequestQuerySouler",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackQuerySouler)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestSACreateSouler, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSAQuerySouler, self)
+  end
+end
+
+function LoliSrvTest:TestSACreateSouler()
+  local PackCreateSouler =
+  {
+    ProcId = "RequestCreateSouler",
+    SoulInfo = 
+    {
+      Sex = 1,
+      Job = 110,
+      Name = "Chamz",
+      GovId = 1,
+    },
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackCreateSouler)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestSASelectSouler, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSACreateSouler, self)
+  end
+end
+
+function LoliSrvTest:TestSASelectSouler()
+  local PackSelectSouler =
+  {
+    ProcId = "RequestSelectSouler",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackSelectSouler)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestSAArrival, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSASelectSouler, self)
+  end
+end
+
+function LoliSrvTest:TestSAArrival()
+  local PackArrival =
+  {
+    ProcId = "RequestArrival",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackArrival)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    LoliCore.Imagination:Begin(16 * 2, self.TestSADeparture, self)
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSAArrival, self)
+  end
+end
+
+function LoliSrvTest:TestSADeparture()
+  local PackDeparture =
+  {
+    ProcId = "RequestDeparture",
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, PackDeparture)
+  end
+  self.TestConnectPushCount = self.TestConnectPushCount + 1
+  if self.TestConnectPushCount >= 1 then
+    self.TestConnectPushCount = 0
+  else
+    LoliCore.Imagination:Begin(16 * 2, self.TestSADeparture, self)
   end
 end
 

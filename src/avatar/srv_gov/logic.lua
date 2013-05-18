@@ -22,10 +22,12 @@ end
 
 function Logic:OnRequestArrival(NetId, Pack)
   self:Log("OnRequestArrival")
+  Pack.Result = 1
 end
 
 function Logic:OnRequestDeparture(NetId, Pack)
   self:Log("OnRequestDeparture")
+  Pack.Result = 1
 end
 
 function Logic:OnRequestClose(NetId, Pack)

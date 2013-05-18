@@ -25,6 +25,7 @@ function SoulerRepos:New(NetId)
   {
     NetId = NetId,
     SoulId = 0,
+    GovId = 0,
   }
   self._NetId2Soulers[NetId] = Souler
   return Souler
@@ -143,6 +144,42 @@ function Logic:OnRequestSelectSouler(NetId, Pack)
   assert(GodNet:PushPackage(Pack))
 end
 
+function Logic:OnRequestArrival(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%u], GovId[%u], RequestArrival", Souler.NetId, Souler.SoulId, Souler.GovId))
+  if Souler.SoulId == 0 then
+    Pack.ErrorCode = 5
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end
+  if Souler.GovId == 0 then
+    Pack.ErrorCode = 6
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end 
+  Pack.SoulId = Souler.SoulId
+  Pack.GovId = Souler.GovId
+  assert(GovNet:PushPackage(Pack))
+end
+
+function Logic:OnRequestDeparture(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetByNetId(NetId))
+  print(string.format("Souler NetId[%u], SoulId[%u], GovId[%u], RequestDeparture", Souler.NetId, Souler.SoulId, Souler.GovId))
+  if Souler.SoulId == 0 then
+    Pack.ErrorCode = 5
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end
+  if Souler.GovId == 0 then
+    Pack.ErrorCode = 6
+    assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+    return
+  end 
+  Pack.SoulId = Souler.SoulId
+  Pack.GovId = Souler.GovId
+  assert(GovNet:PushPackage(Pack))
+end
+
 function Logic:OnRespondAuth(NetId, Pack)
   local Souler = assert(SoulerRepos:GetByNetId(Pack.NetId))
   local AuthPack = {ProcId = "Auth"}
@@ -210,6 +247,28 @@ function Logic:OnRespondSelectSouler(NetId, Pack)
   assert(SoulerNet:PushPackage(Souler.NetId, Pack))
 end
 
+function Logic:OnRespondArrival(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetBySoulId(Pack.SoulId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RespondArrival", Souler.NetId, Souler.SoulId))
+  if Pack.Result == 1 then
+    print(string.format("Arrival GovId[%u] Succedd", Pack.GovId))
+  else
+    print(string.format("Arrival GovId[%u] Failed", Pack.GovId))
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+end
+
+function Logic:OnRespondDeparture(NetId, Pack)
+  local Souler = assert(SoulerRepos:GetBySoulId(Pack.SoulId))
+  print(string.format("Souler NetId[%u], SoulId[%s], RespondDeparture", Souler.NetId, Souler.SoulId))
+  if Pack.Result == 1 then
+    print(string.format("Departure GovId[%u] Succedd", Pack.GovId))
+  else
+    print(string.format("Departure GovId[%u] Failed", Pack.GovId))
+  end
+  assert(SoulerNet:PushPackage(Souler.NetId, Pack))
+end
+
 function Logic:__GetSoulerLogic()
   self.__SoulerLogic =
   {
@@ -221,6 +280,9 @@ function Logic:__GetSoulerLogic()
     RequestCreateSouler = self.OnRequestCreateSouler,
     RequestQuerySouler = self.OnRequestQuerySouler,
     RequestSelectSouler = self.OnRequestSelectSouler,
+
+    RequestArrival = self.OnRequestArrival,
+    RequestDeparture = self.OnRequestDeparture,
   }
   return self.__SoulerLogic
 end
@@ -237,8 +299,8 @@ end
 function Logic:__GetGovLogic()
   self.__GovLogic =
   {
-    RequestArrival = self.OnRequestArrival,
-    RequestDeparture = self.OnRequestDeparture,
+    RequestArrival = self.OnRespondArrival,
+    RequestDeparture = self.OnRespondDeparture,
   }
   return self.__GovLogic
 end
