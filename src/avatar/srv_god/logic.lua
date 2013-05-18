@@ -68,17 +68,15 @@ function Logic:Init()
   SrvNet:RegisterLogic(self:__GetLogic(), self)
 end
 
-function Logic:OnRequestQuerySouler(Srv)
+function Logic:OnRequestQuerySouler(NetId, Pack)
   print("OnRequestQuerySouler")
-  local Pack = Srv.Pack
   local Souler = assert(SoulerRepos:Load(Pack.SoulId)) --Step 1
   Pack.Result = 1
   Pack.Souler = Souler.Fragments
 end
 
-function Logic:OnRequestCreateSouler(Srv)
+function Logic:OnRequestCreateSouler(NetId, Pack)
   print("OnRequestCreateSouler")
-  local Pack = Srv.Pack
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if Souler.Fragments then
     Pack.Result = 0
@@ -102,23 +100,23 @@ function Logic:OnRequestCreateSouler(Srv)
   }
   Souler.Fragments = Fragments
   --Step 4. Save, Should use timer to save, and log failed
-  assert(SoulerRepos:Save(Pack.SoulId))
+  assert(SoulerRepos:Save(Souler.SoulId))
+  Pack.Result = 1
 end
 
-function Logic:OnRequestSelectSouler(Srv)
+function Logic:OnRequestSelectSouler(NetId, Pack)
   print("OnRequestSelectSouler")
-  local Pack = Srv.Pack
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if not Souler.Fragments then
     Pack.Result = 0
     Pack.ErrorCode = 1
-    print(string.format("Souler[%u]'s Fragments Has Not Create", Pack.SoulId))
+    print(string.format("Souler[%u]'s Fragments Has Not Create", Souler.SoulId))
     return
   end
   if Souler.Moments.Selected == 1 then
     Pack.Result = 0
     Pack.ErrorCode = 2
-    print(string.format("Souler[%u] Already Selected", Pack.SoulId))
+    print(string.format("Souler[%u] Already Selected", Souler.SoulId))
     return
   end
   Souler.Moments.Selected = 1
@@ -126,23 +124,22 @@ function Logic:OnRequestSelectSouler(Srv)
   Pack.Result = 1
 end
 
-function Logic:OnRequestDestroySouler(Srv)
+function Logic:OnRequestDestroySouler(NetId, Pack)
   print("OnRequestDestroySouler")
 end
 
-function Logic:OnRequestClose(Srv)
+function Logic:OnRequestClose(NetId)
   print("OnRequestClose")
   LoliCore.Avatar:Detach()
 end
 
-function Logic:OnRequestSetEx(Srv)
-  local Pack = Srv.Pack
+function Logic:OnRequestSetEx(NetId, Pack)
   print(string.format("Souler[%u], RequestSetEx", Pack.SoulId))
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if Souler.LockKey ~= 0 then
     Pack.Result = 0
     Pack.ErrorCode = 1
-    print(string.format("Souler[%u] Is Already Locked", Pack.SoulId))
+    print(string.format("Souler[%u] Is Already Locked", Souler.SoulId))
     return
   end
   for k, v in pairs(Pack.Conds) do
@@ -158,18 +155,16 @@ function Logic:OnRequestSetEx(Srv)
     Souler.Moments[k] = v
   end
   Pack.Result = 1
-  return
   print("SetEx Succeed!!......")
 end
 
-function Logic:OnRequestGetEx(Srv)
-  local Pack = Srv.Pack
+function Logic:OnRequestGetEx(NetId, Pack)
   print(string.format("Souler[%u], RequestGetEx", Pack.SoulId))
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if Souler.LockKey ~= 0 then
     Pack.Result = 0
     Pack.ErrorCode = 1
-    print(string.format("Souler[%u] Is Already Locked", Pack.SoulId))
+    print(string.format("Souler[%u] Is Already Locked", Souler.SoulId))
     return
   end
   local Values = {}
@@ -177,8 +172,8 @@ function Logic:OnRequestGetEx(Srv)
     local n = Souler.Moments[k] or 0
     Values[k] = n
   end
-  Srv.Pack.Values = Values
-  Srv.Pack.Result = 1
+  Pack.Values = Values
+  Pack.Result = 1
   print("GetEx Succeed!!.....")
 end
 

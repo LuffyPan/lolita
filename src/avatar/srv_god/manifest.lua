@@ -8,7 +8,7 @@ LoliSrvGod = {}
 
 return
 {
-  "gsrvnet.lua",
-  "glogic.lua",
+  "srvnet.lua",
+  "logic.lua",
   "main.lua",
 }

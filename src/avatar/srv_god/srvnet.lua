@@ -10,10 +10,9 @@ local SrvNet = LoliSrvGod.SrvNet
 
 -- Add Session to extend logic process
 function SrvNet:Init()
-  self.Srvs = {}
   self.LogicFuncs = {}
   self.LogicFuncParam = nil
-  self.Id = assert(LoliCore.Net:Listen("", 7700, self:__GetEventFuncs()))
+  self.NetId = assert(LoliCore.Net:Listen("", 7700, self:__GetEventFuncs()))
 end
 
 function SrvNet:UnInit()
@@ -28,31 +27,24 @@ function SrvNet:RegisterLogic(LogicFuncs, LogicParam)
   self.LogicParam = LogicParam
 end
 
-function SrvNet:PushPackage(Srv, Pack)
-  if not LoliCore.Net:PushPackage(Srv.SrvId, Pack) then
+function SrvNet:PushPackage(NetId, Pack)
+  if not LoliCore.Net:PushPackage(NetId, Pack) then
     -- May be full, Close it.
-    assert(LoliCore.Net:Close(Srv.SrvId))
+    assert(LoliCore.Net:Close(NetId))
   end
   return 1
 end
 
-function SrvNet:EventAccept(SrvId)
-  assert(not self.Srvs[SrvId])
-  local Srv =
-  {
-    SrvId = SrvId,
-  }
-  self.Srvs[SrvId] = Srv
+function SrvNet:EventAccept(NetId)
   local Fn = self.LogicFuncs.Accept
   if not Fn then return end
-  local R, E = pcall(Fn, self.LogicParam, Srv)
+  local R, E = pcall(Fn, self.LogicParam, NetId)
   if not R then
     print(E)
   end
 end
 
-function SrvNet:EventPackage(SrvId, Pack)
-  local Srv = assert(self.Srvs[SrvId])
+function SrvNet:EventPackage(NetId, Pack)
   local Fn = self.LogicFuncs[Pack.ProcId]
   if not Fn then
     --Log this
@@ -61,25 +53,21 @@ function SrvNet:EventPackage(SrvId, Pack)
   end
   Pack.Result = 0
   Pack.ErrorCode = 0
-  Srv.Pack = Pack
-  local R, E = pcall(Fn, self.LogicParam, Srv)
+  local R, E = pcall(Fn, self.LogicParam, NetId, Pack)
   if not R then
     print(E)
   end
-  self:PushPackage(Srv, Srv.Pack)
-  Srv.Pack = nil
+  self:PushPackage(NetId, Pack)
 end
 
-function SrvNet:EventClose(SrvId)
-  if SrvId == self.Id then
+function SrvNet:EventClose(NetId)
+  if NetId == self.NetId then
     --ToDo
     return
   end
-  local Srv = assert(self.Srvs[SrvId])
-  self.Srvs[SrvId] = nil
   local Fn = self.LogicFuncs.Close
   if not Fn then return end
-  local R, E = pcall(Fn, self.LogicParam, Srv)
+  local R, E = pcall(Fn, self.LogicParam, NetId)
   if not R then
     print(E)
   end
