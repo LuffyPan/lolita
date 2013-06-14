@@ -66,6 +66,15 @@ function Net:PushPackage(Id, Pack)
   end
 end
 
+function Net:GetInfo(Id)
+  local State = assert(self.States[Id])
+  if State.Attached2Id > 0 then
+    return core.net.getinfo(State.Attached2Id, Id)
+  else
+    return core.net.getinfo(Id, 0)
+  end
+end
+
 function Net:Close(Id)
   local State = assert(self.States[Id])
   if State.Attached2Id > 0 then

@@ -45,6 +45,8 @@ end
 
 function LoliSrvTest:TestListenAccept(Id)
   print("Listen Accept", Id)
+  local Info = assert(LoliCore.Net:GetInfo(Id))
+  print(string.format("Accept From [%s:%d] On [%s:%d]", Info[3], Info[4], Info[1], Info[2]))
   assert(not self.TestAttachNets[Id])
   self.TestAttachNets[Id] = 1
   self.TestAttachCount = self.TestAttachCount + 1
@@ -90,6 +92,8 @@ end
 
 function LoliSrvTest:TestListen()
   local Id = assert(LoliCore.Net:Listen("127.0.0.1", 8000 + self.TestListenCount, self.TestListenEventFuncs))
+  local Info = assert(LoliCore.Net:GetInfo(Id))
+  print(string.format("Listen On [%s:%d]", Info[1], Info[2]))
   self.TestListenNets[Id] = 1
   self.TestListenCount = self.TestListenCount + 1
   if self.TestListenCount >= 20 then
@@ -101,6 +105,8 @@ end
 
 function LoliSrvTest:TestConnect()
   local Id = assert(LoliCore.Net:Connect("127.0.0.1", 8000 + self.TestConnectCount, self.TestConnectEventFuncs))
+  local Info = assert(LoliCore.Net:GetInfo(Id))
+  print(string.format("Connect From [%s:%d] To [%s:%d]", Info[1], Info[2], Info[3], Info[4]))
   self.TestConnectNets[Id] = 1
   self.TestConnectCount = self.TestConnectCount + 1
   if self.TestConnectCount >= 20 then

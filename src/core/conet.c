@@ -36,8 +36,10 @@ typedef SOCKET cosockfd;
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/socket.h> /* warning inet_ntoa if not include these files */
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <arpa/inet.h>
 #include <errno.h>
 typedef int cosockfd;
 #define COSOCKFD_EWOULDBLOCK EWOULDBLOCK
@@ -53,6 +55,8 @@ typedef int cosockfd;
 #define cosock_activeconn cosock_activeconn_ux
 #define cosock_activeaccp cosock_activeaccp_common /* hoho */
 #endif
+
+#define COSOCKFD_INVALIDIP "-1.-1.-1.-1"
 
 #define COSOCKFD_TNULL (0)
 #define COSOCKFD_TCONN (1)
@@ -245,6 +249,7 @@ static void coN_newid2idx(co* Co);
 static void coN_deleteid2idx(co* Co);
 static void coN_newcosocks(co* Co);
 static void coN_deletecosocks(co* Co);
+static cosock* coN_getcosock(co* Co, int id, int attaid);
 static void coN_register(co* Co);
 static int coN_listen(co* Co, const char* addr, unsigned short port);
 static int coN_connect(co* Co, const char* addr, unsigned short port);
@@ -262,6 +267,7 @@ static int coN_export_listen(lua_State* L);
 static int coN_export_push(lua_State* L);
 static int coN_export_close(lua_State* L);
 static int coN_export_active(lua_State* L);
+static int coN_export_getinfo(lua_State* L);
 
 static void cosockbuf_pnew(co* Co, void* ud)
 {
@@ -517,6 +523,7 @@ int coN_pexportapi(co* Co, lua_State* L)
     {"push", coN_export_push},
     {"close", coN_export_close},
     {"active", coN_export_active},
+    {"getinfo", coN_export_getinfo},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -619,10 +626,38 @@ static void coN_deletecosocks(co* Co)
   if (N->attaclosedpo) {cosockpool_delete(Co, N->attaclosedpo); N->attaclosedpo = NULL;}
 }
 
+static cosock* coN_getcosock(co* Co, int id, int attaid)
+{
+  int idx,attaidx;
+  coN* N = NULL;
+  cosock* s = NULL, *attas = NULL;
+  co_assert(id > 0 && attaid >= 0);
+  N = Co->N;
+  idx = cosockid2idx_getidx(N->id2idx, id); co_assert(idx);
+  s = cosockpool_getsock(N->po, idx); co_assert(s);
+  co_assert(s->id == id); co_assert(s->poolidx == idx);
+  if (attaid == 0)
+  {
+    co_assert(COSOCKFD_TCONN == s->fdt || COSOCKFD_TACCP == s->fdt);
+    return s;
+  }
+  else
+  {
+    co_assert(COSOCKFD_TACCP == s->fdt);
+    attaidx = cosockid2idx_getidx(s->id2idx, attaid); co_assert(attaidx);
+    attas = cosockpool_getsock(s->attapo, attaidx); co_assert(attas);
+    co_assert(attas->id == attaid); co_assert(attas->poolidx == attaidx);
+    co_assert(attas->attaed2s == s);
+    co_assert(COSOCKFD_TATTA == attas->fdt);
+    return attas;
+  }
+}
+
 #define coN_seteventer(Co, N) lua_rawsetp(co_L(Co), LUA_REGISTRYINDEX, (N)->eventer.accept);\
   lua_rawsetp(L, LUA_REGISTRYINDEX, &((N)->eventer));
 #define coN_geteventer(Co, N) lua_rawgetp(co_L(Co), LUA_REGISTRYINDEX, &((N)->eventer));\
   lua_rawgetp(L, LUA_REGISTRYINDEX, (N)->eventer.accept);
+/* td: is this function can be moved to exportregister ? */
 static void coN_register(co* Co)
 {
   int t;
@@ -1602,5 +1637,41 @@ static int coN_export_active(lua_State* L)
   co_C(L, Co);
   coN_active(Co);
   lua_pushnumber(L, 1);
+  return 1;
+}
+
+static int coN_export_getinfo(lua_State* L)
+{
+  int z = 0, ss, idx = 1;
+  struct sockaddr_in sin;
+  co* Co = NULL;
+  cosock* s = NULL;
+  int id = 0, attaid = 0;
+  char* c = NULL;
+  unsigned short port = 0;
+  co_C(L, Co);
+  id = luaL_checkint(L, 1);
+  attaid = luaL_checkint(L, 2);
+  lua_newtable(L);
+  /* local ip and port */
+  s = coN_getcosock(Co, id, attaid);
+  ss = (int)sizeof(sin);
+  z = getsockname(s->fd, (struct sockaddr*)&sin, &ss);
+  if (COSOCKFD_ERROR == z){cosock_logec(s);port = 0;}
+  else if (0 == z){c = inet_ntoa(sin.sin_addr);port = ntohs(sin.sin_port);co_assert(c);}
+  else {co_assert(0);}
+  lua_pushnumber(L, idx++);lua_pushstring(L, c ? c : COSOCKFD_INVALIDIP);lua_settable(L, -3);
+  lua_pushnumber(L, idx++);lua_pushnumber(L, port);lua_settable(L, -3);
+  /* remote ip and port */
+  c = NULL;
+  ss = (int)sizeof(sin);
+  z = getpeername(s->fd, (struct sockaddr*)&sin, &ss);
+  if (COSOCKFD_ERROR == z){cosock_logec(s);port = 0;}
+  else if (0 == z){c = inet_ntoa(sin.sin_addr);port = ntohs(sin.sin_port);co_assert(c);}
+  else {co_assert(0);}
+  lua_pushnumber(L, idx++);lua_pushstring(L, c ? c : COSOCKFD_INVALIDIP);lua_settable(L, -3);
+  lua_pushnumber(L, idx++);lua_pushnumber(L, port);lua_settable(L, -3);
+  /* sock type */
+  lua_pushnumber(L, idx++);lua_pushnumber(L, s->fdt);lua_settable(L, -3);
   return 1;
 }
