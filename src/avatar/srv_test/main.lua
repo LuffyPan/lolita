@@ -27,7 +27,7 @@ function LoliSrvTest:TestInit()
   self.TestCount = 0
 
   local Target = LoliCore.Arg:Get("target")
-  print(Target)
+  print(string.format("Target:%s", Target or "none"))
   if Target == "login" then
     LoliCore.Imagination:Begin(16, self.TestLoginConnect, self)
   elseif Target == "sa" then

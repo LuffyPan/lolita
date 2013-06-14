@@ -17,7 +17,7 @@ solution "lolicore"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "core=../src/script/co.lua", "avatar=../src/avatar/srv_test/manifest.lua"}
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/manifest.lua"}
 
 project "lolicore"
   targetname "lolicore"
@@ -188,7 +188,7 @@ local function _docheck()
   printf("Check code style....")
   cfiles = os.matchfiles("src/core/**.c")
   chdrfiles = os.matchfiles("src/core/**.h")
-  sfiles = os.matchfiles("src/script/**.lua")
+  sfiles = os.matchfiles("src/corext/**.lua")
   afiles = os.matchfiles("src/avatar/**.lua")
   table.insert(sfiles, "premake4.lua")
   local files = {cfiles, chdrfiles, sfiles, afiles}

@@ -19,19 +19,19 @@ function LoliCore:Extend()
   local s = 0
   local e = nil
   local laste = nil
-  local corepath
+  local corextpath
   local avatarpath
   while 1 do
-    s, e = string.find(core.arg.core, "/", s + 1)
+    s, e = string.find(core.arg.corext, "/", s + 1)
     if not s then break end
     laste = e - 1
   end
   if laste then
-    corepath = string.sub(core.arg.core, 1, laste)
+    corextpath = string.sub(core.arg.corext, 1, laste)
   else
-    corepath = "."
+    corextpath = "."
   end
-  core.arg.corepath = corepath
+  core.arg.corextpath = corextpath
 
   s = 0
   while 1 do
@@ -47,7 +47,7 @@ function LoliCore:Extend()
   core.arg.avatarpath = avatarpath
 
   for _, fn in ipairs(LoliCore.ExtendManifest) do
-    dofile(corepath .. "/" .. fn)
+    dofile(corextpath .. "/" .. fn)
   end
 end
 

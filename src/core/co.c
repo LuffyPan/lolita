@@ -125,7 +125,7 @@ static int co_palive(lua_State* L)
   co_pushcore(L, Co);
   lua_pushvalue(L, -1);lua_setglobal(L, "core");
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "core");
+  lua_getfield(L, -1, "corext");
   if (lua_isstring(L, -1))
   {
     const char* core = NULL;
@@ -133,7 +133,7 @@ static int co_palive(lua_State* L)
     core = lua_tolstring(L, -1, &len);
     if (len >= sizeof(Co->core))
     {
-      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.core is larger than %u, use default %s", sizeof(Co->core), Co->core);
+      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.corext is larger than %u, use default %s", sizeof(Co->core), Co->core);
     }
     else
     {
@@ -143,7 +143,7 @@ static int co_palive(lua_State* L)
   }
   else
   {
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.core is NIL, use default %s", Co->core);
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.corext is NIL, use default %s", Co->core);
   }
   z = luaL_loadfile(L, Co->core); if (z) lua_error(L);
   z = lua_pcall(L, 0, 0, 0); if (z) lua_error(L);
