@@ -26,6 +26,8 @@ function LoliSrvTest:TestInit()
   self.TestAttachPushCount = 0
   self.TestCount = 0
 
+  self.ConsoleEventFuncs = {Param = self, Connect = self.OnConsoleConnect, Accept = self.OnConsoleAccept, Package = self.OnConsolePackage, Close = self.OnConsoleClose,}
+
   local Target = LoliCore.Arg:Get("target")
   print(string.format("Target:%s", Target or "none"))
   if Target == "login" then
@@ -38,6 +40,9 @@ function LoliSrvTest:TestInit()
     --LoliCore.Imagination:Begin(16, self.TestGovermentRequestConnect, self)
   elseif Target == "god" then
     LoliCore.Imagination:Begin(16, self.TestGodRequestConnect, self)
+  elseif Target == "console" then
+    print(string.format("Enter Console For Test......."))
+    LoliCore.Imagination:Begin(16, self.TestConsole, self)
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
   end
@@ -47,6 +52,26 @@ function LoliSrvTest:TestInit()
   for k, v in pairs(Conf) do
     print(k, v)
   end
+end
+
+function LoliSrvTest:OnConsoleAccept(Id)
+  print(string.format("OnConsole Accept Net[%d]", Id))
+end
+
+function LoliSrvTest:OnConsolePackage(Id, Pack)
+  print(string.format("OnConsole Package Net[%d]", Id))
+  -- Need function to show a table's content
+  for k, v in pairs(Pack) do
+    print(k, v)
+  end
+end
+
+function LoliSrvTest:OnConsoleConnect(Id, Result)
+  print(string.format("OnConsole Connect Net[%d] Result[%d]", Id, Result))
+end
+
+function LoliSrvTest:OnConsoleClose(Id)
+  print(string.format("OnConsole Close Net[%d]", Id))
 end
 
 function LoliSrvTest:TestListenAccept(Id)
@@ -94,6 +119,11 @@ function LoliSrvTest:TestConnectClose(Id)
   print("Connect Close", Id)
   self.TestConnectNets[Id] = nil
   self.TestConnectCount = self.TestConnectCount - 1
+end
+
+function LoliSrvTest:TestConsole()
+    debug.debug()
+    LoliCore.Imagination:Begin(16 * 4, self.TestConsole, self)
 end
 
 function LoliSrvTest:TestListen()
