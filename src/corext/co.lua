@@ -12,6 +12,7 @@ LoliCore.ExtendManifest =
   "coioext.lua",
   "coimext.lua",
   "conext.lua",
+  "coconfext.lua",
   "coavext.lua",
 }
 

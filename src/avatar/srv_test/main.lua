@@ -41,6 +41,12 @@ function LoliSrvTest:TestInit()
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
   end
+
+  local Conf = LoliCore.Config:Get("God")
+  print("Configuration For God")
+  for k, v in pairs(Conf) do
+    print(k, v)
+  end
 end
 
 function LoliSrvTest:TestListenAccept(Id)

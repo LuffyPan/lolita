@@ -17,7 +17,7 @@ solution "lolicore"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/manifest.lua"}
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/manifest.lua", "conf=srv_god.conf", }
 
 project "lolicore"
   targetname "lolicore"
@@ -155,6 +155,11 @@ local function _domake()
   end
 end
 
+local _deployconf =
+{
+  {"src/conf/srv_god.conf.in", "_deploy/srv_god.conf"},
+}
+
 local function _dodeploy()
   local action = _OPTIONS["action"] or "gmake"
   local config = _OPTIONS["config"] or "debug"
@@ -168,6 +173,11 @@ local function _dodeploy()
 
   os.rmdir("_deploy")
   os.mkdir("_deploy")
+
+  for _, v in ipairs(_deployconf) do
+    os.copyfile(v[1], v[2])
+  end
+
   local src = string.format("%s/lolicore.exe", bin)
   local dest = string.format("_deploy/lolicore.exe")
   if not os.isfile(src) then
@@ -186,12 +196,13 @@ end
 
 local function _docheck()
   printf("Check code style....")
-  cfiles = os.matchfiles("src/core/**.c")
-  chdrfiles = os.matchfiles("src/core/**.h")
-  sfiles = os.matchfiles("src/corext/**.lua")
-  afiles = os.matchfiles("src/avatar/**.lua")
+  local cfiles = os.matchfiles("src/core/**.c")
+  local chdrfiles = os.matchfiles("src/core/**.h")
+  local sfiles = os.matchfiles("src/corext/**.lua")
+  local afiles = os.matchfiles("src/avatar/**.lua")
+  local confiles = os.matchfiles("src/conf/**.in")
   table.insert(sfiles, "premake4.lua")
-  local files = {cfiles, chdrfiles, sfiles, afiles}
+  local files = {cfiles, chdrfiles, sfiles, afiles, confiles}
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)

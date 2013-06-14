@@ -1,0 +1,23 @@
+--
+-- Lolita Server God's Configuration
+-- Chamz Lau, Copyright (C) 2013-2017
+-- 2013/06/14 13:03:02
+--
+
+local God =
+{
+  Name = "God",
+  Govs =
+  {
+  },
+
+  Sas =
+  {
+  },
+
+  Areas =
+  {
+  },
+}
+
+return God
