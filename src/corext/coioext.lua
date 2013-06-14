@@ -44,8 +44,8 @@ function Io:Deserialize(ObjStr)
 end
 
 function Io:LoadFile(Path)
-  local Fn = loadfile(Path, "t", {})
-  return Fn and Fn() or nil
+  local Fn, E = loadfile(Path, "t", {})
+  return Fn and Fn() or nil, E
 end
 
 function Io:SaveFile(Table, Path)

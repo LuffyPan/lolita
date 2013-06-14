@@ -6,18 +6,65 @@
 
 local God =
 {
+
+  -- The name for the configuration
   Name = "God",
+
+  SrvId = 1991,
+  SrvName = "God",
+  SrvFullName = "GOD OF THE [Lolita] World",
+
+  Ip = "",
+  Port = 7700,
+
+  -- All the [Server Login]'s Id
+  Logins =
+  {
+    [2000] = {},
+  },
+
+  -- All the [Server Gov]'s Id
   Govs =
   {
+    [1840] = {},
+    [1841] = {},
   },
 
+  -- All the [Server SoulerAgency]'s Id
   Sas =
   {
+    [1949] = {},
   },
 
+  -- All the [Server Areas]'s Id And Other Info
   Areas =
   {
+    [1900] =
+    {
+      GovId = 1840,
+    },
+
+    [1901] =
+    {
+      GovId = 1840,
+    },
+
+    [1902] =
+    {
+      GovId = 1840,
+    },
+
+    [1903] =
+    {
+      GovId = 1841,
+    },
+
+    [1904] =
+    {
+      GovId = 1841,
+    },
   },
+
 }
 
 return God

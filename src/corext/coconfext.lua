@@ -18,8 +18,9 @@ function Config:Extend()
 end
 
 function Config:Load(FileName)
-  local F = Io:LoadFile(FileName)
-  assert(F and F.Name)
+  local F, E = Io:LoadFile(FileName)
+  assert(F, E)
+  assert(F.Name)
   assert(not self.ConfigRepos[F.Name])
   self.ConfigRepos[F.Name] = F
 end
