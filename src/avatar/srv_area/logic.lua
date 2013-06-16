@@ -53,6 +53,7 @@ function Logic:OnRequestArrival(NetId, Pack)
   {
     ProcId = "RequestArrival",
     SoulId = Souler.SoulId,
+    GovId = Pack.Souler.GovId,
     Result = 1,
     ErrorCode = 0,
   }
