@@ -17,7 +17,7 @@ solution "lolicore"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/manifest.lua", "conf=srv_god.conf", }
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/manifest.lua", "conf=conf/srv_god.conf", }
 
 project "lolicore"
   targetname "lolicore"
@@ -157,7 +157,7 @@ end
 
 local _deployconf =
 {
-  {"src/conf/srv_god.conf.in", "_deploy/srv_god.conf"},
+  {"src/avatar/srv_god/conf.lua", "_deploy/conf/srv_god.conf"},
 }
 
 local function _dodeploy()
@@ -173,6 +173,7 @@ local function _dodeploy()
 
   os.rmdir("_deploy")
   os.mkdir("_deploy")
+  os.mkdir("_deploy/conf")
 
   for _, v in ipairs(_deployconf) do
     os.copyfile(v[1], v[2])

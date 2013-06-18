@@ -4,18 +4,23 @@
 -- 2013/06/14 13:03:02
 --
 
+local GodPre =
+{
+  RootPath = "data/god",
+}
+
 local God =
 {
 
-  -- The name for the configuration
-  Name = "God",
-
   SrvId = 1991,
-  SrvName = "God",
-  SrvFullName = "GOD OF THE [Lolita] World",
+  SrvName = "Godddddddd",
+  SrvDesc = "GOD OF THE [Lolita] World",
 
   Ip = "",
   Port = 7700,
+
+  RootPath = GodPre.RootPath,
+  SoulerPath = GodPre.RootPath .. "/souler",
 
   -- All the [Server Login]'s Id
   Logins =
@@ -67,4 +72,8 @@ local God =
 
 }
 
-return God
+if LoliCore then
+  assert(LoliCore.Config:SetDefault(God))
+else
+  return God
+end

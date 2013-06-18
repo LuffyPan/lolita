@@ -6,20 +6,21 @@
 
 LoliSrvGod.Logic = {}
 
-local Logic = LoliSrvGod.Logic
-local SrvNet = LoliSrvGod.SrvNet
+local God = LoliSrvGod
+local Logic = God.Logic
+local SrvNet = God.SrvNet
 
 local SoulerRepos = {}
 
-function SoulerRepos:Init()
+function SoulerRepos:Init(RootPath, SoulerPath)
   self._SoulerRepos = {}
-  self._RootPath = "srv_god"
-  self._SoulerPath = self._RootPath .. "/souler"
+  self._RootPath = assert(RootPath)
+  self._SoulerPath = assert(SoulerPath)
 
   if not LoliCore.Os:IsPath(self._RootPath) then
     print(string.format("%s Is Not Exist, Create It", self._RootPath))
-    assert(LoliCore.Os:MkDir(self._RootPath))
-    assert(LoliCore.Os:MkDir(self._SoulerPath))
+    assert(LoliCore.Os:MkDirEx(self._RootPath))
+    assert(LoliCore.Os:MkDirEx(self._SoulerPath))
   end
 end
 
@@ -64,8 +65,8 @@ end
 
 
 function Logic:Init()
-  SoulerRepos:Init()
-  SrvNet:RegisterLogic(self:__GetLogic(), self)
+  SoulerRepos:Init(God.Uconf.RootPath or God.Dconf.RootPath, God.Uconf.SoulerPath or God.Dconf.SoulerPath)
+  SrvNet:Init(God.Uconf.Ip or God.Dconf.Ip, God.Uconf.Port or God.Dconf.Port, self:__GetLogic(), self)
 end
 
 function Logic:OnRequestQuerySouler(NetId, Pack)

@@ -33,6 +33,24 @@ function Os:MkDir(Path)
   return core.os.mkdir(Path)
 end
 
+function Os:MkDirEx(Path)
+  local i = 0
+  local c
+  while 1 do
+    i = string.find(Path, "/", i + 1)
+    if not i then
+      return core.os.mkdir(Path)
+    else
+      c = string.sub(Path, 1, i)
+      if not self:IsDir(c) then
+        local r = core.os.mkdir(c)
+        if not r then return r end
+      end
+    end
+  end
+  assert()
+end
+
 function Os:GetCwd()
   return core.os.getcwd()
 end

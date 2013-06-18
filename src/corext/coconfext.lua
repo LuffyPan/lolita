@@ -11,22 +11,33 @@ local Config = LoliCore.Config
 local Io = LoliCore.Io
 
 function Config:Extend()
-  self.ConfigRepos = {}
+  self.Default = nil
+  self.UserDefine = nil
   self.ConfigPath = "./"
   local N = LoliCore.Arg:Get("conf")
-  if N then self:Load(N) end
+  if N then self:SetUserDefine(N) end
 end
 
-function Config:Load(FileName)
+function Config:SetUserDefine(FileName)
   local F, E = Io:LoadFile(FileName)
   assert(F, E)
-  assert(F.Name)
-  assert(not self.ConfigRepos[F.Name])
-  self.ConfigRepos[F.Name] = F
+  assert(not self.UserDefine)
+  self.UserDefine = F
+  return 1
 end
 
-function Config:Get(Name)
-  return self.ConfigRepos[Name] or {}
+function Config:SetDefault(C)
+  assert(not self.Default)
+  self.Default = C
+  return 1
+end
+
+function Config:GetDefault()
+  return assert(self.Default)
+end
+
+function Config:GetUserDefine()
+  return self.UserDefine or {}
 end
 
 Config:Extend()

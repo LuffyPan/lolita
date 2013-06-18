@@ -9,8 +9,9 @@ local function pf(fmt, ...)
 end
 
 function LoliSrvGod:Init()
+  self.Dconf = assert(LoliCore.Config:GetDefault())
+  self.Uconf = assert(LoliCore.Config:GetUserDefine())
   self:InitTraceLevel()
-  self.SrvNet:Init()
   self.Logic:Init()
   self:LOGO()
 end
@@ -22,7 +23,10 @@ function LoliSrvGod:InitTraceLevel()
 end
 
 function LoliSrvGod:LOGO()
-  pf("               Lolita God Server.")
+  local SrvId = self.Uconf.SrvId or assert(self.Dconf.SrvId)
+  local SrvName = self.Uconf.SrvName or assert(self.Dconf.SrvName)
+  local SrvDesc = self.Uconf.SrvDesc or assert(self.Dconf.SrvDesc)
+  pf("               %d -- %s -- %s", SrvId, SrvName, SrvDesc)
   pf("               Based On %s %s", LoliCore.Info:GetName(), LoliCore.Info:GetReposVersion())
   pf("                             %s", "Chamz Lau Original")
 end

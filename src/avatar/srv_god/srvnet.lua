@@ -9,22 +9,18 @@ LoliSrvGod.SrvNet = {}
 local SrvNet = LoliSrvGod.SrvNet
 
 -- Add Session to extend logic process
-function SrvNet:Init()
-  self.LogicFuncs = {}
-  self.LogicFuncParam = nil
-  self.NetId = assert(LoliCore.Net:Listen("", 7700, self:__GetEventFuncs()))
-end
-
 function SrvNet:UnInit()
   -- Is not supported very good.. ToDo
   assert()
 end
 
-function SrvNet:RegisterLogic(LogicFuncs, LogicParam)
+function SrvNet:Init(Ip, Port, LogicFuncs, LogicParam)
+  self.LogicFuncs = {}
   for k, v in pairs(LogicFuncs) do
     self.LogicFuncs[k] = v
   end
-  self.LogicParam = LogicParam
+  self.LogicParam = assert(LogicParam)
+  self.NetId = assert(LoliCore.Net:Listen(Ip, Port, self:__GetEventFuncs()))
 end
 
 function SrvNet:PushPackage(NetId, Pack)
