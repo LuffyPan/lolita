@@ -201,8 +201,9 @@ local function _docheck()
   local sfiles = os.matchfiles("src/corext/**.lua")
   local afiles = os.matchfiles("src/avatar/**.lua")
   local confiles = os.matchfiles("src/conf/**.in")
+  local docfiles = os.matchfiles("doc/**.md")
   table.insert(sfiles, "premake4.lua")
-  local files = {cfiles, chdrfiles, sfiles, afiles, confiles}
+  local files = {cfiles, chdrfiles, sfiles, afiles, confiles, docfiles,}
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)
