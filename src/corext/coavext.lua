@@ -100,7 +100,6 @@ end
 function Avatar:OnSignal(Signal)
   if Signal == Os.SIG_INT then
     print("Avatar Recivied Interupt Signal")
-    debug.debug()
     self:Detach()
   end
 end

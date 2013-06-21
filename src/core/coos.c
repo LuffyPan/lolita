@@ -19,6 +19,7 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <sys/types.h>
   #include <sys/resource.h>
   #include <sys/time.h>
+  #include <signal.h>
 #endif
 
 #define COOS_SIG_INT 0
@@ -108,6 +109,14 @@ BOOL WINAPI coOs_signalhandler(DWORD t)
   _coOs->sigs[_coOs->sigcnt++] = (int)COOS_SIG_INT;
   return TRUE;
 }
+#else
+void coOs_signalhandler(int t)
+{
+  if (!_coOs) return;
+  if (_coOs->sigcnt >= COOS_SIG_MAXCNT) return;
+  if (t != SIGINT) {printf("signal:%d\n", t); return;}
+  _coOs->sigs[_coOs->sigcnt++] = (int)COOS_SIG_INT;
+}
 #endif
 
 void coOs_initsig(co* Co)
@@ -117,6 +126,7 @@ void coOs_initsig(co* Co)
   b = SetConsoleCtrlHandler(coOs_signalhandler, TRUE);
   co_assert(b);
 #else
+  signal(SIGINT, coOs_signalhandler);
 #endif
   co_assert(!_coOs);
   _coOs = Co->Os;
