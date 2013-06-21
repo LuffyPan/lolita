@@ -56,6 +56,7 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   Co->errjmp = NULL;
   Co->L = NULL;
   Co->N = NULL;
+  Co->Os = NULL;
   Co->core[0] = 0;
   z = coR_pcall(Co, co_born, NULL);
   if (z)
@@ -171,8 +172,8 @@ static void co_alive(co* Co, void* ud)
 
 static void co_free(co* Co)
 {
-  coOs_die(Co);
   coN_die(Co);
+  coOs_die(Co);
   co_deletelua(Co);
   co_assert((Co->xlloc == co_xlloc) == (Co->umem == sizeof(*Co)));
   (*Co->xlloc)(NULL, Co, sizeof(co), 0);

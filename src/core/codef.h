@@ -48,6 +48,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #define LOLICORE_COPYRIGHT "LolitaCore Copyright (C) 2013-2017, " LOLICORE_AUTHOR
 
 typedef struct coN coN;
+typedef struct coOs coOs;
 
 typedef struct co_longjmp co_longjmp;
 typedef struct co co;
@@ -76,6 +77,7 @@ struct co
   const char** argv;
   lua_State* L;
   coN* N;
+  coOs* Os;
   char core[256];
 };
 

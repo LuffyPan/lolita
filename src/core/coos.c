@@ -9,6 +9,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "coos.h"
 #include "co.h"
 #include "cort.h"
+#include "comm.h"
 #include <sys/stat.h>
 
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
@@ -20,6 +21,15 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <sys/time.h>
 #endif
 
+#define COOS_SIG_INT 0
+#define COOS_SIG_MAXCNT 32
+
+struct coOs
+{
+  int sigs[COOS_SIG_MAXCNT];
+  int sigcnt;
+};
+
 static int coOs_export_sleep(lua_State* L);
 static int coOs_export_gettime(lua_State* L);
 static int coOs_export_isdir(lua_State* L);
@@ -27,6 +37,11 @@ static int coOs_export_isfile(lua_State* L);
 static int coOs_export_ispath(lua_State* L);
 static int coOs_export_mkdir(lua_State* L);
 static int coOs_export_getcwd(lua_State* L);
+static int coOs_export_active(lua_State* L);
+static int coOs_export_register(lua_State* L);
+
+static void coOs_setsighandler(co* Co, coOs* Os);
+static int coOs_getsighandler(co* Co, coOs* Os);
 
 int coOs_pexportapi(co* Co, lua_State* L)
 {
@@ -39,12 +54,19 @@ int coOs_pexportapi(co* Co, lua_State* L)
     {"ispath", coOs_export_ispath},
     {"mkdir", coOs_export_mkdir},
     {"getcwd", coOs_export_getcwd},
+    {"active", coOs_export_active},
+    {"register", coOs_export_register},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
   co_pushcore(L, Co);
   lua_newtable(L);
   luaL_setfuncs(L, coOs_funcs, 0);
+  /* push sig const */
+  /* TODO More smart */
+  lua_pushnumber(L, COOS_SIG_INT);
+  lua_setfield(L, -2, "SIG_INT");
+  /* --------- */
   lua_setfield(L, -2, "os");
   lua_pop(L, 1);
   co_assert(lua_gettop(L) == 0);
@@ -75,13 +97,67 @@ void coOs_export(co* Co)
   co_assert(lua_gettop(L) == 0);
 }
 
+static coOs* _coOs = NULL;
+#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+BOOL WINAPI coOs_signalhandler(DWORD t)
+{
+  if (!_coOs) return FALSE;
+  if (_coOs->sigcnt >= COOS_SIG_MAXCNT) return FALSE;
+  if (t != CTRL_C_EVENT){printf("signal:%u\n", t);return FALSE;}
+  /* 我对Windows的其他信号处理失去信心了,打算放弃支持了,能支持到什么程度算什么吧 */
+  _coOs->sigs[_coOs->sigcnt++] = (int)COOS_SIG_INT;
+  return TRUE;
+}
+#endif
+
+void coOs_initsig(co* Co)
+{
+#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+  BOOL b = FALSE;
+  b = SetConsoleCtrlHandler(coOs_signalhandler, TRUE);
+  co_assert(b);
+#else
+#endif
+  co_assert(!_coOs);
+  _coOs = Co->Os;
+}
+
+void coOs_activesig(co* Co)
+{
+  int top = 0;
+  lua_State* L = co_L(Co);
+  coOs* Os = Co->Os;
+  co_assert(L);co_assert(Os);
+  if (Os->sigcnt <= 0) return;
+  top = lua_gettop(L);
+  while(Os->sigcnt)
+  {
+    int sig = Os->sigs[--Os->sigcnt];
+    int z = 0;
+    z = coOs_getsighandler(Co, Os);
+    if (!z) {Os->sigcnt = 0; return;}
+    co_assert(z > 0);
+    lua_pushnumber(L, sig);
+    lua_call(L, 1 + z - 1, 0);
+    co_assert(top == lua_gettop(L));
+  }
+}
+
 void coOs_born(co* Co)
 {
+  coOs* Os = NULL;
+  co_assert(!Co->Os);
+  Os = co_cast(coOs*, coM_newobj(Co, coOs));
+  Os->sigcnt = 0;
+  Co->Os = Os;
+  coOs_initsig(Co);
   coOs_export(Co);
 }
 
 void coOs_die(co* Co)
 {
+  if (!Co->Os) return;
+  coM_deleteobj(Co, Co->Os);
 }
 
 void coOs_sleep(int msec)
@@ -255,5 +331,66 @@ static int coOs_export_getcwd(lua_State* L)
     lua_pushstring(L, buf);
     return 1;
   }
+  return 0;
+}
+
+static int coOs_export_active(lua_State* L)
+{
+  co* Co = NULL;
+  int msec = 0;
+  co_C(L, Co);
+  msec = luaL_optint(L, 1, 0);
+  coOs_activesig(Co);
+  if (msec > 0) coOs_sleep(msec);
+  return 0;
+}
+
+static int coOs_export_register(lua_State* L)
+{
+  int t;
+  co* Co = NULL;
+  coOs* Os = NULL;
+  co_C(L, Co);
+  Os = Co->Os;co_assert(Os);
+  if (lua_gettop(L) != 2) luaL_error(L, "a function and a table or nil!");
+  t = lua_type(L, 2);
+  luaL_checktype(L, 1, LUA_TFUNCTION);
+  luaL_argcheck(L, t == LUA_TNIL || t == LUA_TTABLE, 2, "nil or table expected");
+  coOs_setsighandler(Co, Os);
+  co_assert(lua_gettop(L) == 0);
+  lua_pushnumber(L, 1);
+  return 1;
+}
+
+/* TODO almost the same as coN's coN_seteventer, ABSTRACT it */
+static void coOs_setsighandler(co* Co, coOs* Os)
+{
+  int top;
+  lua_State* L = NULL;
+  L = co_L(Co);
+  top = lua_gettop(L);
+  co_assert(top >= 2);
+  lua_rawsetp(L, LUA_REGISTRYINDEX, &Os->sigcnt); /* push funcparam */
+  lua_rawsetp(L, LUA_REGISTRYINDEX, Os->sigs); /* push func */
+  co_assert(top - 2 == lua_gettop(L));
+}
+
+static int coOs_getsighandler(co* Co, coOs* Os)
+{
+  int top;
+  lua_State* L = NULL;
+  L = co_L(Co);
+  top = lua_gettop(L);
+  lua_rawgetp(L, LUA_REGISTRYINDEX, Os->sigs); /* push func */
+  lua_rawgetp(L, LUA_REGISTRYINDEX, &Os->sigcnt); /* push funcparam */
+  co_assert(top + 2 == lua_gettop(L));
+  if (lua_isfunction(L, -2))
+  {
+    if (lua_istable(L, -1)) return 2;
+    else if (lua_isnil(L, -1)) {lua_pop(L, 1);return 1;}
+    else {co_assert(0);}
+  }
+  lua_pop(L, 2);
+  co_assert(top == lua_gettop(L));
   return 0;
 }

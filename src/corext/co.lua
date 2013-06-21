@@ -50,6 +50,7 @@ function LoliCore:Extend()
   for _, fn in ipairs(LoliCore.ExtendManifest) do
     dofile(corextpath .. "/" .. fn)
   end
+  -- TODO 统一调用各模块的eXTEND函数
 end
 
 LoliCore:Extend()

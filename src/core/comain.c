@@ -33,7 +33,7 @@ int main(int argc, const char** argv)
   co_xllocf x = NULL;
   /* Todo: hide plat */
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
-  _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
 #if LOLICORE_USE_EXTERNALXLLOC

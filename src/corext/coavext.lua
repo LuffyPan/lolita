@@ -29,6 +29,7 @@ function Avatar:Extend()
   --Imagination:Begin(16, self.ImageTestNet, self)
   --Imagination:Begin(16 * 5, self.ImageMem, self)
   Imagination:Begin(16 * 3600 * 2, self.ImageClose, self)
+  Os:RegisterSignal(Os.SIG_INT, Avatar.OnSignal, self)
 end
 
 function Avatar:Attach()
@@ -49,7 +50,7 @@ function Avatar:Attach()
   while self.Alive == 1 do
     Imagination:Active() -- May be dump Net
     Net:Active()
-    Os:Sleep(1)
+    Os:Active(1) --带有Sleep功能
   end
 end
 
@@ -93,5 +94,13 @@ function Avatar:ImageTestNet(Im)
   for i = 1, 20 do
     assert(Net:Connect(Ip, Port), string.format("Connect Failed 2 %s:%d", Ip, Port))
     Port = Port + 1
+  end
+end
+
+function Avatar:OnSignal(Signal)
+  if Signal == Os.SIG_INT then
+    print("Avatar Recivied Interupt Signal")
+    debug.debug()
+    self:Detach()
   end
 end

@@ -9,6 +9,12 @@ LoliCore.Os = {}
 local core = core
 local Os = LoliCore.Os
 
+function Os:Extend()
+  self.SigRepos = {}
+  self.SIG_INT = core.os.SIG_INT
+  assert(core.os.register(Os.__OnSignal, self))
+end
+
 function Os:GetTime()
   return core.os.gettime()
 end
@@ -55,4 +61,24 @@ function Os:GetCwd()
   return core.os.getcwd()
 end
 
+function Os:Active(SleepMsec)
+  return core.os.active(SleepMsec)
+end
+
+function Os:RegisterSignal(Signal, Func, FuncParam)
+  assert(Func)
+  if not self.SigRepos[Signal] then
+    self.SigRepos[Signal] = {Func, FuncParam}
+  else
+    assert()
+  end
+end
+
+function Os:__OnSignal(Signal)
+  local H = self.SigRepos[Signal]
+  if not H then return end
+  H[1](H[2], Signal)
+end
+
+Os:Extend()
 print("LoliCore.Os Extended")
