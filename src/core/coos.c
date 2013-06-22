@@ -38,6 +38,7 @@ static int coOs_export_isfile(lua_State* L);
 static int coOs_export_ispath(lua_State* L);
 static int coOs_export_mkdir(lua_State* L);
 static int coOs_export_getcwd(lua_State* L);
+static int coOs_export_getpid(lua_State* L);
 static int coOs_export_active(lua_State* L);
 static int coOs_export_register(lua_State* L);
 
@@ -55,6 +56,7 @@ int coOs_pexportapi(co* Co, lua_State* L)
     {"ispath", coOs_export_ispath},
     {"mkdir", coOs_export_mkdir},
     {"getcwd", coOs_export_getcwd},
+    {"getpid", coOs_export_getpid},
     {"active", coOs_export_active},
     {"register", coOs_export_register},
     {NULL, NULL},
@@ -266,6 +268,16 @@ int coOs_getcwd(co* Co, char* buf, size_t bufs)
   return z;
 }
 
+int coOs_getpid(co* Co)
+{
+#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#else
+  pid_t pid = getpid();
+  co_assert(pid);
+  return (int)pid;
+#endif
+}
+
 static int coOs_export_sleep(lua_State* L)
 {
   int msec = 0;
@@ -342,6 +354,14 @@ static int coOs_export_getcwd(lua_State* L)
     return 1;
   }
   return 0;
+}
+
+static int coOs_export_getpid(lua_State* L)
+{
+  co* Co = NULL;
+  co_C(L, Co);
+  lua_pushnumber(L, coOs_getpid(Co));
+  return 1;
 }
 
 static int coOs_export_active(lua_State* L)

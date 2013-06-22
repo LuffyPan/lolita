@@ -12,6 +12,12 @@ local Os = LoliCore.Os
 function Os:Extend()
   self.SigRepos = {}
   self.SIG_INT = core.os.SIG_INT
+  local PidPath = LoliCore.Arg:Get("pid")
+  if PidPath then
+    local Pid = assert(self:GetPid())
+    --save to xxx.pid
+    print(string.format("The Pid is:%d", Pid))
+  end
   assert(core.os.register(Os.__OnSignal, self))
 end
 
@@ -59,6 +65,10 @@ end
 
 function Os:GetCwd()
   return core.os.getcwd()
+end
+
+function Os:GetPid()
+  return core.os.getpid()
 end
 
 function Os:Active(SleepMsec)
