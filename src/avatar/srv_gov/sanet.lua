@@ -5,6 +5,7 @@
 -- 2013/04/28 13:46:21
 --
 
+LoliSrvGoverment = {}
 LoliSrvGoverment.SaNet = {}
 
 local SaNet = LoliSrvGoverment.SaNet

@@ -8,7 +8,7 @@ local function pf(fmt, ...)
   print(string.format(fmt, ...))
 end
 
-function LoliSrvSa:Init()
+function LoliSrvSa:OnBorn()
   self:InitTraceLevel()
   self.SoulerNet:Init()
   self.LoginNet:Init()
@@ -16,6 +16,9 @@ function LoliSrvSa:Init()
   self.GodNet:Init()
   self.Logic:Init()
   self:LOGO()
+end
+
+function LoliSrvSa:OnDie()
 end
 
 function LoliSrvSa:InitTraceLevel()
@@ -30,4 +33,4 @@ function LoliSrvSa:LOGO()
   pf("                             %s", "Chamz Lau Original")
 end
 
-LoliSrvSa:Init()
+LoliCore.Avatar:Attach(LoliSrvSa)

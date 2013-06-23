@@ -1,14 +1,13 @@
 --
--- Lolita Area Server
+-- Lolita Server God
 -- Chamz Lau, Copyright (C) 2013-2017
--- 2013/05/18 20:27:42
+-- 2013/05/06 21:44:38
 --
-
-LoliSrvArea = {}
 
 return
 {
-  "govnet.lua",
+  "conf.lua",
+  "srvnet.lua",
   "logic.lua",
   "main.lua",
 }

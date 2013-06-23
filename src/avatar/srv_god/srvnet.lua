@@ -4,6 +4,7 @@
 -- 2013/05/17 13:43:20
 --
 
+LoliSrvGod = {}
 LoliSrvGod.SrvNet = {}
 
 local SrvNet = LoliSrvGod.SrvNet

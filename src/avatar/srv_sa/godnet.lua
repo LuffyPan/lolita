@@ -4,6 +4,7 @@
 -- 2013/05/18 14:30:16
 --
 
+LoliSrvSa = {}
 LoliSrvSa.GodNet = {}
 
 local GodNet = LoliSrvSa.GodNet

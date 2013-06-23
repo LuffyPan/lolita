@@ -4,8 +4,6 @@
 -- 2013/04/28 13:29:20
 --
 
-LoliSrvGoverment = {}
-
 return
 {
   "sanet.lua",

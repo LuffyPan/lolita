@@ -8,6 +8,8 @@ local function pf(fmt, ...)
   print(string.format(fmt, ...))
 end
 
+--LoliSrvGod = {}
+
 function LoliSrvGod:Init()
   self.Dconf = assert(LoliCore.Config:GetDefault())
   self.Uconf = assert(LoliCore.Config:GetUserDefine())
@@ -31,4 +33,13 @@ function LoliSrvGod:LOGO()
   pf("                             %s", "Chamz Lau Original")
 end
 
-LoliSrvGod:Init()
+function LoliSrvGod:OnBorn()
+  print("OnBorn")
+  self:Init()
+end
+
+function LoliSrvGod:OnDie()
+  print("OnDie")
+end
+
+LoliCore.Avatar:Attach(LoliSrvGod)

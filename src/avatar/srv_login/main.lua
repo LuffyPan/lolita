@@ -1,4 +1,5 @@
 --
+-- Lolita Server Login Main
 -- Chamz Lau, Copyright (C) 2013-2017
 -- 2013/04/18 21:25:37
 --
@@ -9,13 +10,16 @@ local function pf(fmt, ...)
   print(string.format(fmt, ...))
 end
 
-function LoliSrvLogin:Init()
+function LoliSrvLogin:OnBorn()
   self:InitRoot()
   self:LoadAccounts()
   self:InitNet()
   self:InitImagination()
   self:InitLogic()
   self:LOGO()
+end
+
+function LoliSrvLogin:OnDie()
 end
 
 function LoliSrvLogin:InitRoot()
@@ -185,4 +189,4 @@ function LoliSrvLogin:ImageSaveAccounts(Im)
   end
 end
 
-LoliSrvLogin:Init()
+LoliCore.Avatar:Attach(LoliSrvLogin)

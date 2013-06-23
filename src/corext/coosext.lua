@@ -4,10 +4,7 @@
 -- 2013/04/08 18:11:12
 --
 
-LoliCore.Os = {}
-
-local core = core
-local Os = LoliCore.Os
+local Os = LoliCore:NewExtend("Os")
 
 function Os:Extend()
   self.SigRepos = {}
@@ -19,6 +16,7 @@ function Os:Extend()
     print(string.format("The Pid is:%d", Pid))
   end
   assert(core.os.register(Os.__OnSignal, self))
+  print("Os Extended")
 end
 
 function Os:GetTime()
@@ -90,5 +88,4 @@ function Os:__OnSignal(Signal)
   H[1](H[2], Signal)
 end
 
-Os:Extend()
-print("LoliCore.Os Extended")
+print("Os Compile")

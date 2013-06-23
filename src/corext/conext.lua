@@ -4,11 +4,7 @@
 -- 2013/04/08 18:14:35
 --
 
-LoliCore.Net = {}
-
-local core = core
-local Io = LoliCore.Io
-local Net = LoliCore.Net
+local Net = LoliCore:NewExtend("Net")
 
 function Net:Extend()
   --core Export This
@@ -23,6 +19,7 @@ function Net:Extend()
     [113] = self.EventClose,
   } --Yes, It is Magic Num, So What ?
   core.net.register(Net.Event, self)
+  print("Net Extended")
 end
 
 function Net:Connect(Addr, Port, EventFuncs)
@@ -58,7 +55,7 @@ end
 function Net:PushPackage(Id, Pack)
   --Modify core, only Id is enought, hide the attaid
   local State = assert(self.States[Id])
-  local S = Io:Serialize(Pack)
+  local S = LoliCore.Io:Serialize(Pack)
   if State.Attached2Id > 0 then
     return core.net.push(State.Attached2Id, Id, S)
   else
@@ -119,7 +116,7 @@ end
 
 function Net:EventPackage(Id, AttachId, Extra)
   local State = assert(self.States[Id])
-  local Pack = assert(Io:Deserialize(Extra))
+  local Pack = assert(LoliCore.Io:Deserialize(Extra))
   if AttachId > 0 then
     local AttachState = assert(self.States[AttachId])
     --Call Logic
@@ -143,5 +140,4 @@ function Net:EventClose(Id, AttachId, Extra)
   end
 end
 
-Net:Extend()
-print("LoliCore.Net Extended")
+print("Net Compiled")

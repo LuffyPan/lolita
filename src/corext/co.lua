@@ -1,22 +1,22 @@
 --
--- LoliCore script
+-- LoliCore
 -- Chamz Lau
 -- 2013/03/02 23:27:09
 --
 
-LoliCore = {}
-LoliCore.ExtendManifest =
+local Manifest =
 {
-  "coext.lua",
-  "coosext.lua",
+  "cobasext.lua",
   "coioext.lua",
+  "coosext.lua",
   "coimext.lua",
   "conext.lua",
   "coconfext.lua",
   "coavext.lua",
+  "coext.lua",
 }
 
-function LoliCore:Extend()
+local function LoliCore()
   local s = 0
   local e = nil
   local laste = nil
@@ -34,6 +34,7 @@ function LoliCore:Extend()
   end
   core.arg.corextpath = corextpath
 
+  --LoliCore.Avatar to process this
   s = 0
   while 1 do
     s, e = string.find(core.arg.avatar, "/", s + 1)
@@ -47,11 +48,21 @@ function LoliCore:Extend()
   end
   core.arg.avatarpath = avatarpath
 
-  for _, fn in ipairs(LoliCore.ExtendManifest) do
+  for _, fn in ipairs(Manifest) do
     dofile(corextpath .. "/" .. fn)
   end
-  -- TODO 统一调用各模块的eXTEND函数
+
+  local AvManifest = assert(dofile(core.arg.avatar))
+  for _, fn in ipairs(AvManifest) do
+    dofile(avatarpath .. "/" .. fn)
+  end
 end
 
-LoliCore:Extend()
-LoliCore.Avatar:Attach()
+if bGetManifest then
+  return Manifest
+else
+  LoliCore()
+end
+
+--LoliCore:Extend()
+--LoliCore.Avatar:Attach()

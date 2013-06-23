@@ -4,10 +4,7 @@
 -- 2013/04/08 17:57:58
 --
 
-LoliCore.Imagination = {}
-
-local Imagination = LoliCore.Imagination
-local Os = LoliCore.Os
+local Imagination = LoliCore:NewExtend("Imagination")
 
 function Imagination:Extend()
   self.NextId = 1
@@ -15,10 +12,11 @@ function Imagination:Extend()
   self.ClosedIms = {}
   self.LastTime = Imagination.GetTime()
   self.ImCount = 0
+  print("Imagination Extended")
 end
 
 function Imagination:GetTime()
-  return Os.GetTime()
+  return LoliCore.Os.GetTime()
 end
 
 function Imagination:Begin(ImCount, Fn, FnParam)
@@ -75,5 +73,4 @@ function Imagination:Active()
   end
 end
 
-Imagination:Extend()
-print("LoliCore.Imagination Extended")
+print("Imagination Compile")

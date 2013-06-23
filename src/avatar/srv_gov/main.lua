@@ -9,13 +9,16 @@ local function pf(fmt, ...)
 end
 
 --AreaSrvNet and SaSrvNet almost is same, so, them can be provide by LoliCore.Net
-function LoliSrvGoverment:Init()
+function LoliSrvGoverment:OnBorn()
   self:InitTraceLevel()
   self.SaNet:Init()
   self.AreaNet:Init()
   self.GodNet:Init()
   self.Logic:Init()
   self:LOGO()
+end
+
+function LoliSrvGoverment:OnDie()
 end
 
 function LoliSrvGoverment:InitTraceLevel()
@@ -30,4 +33,4 @@ function LoliSrvGoverment:LOGO()
   pf("                             %s", "Chamz Lau Original")
 end
 
-LoliSrvGoverment:Init()
+LoliCore.Avatar:Attach(LoliSrvGoverment)

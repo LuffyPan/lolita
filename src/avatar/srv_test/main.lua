@@ -6,9 +6,14 @@
 
 LoliSrvTest = {}
 
-function LoliSrvTest:Main()
+function LoliSrvTest:OnBorn()
   self:TestInit()
   self.Snap = LoliCore.Base:Snap({})
+  print("OnBorn")
+end
+
+function LoliSrvTest:OnDie()
+  print("OnDie")
 end
 
 function LoliSrvTest:TestInit()
@@ -45,12 +50,6 @@ function LoliSrvTest:TestInit()
     LoliCore.Imagination:Begin(16, self.TestConsole, self)
   else
     LoliCore.Imagination:Begin(8, self.TestListen, self)
-  end
-
-  local Conf = LoliCore.Config:Get("God")
-  print("Configuration For God")
-  for k, v in pairs(Conf) do
-    print(k, v)
   end
 end
 
@@ -841,4 +840,4 @@ function LoliSrvTest:TestGodRequestClose()
   end
 end
 
-LoliSrvTest:Main()
+LoliCore.Avatar:Attach(LoliSrvTest)

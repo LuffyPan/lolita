@@ -5,10 +5,7 @@
 -- The times fly!!!!
 --
 
-LoliCore.Config = {}
-
-local Config = LoliCore.Config
-local Io = LoliCore.Io
+local Config = LoliCore:NewExtend("Config")
 
 function Config:Extend()
   self.Default = nil
@@ -16,10 +13,11 @@ function Config:Extend()
   self.ConfigPath = "./"
   local N = LoliCore.Arg:Get("conf")
   if N then self:SetUserDefine(N) end
+  print("Config Extended")
 end
 
 function Config:SetUserDefine(FileName)
-  local F, E = Io:LoadFile(FileName)
+  local F, E = LoliCore.Io:LoadFile(FileName)
   assert(F, E)
   assert(not self.UserDefine)
   self.UserDefine = F
@@ -40,5 +38,4 @@ function Config:GetUserDefine()
   return self.UserDefine or {}
 end
 
-Config:Extend()
-print("LoliCore.Config Extended")
+print("Config Compiled")

@@ -4,13 +4,12 @@
 -- 2013/04/10 23:33:07
 --
 
-LoliCore.Io = {}
-
-local Io = LoliCore.Io
+local Io = LoliCore:NewExtend("Io")
 
 function Io:Extend()
   self.LogId = 1
   self.Logs = {}
+  print("Io Extended")
 end
 
 local function Serialize(Obj)
@@ -101,5 +100,4 @@ function Io:Log(Logh, fmt, ...)
   Io:WriteFile(Logh.Fh, os.date(), " ", l, "\n")
 end
 
-Io:Extend()
-print("LoliCore.Io Extended")
+print("Io Compile")
