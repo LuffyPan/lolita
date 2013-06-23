@@ -115,6 +115,76 @@ local function _version()
   fo:close()
 end
 
+local function _embecore()
+  local embestr = ""
+  local func = assert(loadfile("src/corext/co.lua"))
+  local manifest = assert(func(1))
+  for i, fn in ipairs(manifest) do
+    fn = "src/corext/" .. fn
+    printf(fn)
+    local fi = io.open(fn, "rb") if not fi then printf("Cannot open embe file:%s", fn) end
+    local text = fi:read("*a")
+    embestr = embestr .. text
+    fi:close()
+  end
+  return embestr
+end
+
+local _embeserveropt =
+{
+  god = 1, gov = 1, sa = 1, login = 1, area = 1,
+}
+local function _embeserver(t)
+  if not _embeserveropt[t] then return end
+  local embestr = ""
+  local func = assert(loadfile(string.format("src/avatar/srv_%s/av.lua", t)))
+  local manifest = assert(func(1))
+  for i, fn in ipairs(manifest) do
+    fn = string.format("src/avatar/srv_%s/%s", t, fn)
+    printf(fn)
+    local fi = io.open(fn, "rb") if not fi then printf("Cannot open embe file:%s", fn) end
+    local text = fi:read("*a")
+    embestr = embestr .. text
+    fi:close()
+  end
+  return embestr
+end
+
+local function _embe()
+  local embestr = ""
+  local embe = _OPTIONS["embe"]
+  printf("embe %s", embe or "none")
+  if embe then
+    local corext = _embecore()
+    embestr = embestr .. corext
+    local server = _embeserver(embe)
+    if server then
+      embestr = embestr .. server
+    end
+  end
+  embestr = embestr:gsub("\\", "\\\\")
+  embestr = embestr:gsub("\n", "\\n")
+  embestr = embestr:gsub("\"", "\\\"")
+
+  local fni = "src/core/coembe.h.in"
+  local fi = io.open(fni, "rb")
+  if not fi then
+    printf("Cannot open embe template file:%s", fni)
+    return
+  end
+  local text = fi:read("*a")
+  fi:close()
+  text = text:gsub("@TOBEEMBE@", embestr)
+  local fno = "src/core/coembe.h"
+  local fo = io.open(fno, "wb")
+  if not fo then
+    printf("Cannot open embe file:%s", fno)
+    return
+  end
+  fo:write(text)
+  fo:close()
+end
+
 local function _exec(cmd, ...)
   cmd = string.format(cmd, unpack(arg))
   local z = os.execute(cmd .. " > output.log 2> error.log")
@@ -135,6 +205,7 @@ local function _dopremake()
   printf("Premaking %s...", action)
   os.mkdir("_deploy")
   _version()
+  _embe()
   _exec("premake4 %s", action)
 end
 
@@ -199,12 +270,13 @@ local function _docheck()
   printf("Check code style....")
   local cfiles = os.matchfiles("src/core/**.c")
   local chdrfiles = os.matchfiles("src/core/**.h")
+  local cinfiles = os.matchfiles("src/core/**.h.in")
   local sfiles = os.matchfiles("src/corext/**.lua")
   local afiles = os.matchfiles("src/avatar/**.lua")
   local confiles = os.matchfiles("src/conf/**.in")
   local docfiles = os.matchfiles("doc/**.md")
   table.insert(sfiles, "premake4.lua")
-  local files = {cfiles, chdrfiles, sfiles, afiles, confiles, docfiles,}
+  local files = {cfiles, chdrfiles, cinfiles, sfiles, afiles, confiles, docfiles,}
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)

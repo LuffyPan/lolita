@@ -1,0 +1,14 @@
+/*
+
+LoliCore Embe String Template.
+Chamz Lau, Copyright (C) 2013-2017
+2013/06/23 16:40:06
+
+*/
+
+#ifndef _COEMBE_H_
+#define _COEMBE_H_
+
+#define LOLICORE_EMBE "@TOBEEMBE@"
+
+#endif

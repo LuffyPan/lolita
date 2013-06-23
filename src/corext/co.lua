@@ -4,6 +4,8 @@
 -- 2013/03/02 23:27:09
 --
 
+local bGetManifest = select(1, ...)
+
 local Manifest =
 {
   "cobasext.lua",
