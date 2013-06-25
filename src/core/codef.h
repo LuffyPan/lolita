@@ -66,7 +66,6 @@ struct co_longjmp
 
 struct co
 {
-  int btrace;
   int tracelv;
   co_xllocf xlloc;
   co_tracef tf;
@@ -79,7 +78,6 @@ struct co
   lua_State* L;
   coN* N;
   coOs* Os;
-  char core[256];
 };
 
 #define CO_OK 0

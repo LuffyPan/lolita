@@ -43,10 +43,6 @@ function Base:SetMaxMem(mm)
   return core.base.setmaxmem(mm)
 end
 
-function Base:SetDebug(lv)
-  return core.base.enabletraceback(lv)
-end
-
 function Base:_SnapNew(Snap)
   local NewField = {}
   local NewFieldCount = 0

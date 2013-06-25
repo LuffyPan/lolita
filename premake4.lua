@@ -152,9 +152,9 @@ end
 
 local function _embe()
   local embestr = ""
-  local embe = _OPTIONS["embe"]
-  printf("embe %s", embe or "none")
-  if embe then
+  local embe = _OPTIONS["embe"] or "none"
+  printf("embe %s", embe)
+  if embe ~= "none" then
     local corext = _embecore()
     embestr = embestr .. corext
     local server = _embeserver(embe)
@@ -174,7 +174,8 @@ local function _embe()
   end
   local text = fi:read("*a")
   fi:close()
-  text = text:gsub("@TOBEEMBE@", embestr)
+  text = text:gsub("@TOBEEMBE@", function(s) return embestr end)
+  text = text:gsub("@TOBEEMBETYPE@", function(s) return embe end)
   local fno = "src/core/coembe.h"
   local fo = io.open(fno, "wb")
   if not fo then
@@ -354,5 +355,22 @@ newoption
     { "vs2005", "Visual Studio 2005" },
     { "vs2008", "Visual Studio 2008" },
     { "vs2010", "Visual Studio 2010" },
+  }
+}
+
+newoption
+{
+  trigger = "embe",
+  value = "embevalue",
+  description = "embe type",
+  allowed =
+  {
+    { "none", "don't embe script, use external" },
+    { "core", "only embe core script" },
+    { "god", "embe core and god" },
+    { "gov", "embe core and gov" },
+    { "sa", "embe core and sa" },
+    { "login", "embe core and login" },
+    { "area", "embe core and area" },
   }
 }

@@ -271,6 +271,7 @@ int coOs_getcwd(co* Co, char* buf, size_t bufs)
 int coOs_getpid(co* Co)
 {
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+  return (int)GetCurrentProcessId();
 #else
   pid_t pid = getpid();
   co_assert(pid);

@@ -28,7 +28,6 @@ static const char* co_errorstr(co* Co, int e);
 
 static int co_export_setmaxmem(lua_State* L);
 static int co_export_getmem(lua_State* L);
-static int co_export_enabletrace(lua_State* L);
 static int co_export_settracelv(lua_State* L);
 
 lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf)
@@ -52,12 +51,10 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
     co_assertex(Co->umem <= Co->maxmem, "maxmem is set to small!");
   }
   Co->tracelv = CO_LVFATAL;
-  Co->btrace = 1; /* process specially */
   Co->errjmp = NULL;
   Co->L = NULL;
   Co->N = NULL;
   Co->Os = NULL;
-  Co->core[0] = 0;
   z = coR_pcall(Co, co_born, NULL);
   if (z)
   {
@@ -120,34 +117,21 @@ static int co_palive(lua_State* L)
 {
   int z;
   co* Co = NULL;
+  const char* corext = NULL;
   co_C(L, Co);
-  strncpy(Co->core, "./co.lua", sizeof(Co->core));
   co_assert(lua_gettop(L) == 0);
   co_pushcore(L, Co);
-  lua_pushvalue(L, -1);lua_setglobal(L, "core");
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "corext");
-  if (lua_isstring(L, -1))
-  {
-    const char* core = NULL;
-    size_t len = 0;
-    core = lua_tolstring(L, -1, &len);
-    if (len >= sizeof(Co->core))
-    {
-      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.corext is larger than %u, use default %s", sizeof(Co->core), Co->core);
-    }
-    else
-    {
-      strncpy(Co->core, core, sizeof(Co->core));
-    }
-    lua_pop(L, 3); co_assert(lua_gettop(L) == 0);
-  }
-  else
-  {
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "arg.corext is NIL, use default %s", Co->core);
-  }
-  z = luaL_loadfile(L, Co->core); if (z) lua_error(L);
-  z = lua_pcall(L, 0, 0, 0); if (z) lua_error(L);
+  lua_getfield(L, -1, "corext"); co_assert(lua_gettop(L) == 3);
+  if (lua_isstring(L, -1)) {corext = lua_tostring(L, -1);}
+  if (corext)
+  {z = luaL_loadfile(L, corext); if (z) lua_error(L);}
+  else if(strcmp(LOLICORE_EMBE_TYPE, LOLICORE_EMBE_TYPE_NONE) != 0)
+  {z = luaL_loadstring(L, LOLICORE_EMBE);if (z) lua_error(L);}
+  else {luaL_error(L, "both arg and embe is none!");}
+  co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
+  z = lua_pcall(L, 0, 0, 0);if (z) {lua_error(L);}
+  lua_pop(L, 3);
   co_assert(lua_gettop(L) == 0);
   return 0;
 }
@@ -163,8 +147,6 @@ static void co_alive(co* Co, void* ud)
   if (z)
   {
     co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
-    lua_pop(L, 1);
-    co_assert(lua_gettop(L) == 0);
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
   co_assert(lua_gettop(L) == 0);
@@ -200,7 +182,9 @@ static void co_pexportcore(co* Co, lua_State* L)
   co_assert(lua_gettop(L) == 0);
   luaL_openlibs(L);
   lua_newtable(L); /* core? the name is not important */
+  lua_pushvalue(L, -1);
   lua_rawsetp(L, LUA_REGISTRYINDEX, Co);
+  lua_setglobal(L, "core");
   co_assert(lua_gettop(L) == 0);
 }
 
@@ -215,6 +199,7 @@ static void co_pexportinfo(co* Co, lua_State* L)
   lua_pushnumber(L, LOLICORE_VERSION); lua_setfield(L, -2, "version");
   lua_pushstring(L, LOLICORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
   lua_pushstring(L, LOLICORE_PLATSTR); lua_setfield(L, -2, "platform");
+  lua_pushstring(L, LOLICORE_EMBE_TYPE); lua_setfield(L, -2, "embetype");
   lua_pop(L, 2); /* core.info */
   co_assert(lua_gettop(L) == 0);
 }
@@ -254,7 +239,6 @@ static void co_pexportapi(co* Co, lua_State* L)
 {
   static const luaL_Reg co_funcs[] =
   {
-    {"enabletrace", co_export_enabletrace},
     {"getmem", co_export_getmem},
     {"setmaxmem", co_export_setmaxmem},
     {"settracelv", co_export_settracelv},
@@ -390,16 +374,6 @@ static void* co_xlloc(void* ud, void* p, size_t os, size_t ns)
   else{x = realloc(p, ns);}
   if (Co){Co->umem = m;}
   return x;
-}
-
-static int co_export_enabletrace(lua_State* L)
-{
-  co* Co = NULL;
-  int benable = 0;
-  co_C(L, Co);
-  benable = luaL_checkint(L, 1);
-  Co->btrace = benable;
-  return 0;
 }
 
 static int co_export_setmaxmem(lua_State* L)

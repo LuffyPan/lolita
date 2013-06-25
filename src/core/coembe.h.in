@@ -9,6 +9,8 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifndef _COEMBE_H_
 #define _COEMBE_H_
 
+#define LOLICORE_EMBE_TYPE_NONE "none"
+#define LOLICORE_EMBE_TYPE "@TOBEEMBETYPE@"
 #define LOLICORE_EMBE "@TOBEEMBE@"
 
 #endif
