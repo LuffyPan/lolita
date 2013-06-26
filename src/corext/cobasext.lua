@@ -15,9 +15,6 @@ function LoliCore:NewExtend(Name)
   return Ext
 end
 
-function LoliCore:Attach()
-end
-
 function LoliCore:Extend()
   assert(not self.IsExtended)
   for i, Ext in ipairs(self.ExtendRepos) do

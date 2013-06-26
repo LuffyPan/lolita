@@ -8,26 +8,33 @@ local Avatar = LoliCore:NewExtend("Avatar")
 
 function Avatar:Extend()
   self.Alive = 0
-  --Load Avatar Script
-  --[[
-  local AvatarFile = LoliCore.Arg:Get("avatar")
-  local AvatarPath = LoliCore.Arg:Get("avatarpath")
-  local AvatarManifest = dofile(AvatarFile)
-  assert(type(AvatarManifest) == "table")
-  for _, FN in ipairs(AvatarManifest) do
-    dofile(AvatarPath .. "/" .. FN)
-  end
-  --]]
-  --LoliCore.Imagination:Begin(16, self.ImageTestIo, self)
-  --LoliCore.Imagination:Begin(16, self.ImageTestNet, self)
-  --LoliCore.Imagination:Begin(16 * 5, self.ImageMem, self)
+  self:ExecuteArgs()
+  LoliCore.Imagination:Begin(16 * 60, self.ImageMem, self)
   LoliCore.Imagination:Begin(16 * 3600 * 2, self.ImageClose, self)
   LoliCore.Os:RegisterSignal(LoliCore.Os.SIG_INT, Avatar.OnSignal, self)
   print("Avatar Extended")
 end
 
+function Avatar:ExecuteArgs()
+  -- TODO ExecuteArgs can be a low level basic machnism
+  local PidFile = LoliCore.Arg:Get("pid")
+  if PidFile then
+    print("ExecuteArgPid", PidFile)
+    self:ExecuteArgPid("pid", PidFile)
+  end
+end
+
+function Avatar:ExecuteArgPid(Arg, ArgValue)
+  local Pid = LoliCore.Os:GetPid()
+  local Fh, Err = LoliCore.Io:OpenFile(ArgValue, "wb")
+  if not Fh then return 0 end
+  LoliCore.Io:WriteFile(Fh, tostring(Pid))
+  LoliCore.Io:CloseFile(Fh)
+  return 1
+end
+
 function Avatar:Attach(Av)
-  print("LoliCore")
+  print("LoliCore.Avatar Attaching...")
   print(string.format("%s", LoliCore.Info:GetReposVersion()))
   print(string.format("%s", LoliCore.Info:GetVersion()))
   print(string.format("%s", LoliCore.Info:GetAuthor()))
@@ -36,7 +43,6 @@ function Avatar:Attach(Av)
   print(string.format("Avatar:%s", LoliCore.Arg:Get("avatar")))
   print(string.format("CorextPath:%s", LoliCore.Arg:Get("corextpath")))
   print(string.format("AvatarPath:%s", LoliCore.Arg:Get("avatarpath")))
-  print("LoliCore.Avatar Attaching...")
 
   assert(Av.OnBorn)(Av)
   self.Alive = 1
@@ -61,34 +67,6 @@ end
 function Avatar:ImageMem(Im)
   print(string.format("Mem:%d/%d", LoliCore.Base.GetMem()))
   LoliCore.Imagination:Begin(16, self.ImageMem, self)
-end
-
-function Avatar:ImageTestIo(Im)
-  local T1 = {Code = "Lolita", Age = 19,}
-  local S1 = LoliCore.Io:Serialize(T1)
-  local T2 = LoliCore.Io:Deserialize(S1)
-  print(S1)
-  print(T2)
-  --Compare Table
-  --Show Table
-  for k, v in pairs(T2) do
-    print(k, v)
-  end
-  LoliCore.Imagination:Begin(16, self.ImageTestIo, self)
-end
-
-function Avatar:ImageTestNet(Im)
-  local Ip = "127.0.0.1"
-  local Port = 7000
-  for i = 1, 20 do
-    assert(LoliCore.Net:Listen(Ip, Port), string.format("Listen Failed @ %s:%d", Ip, Port))
-    Port = Port + 1
-  end
-  Port = 7000
-  for i = 1, 20 do
-    assert(LoliCore.Net:Connect(Ip, Port), string.format("Connect Failed 2 %s:%d", Ip, Port))
-    Port = Port + 1
-  end
 end
 
 function Avatar:OnSignal(Signal)
