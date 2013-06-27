@@ -137,4 +137,12 @@ function Info:GetPlatform()
   return core.info.platform
 end
 
+function Info:GetLCopyright()
+  return core.info.lcopyright
+end
+
+function Info:GetLAuthors()
+  return core.info.lauthors
+end
+
 print("Base Compile")

@@ -194,6 +194,8 @@ static void co_pexportinfo(co* Co, lua_State* L)
   co_pushcore(L, Co);
   lua_newtable(L);
   lua_pushvalue(L, -1); lua_setfield(L, -3, "info"); /* core.info */
+  lua_pushstring(L, LUA_COPYRIGHT); lua_setfield(L, -2, "lcopyright");
+  lua_pushstring(L, LUA_AUTHORS); lua_setfield(L, -2, "lauthors");
   lua_pushstring(L, LOLICORE_COPYRIGHT); lua_setfield(L, -2, "copyright");
   lua_pushstring(L, LOLICORE_AUTHOR); lua_setfield(L, -2, "author");
   lua_pushnumber(L, LOLICORE_VERSION); lua_setfield(L, -2, "version");

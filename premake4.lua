@@ -17,24 +17,24 @@ solution "lolicore"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/manifest.lua", "conf=conf/srv_god.conf", }
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/av.lua", "conf=conf/srv_god.conf", }
 
 project "lolicore"
   targetname "lolicore"
   language "C"
   kind "ConsoleApp"
-  includedirs { "src/3rd/lua-5.2.1/src" }
+  includedirs { "src/3rd/lua-5.2.2/src" }
 
   files
   {
-    "src/3rd/lua-5.2.1/src/**.h", "src/3rd/lua-5.2.1/**.c",
+    "src/3rd/lua-5.2.2/src/**.h", "src/3rd/lua-5.2.2/**.c",
     "src/core/**.h", "src/core/**.c",
   }
 
   excludes
   {
-    "src/3rd/lua-5.2.1/src/lua.c",
-    "src/3rd/lua-5.2.1/src/luac.c",
+    "src/3rd/lua-5.2.2/src/lua.c",
+    "src/3rd/lua-5.2.2/src/luac.c",
     "src/core/coconf.h",
   }
 

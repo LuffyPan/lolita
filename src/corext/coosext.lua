@@ -46,17 +46,21 @@ end
 function Os:MkDirEx(Path)
   local i = 0
   local c
+  local l = #Path
   while 1 do
+    if i >= l then return 1 end
     i = string.find(Path, "/", i + 1)
     if not i then
       return core.os.mkdir(Path)
     else
-      c = string.sub(Path, 1, i)
+      c = string.sub(Path, 1, i - 1)
+      if c == "" then goto continue end
       if not self:IsDir(c) then
         local r = core.os.mkdir(c)
         if not r then return r end
       end
     end
+    ::continue::
   end
   assert()
 end
