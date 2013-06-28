@@ -232,6 +232,12 @@ local _deployconf =
   {"src/avatar/srv_god/conf.lua", "_deploy/conf/srv_god.conf"},
 }
 
+local _deploysh =
+{
+  {"src/sh/startdev.sh", "_deploy/startdev.sh"},
+  {"src/sh/stopdev.sh", "_deploy/stopdev.sh"},
+}
+
 local function _dodeploy()
   local action = _OPTIONS["action"] or "gmake"
   local config = _OPTIONS["config"] or "debug"
@@ -249,6 +255,11 @@ local function _dodeploy()
 
   for _, v in ipairs(_deployconf) do
     os.copyfile(v[1], v[2])
+  end
+
+  for _, v in ipairs(_deploysh) do
+    os.copyfile(v[1], v[2])
+    os.outputof(string.format("chmod 755 %s", v[2]))
   end
 
   local src = string.format("%s/lolicore.exe", bin)
@@ -276,8 +287,9 @@ local function _docheck()
   local afiles = os.matchfiles("src/avatar/**.lua")
   local confiles = os.matchfiles("src/conf/**.in")
   local docfiles = os.matchfiles("doc/**.md")
+  local shfiles = os.matchfiles("src/sh/**.sh")
   table.insert(sfiles, "premake4.lua")
-  local files = {cfiles, chdrfiles, cinfiles, sfiles, afiles, confiles, docfiles,}
+  local files = {cfiles, chdrfiles, cinfiles, sfiles, afiles, confiles, docfiles, shfiles}
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)
