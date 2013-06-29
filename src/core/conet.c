@@ -20,8 +20,10 @@ Chamz Lau, Copyright (C) 2013-2017
 #include <winerror.h>
 #pragma comment(lib, "ws2_32.lib")
 typedef SOCKET cosockfd;
+typedef int cosockfd_size;
 #define COSOCKFD_ERROR (SOCKET_ERROR)
 #define COSOCKFD_NULL (INVALID_SOCKET)
+#define COSOCKFD_EINVAL WSAEINVAL
 #define COSOCKFD_EWOULDBLOCK WSAEWOULDBLOCK
 #define COSOCKFD_EAGAIN COSOCKFD_EWOULDBLOCK
 #define COSOCKFD_EINPROGRESS WSAEINPROGRESS
@@ -42,6 +44,8 @@ typedef SOCKET cosockfd;
 #include <arpa/inet.h>
 #include <errno.h>
 typedef int cosockfd;
+typedef socklen_t cosockfd_size;
+#define COSOCKFD_EINVAL EINVAL
 #define COSOCKFD_EWOULDBLOCK EWOULDBLOCK
 #define COSOCKFD_EAGAIN EAGAIN
 #define COSOCKFD_EINPROGRESS EINPROGRESS
@@ -1511,13 +1515,17 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
     if (FD_ISSET(s->fd, &wfds))
     {
       struct sockaddr_in sin;
-      int sinsize = sizeof(sin);
+      cosockfd_size sinsize = (cosockfd_size)sizeof(sin);
       if (0 != getpeername(s->fd, (struct sockaddr*)&sin, &sinsize))
       {
         /* connect failed */
         cosock_logec(s);
         cosock_close(Co, s);
         if (s->ec == COSOCKFD_ENOTCONN)
+        {
+          cosock_eventconnect(Co, s, NULL, 0);
+        }
+        else if (s->ec == COSOCKFD_EINVAL)
         {
           cosock_eventconnect(Co, s, NULL, 0);
         }
@@ -1676,7 +1684,8 @@ static int coN_export_active(lua_State* L)
 
 static int coN_export_getinfo(lua_State* L)
 {
-  int z = 0, ss, idx = 1;
+  int z = 0, idx = 1;
+  cosockfd_size ss;
   struct sockaddr_in sin;
   co* Co = NULL;
   cosock* s = NULL;
@@ -1689,7 +1698,7 @@ static int coN_export_getinfo(lua_State* L)
   lua_newtable(L);
   /* local ip and port */
   s = coN_getcosock(Co, id, attaid);
-  ss = (int)sizeof(sin);
+  ss = (cosockfd_size)sizeof(sin);
   z = getsockname(s->fd, (struct sockaddr*)&sin, &ss);
   if (COSOCKFD_ERROR == z){cosock_logec(s);port = 0;}
   else if (0 == z){c = inet_ntoa(sin.sin_addr);port = ntohs(sin.sin_port);co_assert(c);}
@@ -1698,7 +1707,7 @@ static int coN_export_getinfo(lua_State* L)
   lua_pushnumber(L, idx++);lua_pushnumber(L, port);lua_settable(L, -3);
   /* remote ip and port */
   c = NULL;
-  ss = (int)sizeof(sin);
+  ss = (cosockfd_size)sizeof(sin);
   z = getpeername(s->fd, (struct sockaddr*)&sin, &ss);
   if (COSOCKFD_ERROR == z){cosock_logec(s);port = 0;}
   else if (0 == z){c = inet_ntoa(sin.sin_addr);port = ntohs(sin.sin_port);co_assert(c);}
