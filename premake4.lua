@@ -92,7 +92,15 @@ end
 
 local function _version()
   print("Updating version number...")
-  local version = os.outputof("git describe --dirty")
+  local z = os.execute("git describe --dirty >output.log 2>&1")
+  if z ~= 0 then
+    printf("Get repos version failed:%d", z)
+    return
+  end
+  local fvi = io.open("output.log", "rb")
+  local version = fvi:read("*a")
+  fvi:close()
+  os.remove("output.log")
   version = version:gsub("\n", "")
   version = version:gsub("\r", "")
   printf("Repos version is %s", version)
@@ -219,8 +227,6 @@ local function _domake()
     printf("Current working directory:%s", cwd)
     os.chdir(string.format("_build/%s", action))
     _execex("make config=%s", config)
-    --local result = os.outputof(string.format("make config=%s", config))
-    --printf(result)
     os.chdir(cwd)
   else
     printf("Unsupported action %s now!", action)
@@ -259,7 +265,7 @@ local function _dodeploy()
 
   for _, v in ipairs(_deploysh) do
     os.copyfile(v[1], v[2])
-    os.outputof(string.format("chmod 755 %s", v[2]))
+    os.execute(string.format("chmod 755 %s", v[2]))
   end
 
   local src = string.format("%s/lolicore.exe", bin)
