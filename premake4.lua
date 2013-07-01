@@ -203,9 +203,10 @@ local function _exec(cmd, ...)
   return z
 end
 
-local function _execex(cmd, ...)
-  cmd = string.format(cmd, unpack(arg))
-  local z = os.execute(cmd)
+local function _execex(cmd, ch2dir)
+  local cwd = os.getcwd()
+  local z = os.execute(string.format("cd %s;%s", ch2dir, cmd))
+  os.chdir(cwd)
   return z
 end
 
@@ -223,11 +224,9 @@ local function _domake()
   local config = _OPTIONS["config"] or "debug"
   printf("Making %s %s...", action, config)
   if action == "gmake" then
-    local cwd = os.getcwd()
-    printf("Current working directory:%s", cwd)
-    os.chdir(string.format("_build/%s", action))
-    _execex("make config=%s", config)
-    os.chdir(cwd)
+    printf("Current working directory:%s", os.getcwd())
+    _execex(string.format("make config=%s", config), string.format("_build/%s", action))
+    printf("After Make, Current working directory:%s", os.getcwd())
   else
     printf("Unsupported action %s now!", action)
   end
