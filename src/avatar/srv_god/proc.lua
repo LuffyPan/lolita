@@ -1,14 +1,12 @@
 --
--- God's Logic
+-- God's Proc 
 -- Chamz Lau, Copyright (C) 2013-2017
 -- 2013/05/17 14:12:36
 --
 
-LoliSrvGod.Logic = {}
-
-local God = LoliSrvGod
-local Logic = God.Logic
-local SrvNet = God.SrvNet
+local Base = LoliSrvGod.Base
+local SrvNet = LoliSrvGod.SrvNet
+local Proc = LoliSrvGod.Proc
 
 local SoulerRepos = {}
 
@@ -64,19 +62,21 @@ end
 
 
 
-function Logic:Init()
-  SoulerRepos:Init(God.Uconf.RootPath or God.Dconf.RootPath, God.Uconf.SoulerPath or God.Dconf.SoulerPath)
-  SrvNet:Init(God.Uconf.Ip or God.Dconf.Ip, God.Uconf.Port or God.Dconf.Port, self:__GetLogic(), self)
+function Proc:Init()
+  local D = Base:GetDefaultConfig()
+  local U = Base:GetUserConfig()
+  SoulerRepos:Init(U.RootPath or D.RootPath, U.SoulerPath or D.SoulerPath)
+  SrvNet:Init(U.Ip or D.Ip, U.Port or D.Port, self:GetProcs(), self)
 end
 
-function Logic:OnRequestQuerySouler(NetId, Pack)
+function Proc:OnReqQuerySouler(NetId, Pack)
   print("OnRequestQuerySouler")
   local Souler = assert(SoulerRepos:Load(Pack.SoulId)) --Step 1
   Pack.Result = 1
   Pack.Souler = Souler.Fragments
 end
 
-function Logic:OnRequestCreateSouler(NetId, Pack)
+function Proc:OnReqCreateSouler(NetId, Pack)
   print("OnRequestCreateSouler")
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if Souler.Fragments then
@@ -105,7 +105,7 @@ function Logic:OnRequestCreateSouler(NetId, Pack)
   Pack.Result = 1
 end
 
-function Logic:OnRequestSelectSouler(NetId, Pack)
+function Proc:OnReqSelectSouler(NetId, Pack)
   print("OnRequestSelectSouler")
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if not Souler.Fragments then
@@ -125,7 +125,7 @@ function Logic:OnRequestSelectSouler(NetId, Pack)
   Pack.Result = 1
 end
 
-function Logic:OnRequestGetSouler(NetId, Pack)
+function Proc:OnReqGetSouler(NetId, Pack)
   print("OnRequestGetSouler")
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if not Souler.Fragments then
@@ -151,16 +151,16 @@ function Logic:OnRequestGetSouler(NetId, Pack)
   print("RequestGetSouler Succeed")
 end
 
-function Logic:OnRequestDestroySouler(NetId, Pack)
+function Proc:OnReqDestroySouler(NetId, Pack)
   print("OnRequestDestroySouler")
 end
 
-function Logic:OnRequestClose(NetId)
+function Proc:OnReqClose(NetId)
   print("OnRequestClose")
   LoliCore.Avatar:Detach()
 end
 
-function Logic:OnRequestSetEx(NetId, Pack)
+function Proc:OnReqSetEx(NetId, Pack)
   print(string.format("Souler[%u], RequestSetEx", Pack.SoulId))
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if Souler.LockKey ~= 0 then
@@ -185,7 +185,7 @@ function Logic:OnRequestSetEx(NetId, Pack)
   print("SetEx Succeed!!......")
 end
 
-function Logic:OnRequestGetEx(NetId, Pack)
+function Proc:OnReqGetEx(NetId, Pack)
   print(string.format("Souler[%u], RequestGetEx", Pack.SoulId))
   local Souler = assert(SoulerRepos:Load(Pack.SoulId))
   if Souler.LockKey ~= 0 then
@@ -204,19 +204,26 @@ function Logic:OnRequestGetEx(NetId, Pack)
   print("GetEx Succeed!!.....")
 end
 
-function Logic:__GetLogic()
-  if self.__Logic then return self.__Logic end
-  self.__Logic =
-  {
-    RequestQuerySouler = self.OnRequestQuerySouler,
-    RequestCreateSouler = self.OnRequestCreateSouler,
-    RequestSelectSouler = self.OnRequestSelectSouler,
-    RequestDestroySouler = self.OnRequestDestroySouler,
-    RequestGetSouler = self.OnRequestGetSouler,
-    RequestClose = self.OnRequestClose,
+function Proc:OnReqSrvLogin(NetId, Pack)
+  print("RequestSrvLogin")
+end
 
-    RequestSetEx = self.OnRequestSetEx,
-    RequestGetEx = self.OnRequestGetEx,
+function Proc:GetProcs()
+  local Proc =
+  {
+    RequestQuerySouler = self.OnReqQuerySouler,
+    RequestCreateSouler = self.OnReqCreateSouler,
+    RequestSelectSouler = self.OnReqSelectSouler,
+    RequestDestroySouler = self.OnReqDestroySouler,
+    RequestGetSouler = self.OnReqGetSouler,
+    RequestClose = self.OnReqClose,
+
+    RequestSetEx = self.OnReqSetEx,
+    RequestGetEx = self.OnReqGetEx,
+
+    --其他服务器都得连接到God,通过Key进行身份的匹配验证，汇报相关基本信息
+    --God根据不同的服务器类型返回可能不同的数据
+    RequestSrvLogin = self.OnReqSrvLogin,
   }
-  return self.__Logic
+  return Proc
 end

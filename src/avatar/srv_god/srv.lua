@@ -4,9 +4,14 @@
 -- 2013/07/03 19:12:58
 --
 
-function LoliSrvGod:Srv_Init()
+local Base = LoliSrvGod.Base
+local Srv = LoliSrvGod.Srv
+
+function Srv:Init()
   self.SrvRepos = {}
-  local Srv = self.Uconf.Srv or self.Dconf.Srv
+  local D = Base:GetDefaultConfig()
+  local U = Base:GetUserConfig()
+  local Srv = U.Srv or D.Srv
   for i, v in ipairs(assert(Srv)) do
     local x = {Id = v.Id, Key = v.Key, Type = v.Type,} -- Copy a table!!!
     x.State = 0
@@ -15,7 +20,7 @@ function LoliSrvGod:Srv_Init()
   end
 end
 
-function LoliSrvGod:Srv_Dump()
+function Srv:Dump()
   print("Servers's State:")
   for k, v in pairs(self.SrvRepos) do
     print(string.format("%d--%s--%s--%d", v.Id, v.Key, v.Type, v.State))

@@ -4,9 +4,6 @@
 -- 2013/05/17 13:43:20
 --
 
-LoliSrvGod = {}
-LoliSrvGod.SrvNet = {}
-
 local SrvNet = LoliSrvGod.SrvNet
 
 -- Add Session to extend logic process

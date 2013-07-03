@@ -6,9 +6,12 @@
 
 return
 {
+  "pre.lua",
   "conf.lua",
+  "base.lua",
   "srvnet.lua",
   "srv.lua",
-  "logic.lua",
-  "main.lua",
+  "soul.lua",
+  "proc.lua",
+  "main.lua", -- This must be the last!!
 }
