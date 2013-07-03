@@ -6,13 +6,10 @@
 
 local SrvNet = LoliSrvGod.SrvNet
 
--- Add Session to extend logic process
-function SrvNet:UnInit()
-  -- Is not supported very good.. ToDo
-  assert()
+function SrvNet:Init()
 end
 
-function SrvNet:Init(Ip, Port, LogicFuncs, LogicParam)
+function SrvNet:Listen(Ip, Port, LogicFuncs, LogicParam)
   self.LogicFuncs = {}
   for k, v in pairs(LogicFuncs) do
     self.LogicFuncs[k] = v

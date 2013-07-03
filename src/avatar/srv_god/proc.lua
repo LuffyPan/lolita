@@ -7,78 +7,24 @@
 local Base = LoliSrvGod.Base
 local SrvNet = LoliSrvGod.SrvNet
 local Proc = LoliSrvGod.Proc
-
-local SoulerRepos = {}
-
-function SoulerRepos:Init(RootPath, SoulerPath)
-  self._SoulerRepos = {}
-  self._RootPath = assert(RootPath)
-  self._SoulerPath = assert(SoulerPath)
-
-  if not LoliCore.Os:IsPath(self._RootPath) then
-    print(string.format("%s Is Not Exist, Create It", self._RootPath))
-    assert(LoliCore.Os:MkDirEx(self._RootPath))
-    assert(LoliCore.Os:MkDirEx(self._SoulerPath))
-  end
-end
-
-function SoulerRepos:Get(SoulId)
-  return self._SoulerRepos[SoulId]
-end
-
-function SoulerRepos:Load(SoulId)
-  local Souler = self._SoulerRepos[SoulId]
-  if Souler then return Souler end
-  Souler =
-  {
-    SoulId = SoulId,
-    LockKey = 0,
-    Moments = {},
-    Fragments = nil,
-  }
-  assert(self:_LoadFragments(Souler))
-  self._SoulerRepos[SoulId] = Souler
-  return Souler
-end
-
-function SoulerRepos:Save(SoulId)
-  local Souler = assert(self._SoulerRepos[SoulId])
-  if Souler.Fragments then assert(self:_SaveFragments(Souler)) end
-  return 1
-end
-
-function SoulerRepos:_LoadFragments(Souler)
-  local Fi = self._SoulerPath .. "/" .. "souler_" .. tostring(Souler.SoulId) .. ".lua"
-  Souler.Fragments = LoliCore.Io:LoadFile(Fi)
-  return 1
-end
-
-function SoulerRepos:_SaveFragments(Souler)
-  assert(Souler.Fragments)
-  local Fi = self._SoulerPath .. "/" .. "souler_" .. tostring(Souler.SoulId) .. ".lua"
-  return LoliCore.Io:SaveFile(Souler.Fragments, Fi)
-end
-
-
-
+local Soul = LoliSrvGod.Soul
 
 function Proc:Init()
   local D = Base:GetDefaultConfig()
   local U = Base:GetUserConfig()
-  SoulerRepos:Init(U.RootPath or D.RootPath, U.SoulerPath or D.SoulerPath)
-  SrvNet:Init(U.Ip or D.Ip, U.Port or D.Port, self:GetProcs(), self)
+  SrvNet:Listen(U.Ip or D.Ip, U.Port or D.Port, self:GetProcs(), self)
 end
 
 function Proc:OnReqQuerySouler(NetId, Pack)
   print("OnRequestQuerySouler")
-  local Souler = assert(SoulerRepos:Load(Pack.SoulId)) --Step 1
+  local Souler = assert(Soul:Load(Pack.SoulId)) --Step 1
   Pack.Result = 1
   Pack.Souler = Souler.Fragments
 end
 
 function Proc:OnReqCreateSouler(NetId, Pack)
   print("OnRequestCreateSouler")
-  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  local Souler = assert(Soul:Load(Pack.SoulId))
   if Souler.Fragments then
     Pack.Result = 0
     Pack.ErrorCode = 1
@@ -101,13 +47,13 @@ function Proc:OnReqCreateSouler(NetId, Pack)
   }
   Souler.Fragments = Fragments
   --Step 4. Save, Should use timer to save, and log failed
-  assert(SoulerRepos:Save(Souler.SoulId))
+  assert(Soul:Save(Souler.SoulId))
   Pack.Result = 1
 end
 
 function Proc:OnReqSelectSouler(NetId, Pack)
   print("OnRequestSelectSouler")
-  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  local Souler = assert(Soul:Load(Pack.SoulId))
   if not Souler.Fragments then
     Pack.Result = 0
     Pack.ErrorCode = 1
@@ -127,7 +73,7 @@ end
 
 function Proc:OnReqGetSouler(NetId, Pack)
   print("OnRequestGetSouler")
-  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  local Souler = assert(Soul:Load(Pack.SoulId))
   if not Souler.Fragments then
     Pack.Result = 0
     Pack.ErrorCode = 2
@@ -162,7 +108,7 @@ end
 
 function Proc:OnReqSetEx(NetId, Pack)
   print(string.format("Souler[%u], RequestSetEx", Pack.SoulId))
-  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  local Souler = assert(Soul:Load(Pack.SoulId))
   if Souler.LockKey ~= 0 then
     Pack.Result = 0
     Pack.ErrorCode = 1
@@ -187,7 +133,7 @@ end
 
 function Proc:OnReqGetEx(NetId, Pack)
   print(string.format("Souler[%u], RequestGetEx", Pack.SoulId))
-  local Souler = assert(SoulerRepos:Load(Pack.SoulId))
+  local Souler = assert(Soul:Load(Pack.SoulId))
   if Souler.LockKey ~= 0 then
     Pack.Result = 0
     Pack.ErrorCode = 1
