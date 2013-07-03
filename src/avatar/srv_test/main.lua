@@ -684,10 +684,44 @@ function LoliSrvTest:TestGodRequestConnect()
   self.TestConnectNets[Id] = Id
   self.TestConnectCount = self.TestConnectCount + 1
   if self.TestConnectCount >= 1 then
-    LoliCore.Imagination:Begin(16, self.TestGodRequestQuerySouler, self)
+    LoliCore.Imagination:Begin(16, self.TestGodRequestSrvLoginWrong, self)
   else
     LoliCore.Imagination:Begin(16, self.TestGodRequestConnect, self)
   end
+end
+
+function LoliSrvTest:TestGodRequestSrvLoginWrong()
+  local RequestSrvLoginPack =
+  {
+    ProcId = "RequestSrvLogin",
+    Key = "198708x5",
+    Extra =
+    {
+      SaIp = "127.0.0.1",
+      SaPort = 7000,
+    },
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestSrvLoginPack)
+  end
+  LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestSrvLoginRight, self)
+end
+
+function LoliSrvTest:TestGodRequestSrvLoginRight()
+  local RequestSrvLoginPack =
+  {
+    ProcId = "RequestSrvLogin",
+    Key = "19870805",
+    Extra =
+    {
+      SaIp = "127.0.0.1",
+      SaPort = 7000,
+    },
+  }
+  for k, v in pairs(self.TestConnectNets) do
+    LoliCore.Net:PushPackage(k, RequestSrvLoginPack)
+  end
+  LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestQuerySouler, self)
 end
 
 function LoliSrvTest:TestGodRequestQuerySouler()
@@ -816,28 +850,26 @@ function LoliSrvTest:TestGodRequestGetEx()
   end
   self.TestConnectPushCount = self.TestConnectPushCount + 1
   if self.TestConnectPushCount >= 1 then
-    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestClose, self)
+    LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestSrvLogout, self)
     self.TestConnectPushCount = 0
   else
     LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestGetEx, self)
   end
 end
 
-function LoliSrvTest:TestGodRequestClose()
-  local RequestClosePack =
+function LoliSrvTest:TestGodRequestSrvLogout()
+  local RequestSrvLogoutPack =
   {
-    ProcId = "RequestClose",
+    ProcId = "RequestSrvLogout",
   }
   for k, v in pairs(self.TestConnectNets) do
-    LoliCore.Net:PushPackage(k, RequestClosePack)
+    LoliCore.Net:PushPackage(k, RequestSrvLogoutPack)
   end
-  self.TestConnectPushCount = self.TestConnectPushCount + 1
-  if self.TestConnectPushCount >= 1 then
-    debug.debug()
-    self.TestConnectPushCount = 0
-  else
-    debug.debug()
-  end
+  LoliCore.Imagination:Begin(16 * 2, self.TestGodRequestClose, self)
+end
+
+function LoliSrvTest:TestGodRequestClose()
+  LoliCore.Avatar:Detach()
 end
 
 LoliCore.Avatar:Attach(LoliSrvTest)

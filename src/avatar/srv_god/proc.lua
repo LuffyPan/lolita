@@ -5,6 +5,7 @@
 --
 
 local Base = LoliSrvGod.Base
+local Srv = LoliSrvGod.Srv
 local SrvNet = LoliSrvGod.SrvNet
 local Proc = LoliSrvGod.Proc
 local Soul = LoliSrvGod.Soul
@@ -152,6 +153,30 @@ end
 
 function Proc:OnReqSrvLogin(NetId, Pack)
   print("RequestSrvLogin")
+  local r, e, es = Srv:Login(NetId, Pack.Key, Pack.Extra)
+  if not r then
+    Pack.ErrorCode = e
+    print(string.format("NetId[%s], Key[%s] Login Failed, Detail[%s]", NetId, Pack.Key, es))
+    return
+  end
+  Pack.Result = 1
+  Srv:Dump() -- Just debug
+  print("Login Succeed!!")
+end
+
+function Proc:OnReqSrvLogout(NetId, Pack)
+  print("RequestSrvLogout")
+  Srv:Logout(NetId)
+  Pack.Result = 1
+  Srv:Dump()
+  print("Logout Succeed!!")
+end
+
+function Proc:OnClose(NetId)
+  print("Close")
+  Srv:Logout(NetId)
+  Srv:Dump()
+  print("Logout By Close Succeed!!")
 end
 
 function Proc:GetProcs()
@@ -170,6 +195,8 @@ function Proc:GetProcs()
     --其他服务器都得连接到God,通过Key进行身份的匹配验证，汇报相关基本信息
     --God根据不同的服务器类型返回可能不同的数据
     RequestSrvLogin = self.OnReqSrvLogin,
+    RequestSrvLogout = self.OnReqSrvLogout,
+    Close = self.OnClose,
   }
   return Proc
 end
