@@ -13,9 +13,11 @@ end
 function LoliSrvGod:Init()
   self.Dconf = assert(LoliCore.Config:GetDefault())
   self.Uconf = assert(LoliCore.Config:GetUserDefine())
+  self:Srv_Init()
   self:InitTraceLevel()
   self.Logic:Init()
   self:LOGO()
+  self:Srv_Dump()
 end
 
 function LoliSrvGod:InitTraceLevel()
@@ -40,6 +42,7 @@ end
 
 function LoliSrvGod:OnDie()
   print("OnDie")
+  debug.debug()
 end
 
 LoliCore.Avatar:Attach(LoliSrvGod)

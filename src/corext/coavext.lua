@@ -71,7 +71,7 @@ end
 
 function Avatar:ImageMem(Im)
   print(string.format("Mem:%d/%d", LoliCore.Base.GetMem()))
-  LoliCore.Imagination:Begin(16, self.ImageMem, self)
+  LoliCore.Imagination:Begin(16 * 60, self.ImageMem, self)
 end
 
 function Avatar:OnSignal(Signal)

@@ -11,7 +11,6 @@ local GodPre =
 
 local God =
 {
-
   SrvId = 1991,
   SrvName = "Godddddddd",
   SrvDesc = "GOD OF THE [Lolita] World",
@@ -21,55 +20,24 @@ local God =
 
   RootPath = GodPre.RootPath,
   SoulerPath = GodPre.RootPath .. "/souler",
+}
 
-  -- All the [Server Login]'s Id
-  Logins =
-  {
-    [2000] = {},
-  },
+God.Srv =
+{
+  --Login Servers
+  {Id = 1991, Key = "19870805", Type="srvlogin"},
 
-  -- All the [Server Gov]'s Id
-  Govs =
-  {
-    [1840] = {},
-    [1841] = {},
-  },
+  --Sa Servers
+  {Id = 2000, Key = "20000901", Type="srvsa"},
 
-  -- All the [Server SoulerAgency]'s Id
-  Sas =
-  {
-    [1949] = {},
-  },
+  --Gov Servers
+  {Id = 2001, Key = "20010928", Type = "srvgov"},
 
-  -- All the [Server Areas]'s Id And Other Info
-  Areas =
-  {
-    [1900] =
-    {
-      GovId = 1840,
-    },
-
-    [1901] =
-    {
-      GovId = 1840,
-    },
-
-    [1902] =
-    {
-      GovId = 1840,
-    },
-
-    [1903] =
-    {
-      GovId = 1841,
-    },
-
-    [1904] =
-    {
-      GovId = 1841,
-    },
-  },
-
+  --Area Servers
+  {Id = 2003, Key = "20030901", Type = "srvarea"},
+  {Id = 2004, Key = "20030901", Type = "srvarea"},
+  {Id = 2005, Key = "20030901", Type = "srvarea"},
+  {Id = 2006, Key = "20030901", Type = "srvarea"},
 }
 
 if LoliCore then

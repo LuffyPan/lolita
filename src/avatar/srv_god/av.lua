@@ -8,6 +8,7 @@ return
 {
   "conf.lua",
   "srvnet.lua",
+  "srv.lua",
   "logic.lua",
   "main.lua",
 }
