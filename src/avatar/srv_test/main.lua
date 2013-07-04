@@ -4,17 +4,29 @@
 -- 2013/04/13 01:12:40
 --
 
-LoliSrvTest = {}
+local Base = LoliSrvTest.Base
+local Login = LoliSrvTest.Login
+local Gov = LoliSrvTest.Gov
+local God = LoliSrvTest.God
+local Sa = LoliSrvTest.Sa
+local Executor = LoliSrvTest.Executor
 
 function LoliSrvTest:OnBorn()
-  self:TestInit()
-  self.Snap = LoliCore.Base:Snap({})
   print("OnBorn")
+  Base:Init()
+  Executor:Init()
+  Login:Init()
+  Gov:Init()
+  God:Init()
+  Sa:Init()
+  Executor:Execute(LoliCore.Arg:Get("target"))
 end
 
 function LoliSrvTest:OnDie()
   print("OnDie")
 end
+
+LoliCore.Avatar:Attach(LoliSrvTest)
 
 function LoliSrvTest:TestInit()
   self.TestListenEventFuncs = {Param = self, Accept = self.TestListenAccept, Package = self.TestListenPackage,
@@ -872,4 +884,3 @@ function LoliSrvTest:TestGodRequestClose()
   LoliCore.Avatar:Detach()
 end
 
-LoliCore.Avatar:Attach(LoliSrvTest)
