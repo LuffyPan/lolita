@@ -96,7 +96,14 @@ function Net:EventConnect(Id, AttachId, Extra)
   assert(0 == AttachId)
   assert(Extra)
   local State = self:_Get(Id)
-  assert(State.EventFuncs.Connect)(State.EventFuncs.Param, State.Id, Extra)
+  if State.Procs then
+    local fn = State.Procs.Connect
+    if fn then
+      fn(State.Procs.Param, State.Id, Extra)
+    end
+  else
+    assert(State.EventFuncs.Connect)(State.EventFuncs.Param, State.Id, Extra)
+  end
 end
 
 function Net:EventAccept(Id, AttachId, Extra)
@@ -104,7 +111,16 @@ function Net:EventAccept(Id, AttachId, Extra)
   assert(nil == Extra)
   local State = self:_Get(Id)
   local AttachState = self:_New(AttachId, 0, Id, {})
-  assert(State.EventFuncs.Accept)(State.EventFuncs.Param, AttachState.Id)
+  if State.Procs then
+    local fn = State.Procs.Accept
+    if fn then
+      fn(State.Procs.Param, AttachState.Id)
+    else
+      --TODO:没有注册AcceptProc，是否有必要Log一下
+    end
+  else
+    assert(State.EventFuncs.Accept)(State.EventFuncs.Param, AttachState.Id)
+  end
 end
 
 function Net:EventPackage(Id, AttachId, Extra)
@@ -112,25 +128,33 @@ function Net:EventPackage(Id, AttachId, Extra)
   local AttachState = AttachId > 0 and self:_Get(AttachId) or nil
   local Pack = assert(LoliCore.Io:Deserialize(Extra))
   if State.Procs then
+    --需要过滤一下关键字, Connect, Accept, Close, ProcParam
     local fn = State.Procs[Pack.ProcId]
     if not fn then
       --协议匹配是可以出现匹配不到的情况的，只需要纪录一下log并忽略处理则可。
       return
     end
-    fn(State.ProcParam, AttachState and AttachState.Id or State.Id)
+    fn(State.Procs.Param, AttachState and AttachState.Id or State.Id)
   else
     assert(State.EventFuncs.Package)(State.EventFuncs.Param, AttachState and AttachState.Id or State.Id, Pack)
   end
   if State.SendBack then
     --自动回包
-    self:PushPackage(AttachState and AttachState.Id or State.Id)
+    self:PushPackage(AttachState and AttachState.Id or State.Id, Pack)
   end
 end
 
 function Net:EventClose(Id, AttachId, Extra)
   local State = self:_Get(Id)
   local AttachState = AttachId > 0 and self:_Get(AttachId) or nil
-  assert(State.EventFuncs.Close)(State.EventFuncs.Param, AttachState and AttachState.Id or State.Id)
+  if State.Procs then
+    local fn = State.Procs.Close
+    if fn then
+      fn(State.Procs.Param, AttachState and AttachState.Id or State.Id)
+    end
+  else
+    assert(State.EventFuncs.Close)(State.EventFuncs.Param, AttachState and AttachState.Id or State.Id)
+  end
   self:_Delete(AttachState and AttachState.Id or State.Id)
 end
 

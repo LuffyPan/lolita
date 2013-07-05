@@ -8,17 +8,19 @@ local Executor = assert(LoliSrvTest.Executor)
 local God = assert(LoliSrvTest.God)
 
 function God:Init()
-  self:_SetProcs()
   Executor:AttachTarget("god", God)
 end
 
 function God:Execute()
-  print("God Execute")
   self:Connect()
 end
 
 function God:Connect()
-  self.Id = assert(LoliCore.Net:Connect("127.0.0.1", 7700, self:_GetEventFuncs()))
+  local ConnectParam = {}
+  ConnectParam.Procs = self:_GetProcs()
+  --ConnectParam.EventFuncs = self:_GetEventFuncs()
+  --ConnectParam.SendBack = 1
+  self.GodNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7700, ConnectParam))
 end
 
 function God:ReqSrvLogin()
@@ -32,7 +34,7 @@ function God:ReqSrvLogin()
       SaPort = 7000,
     },
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqSrvLogout()
@@ -40,7 +42,7 @@ function God:ReqSrvLogout()
   {
     ProcId = "RequestSrvLogout",
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqQuerySouler()
@@ -49,7 +51,7 @@ function God:ReqQuerySouler()
     ProcId = "RequestQuerySouler",
     SoulId = 1,
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqCreateSouler()
@@ -65,7 +67,7 @@ function God:ReqCreateSouler()
       GovId = 1,
     },
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqDestroySouler()
@@ -74,7 +76,7 @@ function God:ReqDestroySouler()
     ProcId = "RequestDestroySouler",
     SoulId = 1,
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqSelectSouler()
@@ -83,7 +85,7 @@ function God:ReqSelectSouler()
     ProcId = "RequestSelectSouler",
     SoulId = 1,
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqSetEx()
@@ -104,7 +106,7 @@ function God:ReqSetEx()
       hehe = 3,
     },
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ReqGetEx()
@@ -119,7 +121,7 @@ function God:ReqGetEx()
       hehe = 0,
     },
   }
-  LoliCore.Net:PushPackage(self.Id, Pack)
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
 function God:ResSrvLogin(Pack)
@@ -158,16 +160,18 @@ end
 function God:OnNetConnect(NetId, Result)
   if Result == 1 then
     LoliCore.Imagination:Begin(16, self.ReqSrvLogin, self)
+  else
+    print("Connect To God Is Failed!!")
   end
 end
 
-function God:OnNetPackage(NetId, Pack)
-  assert(NetId == self.Id)
-  local Proc = assert(self.Proc[Pack.ProcId])
-  Proc(self, Pack)
+function God:OnNetClose(NetId)
+  print("Steps Is Unfinished By God Closed!!")
+  LoliCore.Avatar:Detach()
 end
 
-function God:OnNetClose(NetId)
+function God:OnNetPackage(NetId, Pack)
+  print("Package Come From God")
 end
 
 function God:_GetEventFuncs()
@@ -180,9 +184,12 @@ function God:_GetEventFuncs()
   }
 end
 
-function God:_SetProcs()
-  self.Proc =
+function God:_GetProcs()
+  return
   {
+    Param = self,
+    Connect = self.OnNetConnect,
+    Close = self.OnNetClose,
     RequestSrvLogin = self.ResSrvLogin,
     RequestSrvLogout = self.ResSrvLogout,
     RequestQuerySouler = self.ResQuerySouler,
