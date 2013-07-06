@@ -11,5 +11,4 @@ echo "change working dir to $(pwd)"
 kill -s INT $(cat sa.pid)
 kill -s INT $(cat login.pid)
 kill -s INT $(cat area.pid)
-kill -s INT $(cat gov.pid)
 kill -s INT $(cat god.pid)

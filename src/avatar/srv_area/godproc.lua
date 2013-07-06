@@ -37,9 +37,6 @@ function GodProc:ResSrvLogin(NetId, Pack)
   print(string.format("Login To God, Result : %s", Pack.Result))
   if Pack.Result == 1 then
     print(string.format("SrvId[%s], Type[%s]", Pack.Basic.Id, Pack.Basic.Type))
-    for k, v in pairs(Pack.Targets) do
-      print(string.format("TargetId[%s], Type[%s], State[%s], Ip[%s], Port[%s]", k, v.Type, v.State, v.Ip, v.Port))
-    end
   end
 end
 

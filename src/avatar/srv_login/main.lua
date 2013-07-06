@@ -15,7 +15,6 @@ function LoliSrvLogin:OnBorn()
   self:LoadAccounts()
   self:InitNet()
   self:InitImagination()
-  self:InitLogic()
   self:LOGO()
 end
 
@@ -93,14 +92,6 @@ function LoliSrvLogin:SaveAccount(Account)
   return LoliCore.Io:SaveFile(self.Accounts[Account], AccountFile)
 end
 
-function LoliSrvLogin:InitLogic()
-  self.LogicFuncs =
-  {
-    ReqRegister = self.LogicRegister,
-    ReqAuth = self.LogicAuth,
-  }
-end
-
 function LoliSrvLogin:LogicRegister(Id, Pack)
   Pack.ProcId = "ResRegister"
   assert(not self.Accounts[Pack.Account], "Account Exist")
@@ -129,47 +120,13 @@ function LoliSrvLogin:LOGO()
 end
 
 function LoliSrvLogin:InitNet()
-  self.LoginNetEventFuncs =
-  {
-    Param = self,
-    Accept = self.LoginNetEventAccept,
-    Package = self.LoginNetEventPackage,
-    Close = self.LoginNetEventClose,
-  }
-  self.LoginNetAttachIds = {}
   core.base.settracelv(4)
-  self.LoginNetId = assert(LoliCore.Net:Listen("", 7000, self.LoginNetEventFuncs))
+  --取消监听7000端口,直接通过God转发
   --TODO配置表读取相关的信息
   local ConnectParam = {}
   ConnectParam.Procs = self:_GetGodProcs()
   self.GodNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7700, ConnectParam))
   core.base.settracelv(0)
-end
-
-function LoliSrvLogin:LoginNetEventAccept(Id)
-  assert(not self.LoginNetAttachIds[Id])
-  self.LoginNetAttachIds[Id] = 1
-end
-
-function LoliSrvLogin:LoginNetEventPackage(Id, Pack)
-  assert(self.LoginNetAttachIds[Id])
-  assert(self.LogicFuncs[Pack.ProcId])
-  Pack.Result = 0
-  Pack.ErrorCode = 0
-  local r, e = pcall(self.LogicFuncs[Pack.ProcId], self, Id, Pack)
-  if not r then
-    print(e)
-  end
-  LoliCore.Net:PushPackage(Id, Pack)
-end
-
-function LoliSrvLogin:LoginNetEventClose(Id)
-  if Id == self.LoginNetId then
-    LoliCore.Avatar.Detach()
-  else
-    assert(self.LoginNetAttachIds[Id])
-    self.LoginNetAttachIds[Id] = nil
-  end
 end
 
 function LoliSrvLogin:InitImagination()
@@ -204,12 +161,7 @@ function LoliSrvLogin:OnGodConnect(NetId, Result)
   {
     ProcId = "RequestSrvLogin",
     Key = "19870805",
-    Extra =
-    {
-      Ip = "127.0.0.1",
-      Port = 7000,
-    },
-    --通过配置表或者LoginNetId获取
+    Extra = {},
   }
   LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
@@ -222,9 +174,6 @@ function LoliSrvLogin:GodResSrvLogin(NetId, Pack)
   print(string.format("Login To God, Result : %s", Pack.Result))
   if Pack.Result == 1 then
     print(string.format("SrvId[%s], Type[%s]", Pack.Basic.Id, Pack.Basic.Type))
-    for k, v in pairs(Pack.Targets) do
-      print(string.format("TargetId[%s], Type[%s], State[%s], Ip[%s], Port[%s]", k, v.Type, v.State, v.Ip, v.Port))
-    end
   end
 end
 

@@ -8,9 +8,6 @@ LoliSrvSa.Logic = {}
 
 local Logic = LoliSrvSa.Logic
 local SoulerNet = LoliSrvSa.SoulerNet
-local LoginNet = LoliSrvSa.LoginNet
-local GovNet = LoliSrvSa.GovNet
-local GodNet = LoliSrvSa.GodNet
 
 local SoulerRepos = {}
 
@@ -64,9 +61,6 @@ end
 function Logic:Init()
   SoulerRepos:Init()
   SoulerNet:RegisterLogic(self:__GetSoulerLogic(), self)
-  LoginNet:RegisterLogic(self:__GetLoginLogic(), self)
-  GovNet:RegisterLogic(self:__GetGovLogic(), self)
-  GodNet:RegisterLogic(self:__GetGodLogic(), self)
 end
 
 function Logic:OnRequestAccept(NetId)
@@ -285,32 +279,4 @@ function Logic:__GetSoulerLogic()
     RequestDeparture = self.OnRequestDeparture,
   }
   return self.__SoulerLogic
-end
-
-function Logic:__GetLoginLogic()
-  self.__LoginLogic =
-  {
-    Auth = self.OnRespondAuth,
-    Register = self.OnRespondRegister,
-  }
-  return self.__LoginLogic
-end
-
-function Logic:__GetGovLogic()
-  self.__GovLogic =
-  {
-    RequestArrival = self.OnRespondArrival,
-    RequestDeparture = self.OnRespondDeparture,
-  }
-  return self.__GovLogic
-end
-
-function Logic:__GetGodLogic()
-  self.__GodLogic =
-  {
-    RequestCreateSouler = self.OnRespondCreateSouler,
-    RequestQuerySouler = self.OnRespondQuerySouler,
-    RequestSelectSouler = self.OnRespondSelectSouler,
-  }
-  return self.__GodLogic
 end

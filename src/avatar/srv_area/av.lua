@@ -7,7 +7,6 @@
 return
 {
   "godproc.lua",
-  "govnet.lua",
   "logic.lua",
   "main.lua",
 }

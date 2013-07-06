@@ -16,10 +16,7 @@ function Srv:Init()
   local Srv = U.Srv or D.Srv
   for i, v in ipairs(assert(Srv)) do
     assert(not self.SrvRepos[v.Key])
-    local x = {Id = v.Id, Key = v.Key, Type = v.Type, Targets = {}} -- Copy a table!!!
-    for _, k in ipairs(v.Targets) do
-      table.insert(x.Targets, k)
-    end
+    local x = {Id = v.Id, Key = v.Key, Type = v.Type} -- Copy a table!!!
     x.State = 0
     x.Extra = {}
     self.SrvRepos[x.Key] = x -- Index by [Key]
@@ -61,16 +58,6 @@ end
 function Srv:GetBasic(Id)
   local x = assert(self.SrvIdIdx[Id])
   return {Id = x.Id, Type = x.Type}
-end
-
-function Srv:GetTargets(Id)
-  local x = assert(self.SrvIdIdx[Id])
-  local Targets = {}
-  for _, v in pairs(x.Targets) do
-    local tx = assert(self.SrvIdIdx[v])
-    Targets[tx.Id] = {Type = tx.Type, State = tx.State, Ip = tx.Extra.Ip or "", Port = tx.Extra.Port or 0}
-  end
-  return Targets
 end
 
 function Srv:Dump()

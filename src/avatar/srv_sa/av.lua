@@ -6,10 +6,7 @@
 
 return
 {
-  "godnet.lua",
   "godproc.lua",
-  "govnet.lua",
-  "loginnet.lua",
   "soulernet.lua",
   "logic.lua",
   "main.lua",

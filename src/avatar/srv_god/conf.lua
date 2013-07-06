@@ -25,19 +25,16 @@ local God =
 God.Srv =
 {
   --Login Servers
-  {Id = 1991, Key = "19870805", Type="srvlogin", Targets = {}},
+  {Id = 1991, Key = "19870805", Type="srvlogin"},
 
   --Sa Servers
-  {Id = 2000, Key = "20000901", Type="srvsa", Targets = {1991}},
-
-  --Gov Servers
-  {Id = 2001, Key = "20010928", Type = "srvgov", Targets = {2000}},
+  {Id = 2000, Key = "20000901", Type="srvsa"},
 
   --Area Servers
-  {Id = 2003, Key = "20030901", Type = "srvarea", Targets = {2001}},
-  {Id = 2004, Key = "20030902", Type = "srvarea", Targets = {2001}},
-  {Id = 2005, Key = "20030903", Type = "srvarea", Targets = {2001}},
-  {Id = 2006, Key = "20030904", Type = "srvarea", Targets = {2001}},
+  {Id = 2003, Key = "20030901", Type = "srvarea"},
+  {Id = 2004, Key = "20030902", Type = "srvarea"},
+  {Id = 2005, Key = "20030903", Type = "srvarea"},
+  {Id = 2006, Key = "20030904", Type = "srvarea"},
 }
 
 if LoliCore then

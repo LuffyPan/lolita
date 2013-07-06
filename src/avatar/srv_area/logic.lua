@@ -7,7 +7,6 @@
 LoliSrvArea.Logic = {}
 
 local Logic = LoliSrvArea.Logic
-local GovNet = LoliSrvArea.GovNet
 
 local SoulerRepos = {}
 
@@ -38,26 +37,11 @@ function SoulerRepos:GetBySoulId(SoulId)
 end
 
 function Logic:Init()
-  GovNet:RegisterLogic(self:__GetLogic(), self)
   SoulerRepos:Init()
 end
 
 function Logic:OnRequestArrival(NetId, Pack)
-  print(string.format("Souler SoulId[%u] RequestArrival", Pack.SoulId))
-  local Souler = assert(SoulerRepos:New(Pack.SoulId))
-  Souler.Fragments = Pack.Souler
-  for k, v in pairs(Pack.Souler) do
-    print(k, v)
-  end
-  local ArrivalPack =
-  {
-    ProcId = "RequestArrival",
-    SoulId = Souler.SoulId,
-    GovId = Pack.Souler.GovId,
-    Result = 1,
-    ErrorCode = 0,
-  }
-  assert(GovNet:PushPackage(ArrivalPack))
+  print("OnRequestDeparture")
 end
 
 function Logic:OnRequestDeparture(NetId, Pack)
