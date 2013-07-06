@@ -14,6 +14,7 @@ function LoliSrvSa:OnBorn()
   self.LoginNet:Init()
   self.GovNet:Init()
   self.GodNet:Init()
+  self.GodProc:Init()
   self.Logic:Init()
   self:LOGO()
 end

@@ -14,6 +14,7 @@ function Srv:Init()
   local U = Base:GetUserConfig()
   local Srv = U.Srv or D.Srv
   for i, v in ipairs(assert(Srv)) do
+    assert(not self.SrvRepos[v.Key])
     local x = {Id = v.Id, Key = v.Key, Type = v.Type,} -- Copy a table!!!
     x.State = 0
     x.Extra = {}

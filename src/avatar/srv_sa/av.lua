@@ -7,6 +7,7 @@
 return
 {
   "godnet.lua",
+  "godproc.lua",
   "govnet.lua",
   "loginnet.lua",
   "soulernet.lua",

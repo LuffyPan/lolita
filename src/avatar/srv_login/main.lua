@@ -96,12 +96,13 @@ end
 function LoliSrvLogin:InitLogic()
   self.LogicFuncs =
   {
-    Register = self.LogicRegister,
-    Auth = self.LogicAuth,
+    ReqRegister = self.LogicRegister,
+    ReqAuth = self.LogicAuth,
   }
 end
 
 function LoliSrvLogin:LogicRegister(Id, Pack)
+  Pack.ProcId = "ResRegister"
   assert(not self.Accounts[Pack.Account], "Account Exist")
   local Account = {Account = Pack.Account, Password = Pack.Password, SoulId = self.AccountMeta.SoulId, bNew = 1,}
   self.Accounts[Account.Account] = Account
@@ -114,6 +115,7 @@ function LoliSrvLogin:LogicRegister(Id, Pack)
 end
 
 function LoliSrvLogin:LogicAuth(Id, Pack)
+  Pack.ProcId = "ResAuth"
   local Account = assert(self.Accounts[Pack.Account], "Account NOT Exist")
   assert(Account.Password == Pack.Password, "Password Is NOT Correct")
   Pack.SoulId = Account.SoulId
@@ -137,6 +139,10 @@ function LoliSrvLogin:InitNet()
   self.LoginNetAttachIds = {}
   core.base.settracelv(4)
   self.LoginNetId = assert(LoliCore.Net:Listen("", 7000, self.LoginNetEventFuncs))
+  --TODO配置表读取相关的信息
+  local ConnectParam = {}
+  ConnectParam.Procs = self:_GetGodProcs()
+  self.GodNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7700, ConnectParam))
   core.base.settracelv(0)
 end
 
@@ -187,6 +193,49 @@ function LoliSrvLogin:ImageSaveAccounts(Im)
   if not r then
     pf("Save Accounts ----- failed, %s", e)
   end
+end
+
+function LoliSrvLogin:OnGodConnect(NetId, Result)
+  if Result == 0 then
+    print("Connect To God Is Failed, Don't Request SrvLogin")
+    return
+  end
+  local Pack =
+  {
+    ProcId = "RequestSrvLogin",
+    Key = "19870805",
+    Extra =
+    {
+      LoginIp = "127.0.0.1",
+      LoginPort = 7000,
+    },
+    --通过配置表或者LoginNetId获取
+  }
+  LoliCore.Net:PushPackage(self.GodNetId, Pack)
+end
+
+function LoliSrvLogin:OnGodClose(NetId)
+  print("Connection To God Is Disconnect")
+end
+
+function LoliSrvLogin:GodResSrvLogin(NetId, Pack)
+  print(string.format("Login To God, Result : %s", Pack.Result))
+end
+
+function LoliSrvLogin:GodResSrvLogout(NetId, Pack)
+  --暂时没有触发
+  print(string.format("Logout From God, Result : %s", Pack.Result))
+end
+
+function LoliSrvLogin:_GetGodProcs()
+  return
+  {
+    Param = self,
+    Connect = self.OnGodConnect,
+    Close = self.OnGodClose,
+    RequestSrvLogin = self.GodResSrvLogin,
+    RequestSrvLogout = self.GodResSrvLogout,
+  }
 end
 
 LoliCore.Avatar:Attach(LoliSrvLogin)

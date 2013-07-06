@@ -8,6 +8,7 @@ return
 {
   "sanet.lua",
   "areanet.lua",
+  "godproc.lua",
   "godnet.lua",
   "logic.lua",
   "main.lua",

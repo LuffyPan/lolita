@@ -4,7 +4,6 @@
 -- 2013/05/18 20:30:23
 --
 
-LoliSrvArea = {}
 LoliSrvArea.GovNet = {}
 
 local GovNet = LoliSrvArea.GovNet

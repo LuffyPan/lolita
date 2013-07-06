@@ -10,6 +10,7 @@ end
 
 function LoliSrvArea:OnBorn()
   self:InitTraceLevel()
+  self.GodProc:Init()
   self.GovNet:Init()
   self.Logic:Init()
   self:LOGO()

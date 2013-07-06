@@ -134,7 +134,7 @@ function Net:EventPackage(Id, AttachId, Extra)
       --协议匹配是可以出现匹配不到的情况的，只需要纪录一下log并忽略处理则可。
       return
     end
-    fn(State.Procs.Param, AttachState and AttachState.Id or State.Id)
+    fn(State.Procs.Param, AttachState and AttachState.Id or State.Id, Pack)
   else
     assert(State.EventFuncs.Package)(State.EventFuncs.Param, AttachState and AttachState.Id or State.Id, Pack)
   end

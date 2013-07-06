@@ -124,36 +124,36 @@ function God:ReqGetEx()
   LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
-function God:ResSrvLogin(Pack)
+function God:ResSrvLogin(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqQuerySouler, self)
 end
 
-function God:ResSrvLogout(Pack)
+function God:ResSrvLogout(NetId, Pack)
   print("All Steps Is Finished!!")
   LoliCore.Avatar:Detach()
 end
 
-function God:ResQuerySouler(Pack)
+function God:ResQuerySouler(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self)
 end
 
-function God:ResCreateSouler(Pack)
+function God:ResCreateSouler(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqDestroySouler, self)
 end
 
-function God:ResDestroySouler(Pack)
+function God:ResDestroySouler(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqSelectSouler, self)
 end
 
-function God:ResSelectSouler(Pack)
+function God:ResSelectSouler(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqSetEx, self)
 end
 
-function God:ResSetEx(Pack)
+function God:ResSetEx(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqGetEx, self)
 end
 
-function God:ResGetEx(Pack)
+function God:ResGetEx(NetId, Pack)
   LoliCore.Imagination:Begin(16, self.ReqSrvLogout, self)
 end
 

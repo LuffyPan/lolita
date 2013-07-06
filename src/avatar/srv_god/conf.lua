@@ -35,9 +35,9 @@ God.Srv =
 
   --Area Servers
   {Id = 2003, Key = "20030901", Type = "srvarea"},
-  {Id = 2004, Key = "20030901", Type = "srvarea"},
-  {Id = 2005, Key = "20030901", Type = "srvarea"},
-  {Id = 2006, Key = "20030901", Type = "srvarea"},
+  {Id = 2004, Key = "20030902", Type = "srvarea"},
+  {Id = 2005, Key = "20030903", Type = "srvarea"},
+  {Id = 2006, Key = "20030904", Type = "srvarea"},
 }
 
 if LoliCore then
