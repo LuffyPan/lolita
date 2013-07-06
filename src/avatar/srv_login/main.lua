@@ -206,8 +206,8 @@ function LoliSrvLogin:OnGodConnect(NetId, Result)
     Key = "19870805",
     Extra =
     {
-      LoginIp = "127.0.0.1",
-      LoginPort = 7000,
+      Ip = "127.0.0.1",
+      Port = 7000,
     },
     --通过配置表或者LoginNetId获取
   }
@@ -220,6 +220,12 @@ end
 
 function LoliSrvLogin:GodResSrvLogin(NetId, Pack)
   print(string.format("Login To God, Result : %s", Pack.Result))
+  if Pack.Result == 1 then
+    print(string.format("SrvId[%s], Type[%s]", Pack.Basic.Id, Pack.Basic.Type))
+    for k, v in pairs(Pack.Targets) do
+      print(string.format("TargetId[%s], Type[%s], State[%s], Ip[%s], Port[%s]", k, v.Type, v.State, v.Ip, v.Port))
+    end
+  end
 end
 
 function LoliSrvLogin:GodResSrvLogout(NetId, Pack)

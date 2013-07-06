@@ -9,16 +9,21 @@ local Srv = LoliSrvGod.Srv
 
 function Srv:Init()
   self.SrvRepos = {}
+  self.SrvIdIdx = {}
   self.SrvNetIdIdx = {}
   local D = Base:GetDefaultConfig()
   local U = Base:GetUserConfig()
   local Srv = U.Srv or D.Srv
   for i, v in ipairs(assert(Srv)) do
     assert(not self.SrvRepos[v.Key])
-    local x = {Id = v.Id, Key = v.Key, Type = v.Type,} -- Copy a table!!!
+    local x = {Id = v.Id, Key = v.Key, Type = v.Type, Targets = {}} -- Copy a table!!!
+    for _, k in ipairs(v.Targets) do
+      table.insert(x.Targets, k)
+    end
     x.State = 0
     x.Extra = {}
     self.SrvRepos[x.Key] = x -- Index by [Key]
+    self.SrvIdIdx[x.Id] = x --Index by [Id]
   end
 end
 
@@ -38,7 +43,7 @@ function Srv:Login(NetId, Key, Extra)
   for k, v in pairs(Extra) do
     x.Extra[k] = v
   end
-  return 1
+  return x
 end
 
 function Srv:Logout(NetId)
@@ -51,6 +56,21 @@ function Srv:Logout(NetId)
   x.State = 0
   x.Extra = {}
   self.SrvNetIdIdx[NetId] = nil
+end
+
+function Srv:GetBasic(Id)
+  local x = assert(self.SrvIdIdx[Id])
+  return {Id = x.Id, Type = x.Type}
+end
+
+function Srv:GetTargets(Id)
+  local x = assert(self.SrvIdIdx[Id])
+  local Targets = {}
+  for _, v in pairs(x.Targets) do
+    local tx = assert(self.SrvIdIdx[v])
+    Targets[tx.Id] = {Type = tx.Type, State = tx.State, Ip = tx.Extra.Ip or "", Port = tx.Extra.Port or 0}
+  end
+  return Targets
 end
 
 function Srv:Dump()

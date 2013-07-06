@@ -160,6 +160,8 @@ function Proc:OnReqSrvLogin(NetId, Pack)
     return
   end
   Pack.Result = 1
+  Pack.Basic = Srv:GetBasic(r.Id)
+  Pack.Targets = Srv:GetTargets(r.Id)
   Srv:Dump() -- Just debug
   print("Login Succeed!!")
 end

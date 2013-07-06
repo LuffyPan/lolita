@@ -24,8 +24,8 @@ function GodProc:OnConnect(NetId, Result)
     Key = "20010928",
     Extra =
     {
-      GovIp = "127.0.0.1",
-      GovPort = 7400,
+      Ip = "127.0.0.1",
+      Port = 7400,
     },
   }
   LoliCore.Net:PushPackage(self.NetId, Pack)
@@ -37,6 +37,12 @@ end
 
 function GodProc:ResSrvLogin(NetId, Pack)
   print(string.format("Login To God, Result : %s", Pack.Result))
+  if Pack.Result == 1 then
+    print(string.format("SrvId[%s], Type[%s]", Pack.Basic.Id, Pack.Basic.Type))
+    for k, v in pairs(Pack.Targets) do
+      print(string.format("TargetId[%s], Type[%s], State[%s], Ip[%s], Port[%s]", k, v.Type, v.State, v.Ip, v.Port))
+    end
+  end
 end
 
 function GodProc:ResSrvLogout(NetId, Pack)
