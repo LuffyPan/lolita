@@ -10,4 +10,4 @@ LoliSrvTest.Executor = {}
 LoliSrvTest.Login = {}
 LoliSrvTest.Gov = {}
 LoliSrvTest.God = {}
-LoliSrvTest.Sa = {}
+LoliSrvTest.Mind = {}

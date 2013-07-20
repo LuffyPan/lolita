@@ -9,7 +9,6 @@ return
   "pre.lua",
   "conf.lua",
   "base.lua",
-  "srvnet.lua",
   "srv.lua",
   "soul.lua",
   "proc.lua",

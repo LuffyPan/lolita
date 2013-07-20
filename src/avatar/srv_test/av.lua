@@ -10,7 +10,6 @@ return
   "base.lua",
   "executor.lua",
   "login.lua",
-  "gov.lua",
   "god.lua",
   "sa.lua",
   "main.lua",

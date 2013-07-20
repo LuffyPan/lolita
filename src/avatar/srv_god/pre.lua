@@ -8,5 +8,4 @@ LoliSrvGod = {}
 LoliSrvGod.Base = {}
 LoliSrvGod.Srv = {}
 LoliSrvGod.Proc = {}
-LoliSrvGod.SrvNet = {}
 LoliSrvGod.Soul = {}

@@ -27,8 +27,8 @@ God.Srv =
   --Login Servers
   {Id = 1991, Key = "19870805", Type="srvlogin"},
 
-  --Sa Servers
-  {Id = 2000, Key = "20000901", Type="srvsa"},
+  --Mind Servers
+  {Id = 2000, Key = "20000901", Type="srvmind"},
 
   --Area Servers
   {Id = 2003, Key = "20030901", Type = "srvarea"},

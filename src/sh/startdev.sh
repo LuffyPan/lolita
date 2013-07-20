@@ -17,8 +17,8 @@ sleep 3s
 #area server will connect to god server
 ./lolicore corext=../src/corext/co.lua avatar=../src/avatar/srv_area/av.lua pid=area.pid >area.log 2>&1 &
 
-#start sa server
-#sa server will connect to god server
-./lolicore corext=../src/corext/co.lua avatar=../src/avatar/srv_sa/av.lua pid=sa.pid >sa.log 2>&1 &
+#start mind server
+#mind server will connect to god server
+./lolicore corext=../src/corext/co.lua avatar=../src/avatar/srv_mind/av.lua pid=mind.pid >mind.log 2>&1 &
 
 echo "all server is startup"

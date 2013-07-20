@@ -20,12 +20,7 @@ function GodProc:OnConnect(NetId, Result)
     print("Connect To God Is Failed, Don't Request SrvLogin")
     return
   end
-  local Pack =
-  {
-    ProcId = "RequestSrvLogin",
-    Key = "20030901",
-    Extra = {},
-  }
+  local Pack = LoliCore.Net:GenPackage("ReqSrvLogin", {Key = "20030901", Extra = {}})
   LoliCore.Net:PushPackage(self.NetId, Pack)
 end
 
@@ -50,8 +45,8 @@ function GodProc:_GetProcs()
     Param = self,
     Connect = self.OnConnect,
     Close = self.OnClose,
-    RequestSrvLogin = self.ResSrvLogin,
-    RequestSrvLogout = self.ResSrvLogout,
+    ResSrvLogin = self.ResSrvLogin,
+    ResSrvLogout = self.ResSrvLogout,
   }
 end
 

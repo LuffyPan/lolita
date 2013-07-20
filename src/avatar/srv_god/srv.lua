@@ -18,6 +18,7 @@ function Srv:Init()
     assert(not self.SrvRepos[v.Key])
     local x = {Id = v.Id, Key = v.Key, Type = v.Type} -- Copy a table!!!
     x.State = 0
+    x.NetId = 0
     x.Extra = {}
     self.SrvRepos[x.Key] = x -- Index by [Key]
     self.SrvIdIdx[x.Id] = x --Index by [Id]
@@ -34,8 +35,9 @@ function Srv:Login(NetId, Key, Extra)
   end
   assert(Key == x.Key)
   assert(x.State == 0)
-  self.SrvNetIdIdx[NetId] = Key
+  self.SrvNetIdIdx[NetId] = x
   x.State = 1
+  x.NetId = NetId
   -- 目前只复制了一层，需要一个CopyTable的函数
   for k, v in pairs(Extra) do
     x.Extra[k] = v
@@ -44,15 +46,27 @@ function Srv:Login(NetId, Key, Extra)
 end
 
 function Srv:Logout(NetId)
-  local Key = self.SrvNetIdIdx[NetId]
-  if not Key then
+  local x = self.SrvNetIdIdx[NetId]
+  if not x then
     return
   end
-  local x = assert(self.SrvRepos[Key])
   assert(x.State == 1)
   x.State = 0
+  x.NetId = 0
   x.Extra = {}
   self.SrvNetIdIdx[NetId] = nil
+end
+
+function Srv:GetByNetId(NetId)
+  return self.SrvNetIdIdx[NetId]
+end
+
+function Srv:GetByType(Type)
+  for k, v in pairs(self.SrvNetIdIdx) do
+    if v.Type == Type then
+      return v
+    end
+  end
 end
 
 function Srv:GetBasic(Id)

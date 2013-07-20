@@ -6,14 +6,17 @@
 
 local Base = LoliSrvGod.Base
 local Srv = LoliSrvGod.Srv
-local SrvNet = LoliSrvGod.SrvNet
 local Proc = LoliSrvGod.Proc
 local Soul = LoliSrvGod.Soul
 
 function Proc:Init()
   local D = Base:GetDefaultConfig()
   local U = Base:GetUserConfig()
-  SrvNet:Listen(U.Ip or D.Ip, U.Port or D.Port, self:GetProcs(), self)
+  local Ip = U.Ip or D.Ip
+  local Port = U.Port or D.Port
+  local ListenExParam = {}
+  ListenExParam.Procs = self:_GetProcs()
+  self.NetId = LoliCore.Net:ListenEx(Ip, Port, ListenExParam)
 end
 
 function Proc:OnReqQuerySouler(NetId, Pack)
@@ -152,7 +155,7 @@ function Proc:OnReqGetEx(NetId, Pack)
 end
 
 function Proc:OnReqSrvLogin(NetId, Pack)
-  print("RequestSrvLogin")
+  Pack.ProcId = "ResSrvLogin"
   local r, e, es = Srv:Login(NetId, Pack.Key, Pack.Extra)
   if not r then
     Pack.ErrorCode = e
@@ -166,7 +169,7 @@ function Proc:OnReqSrvLogin(NetId, Pack)
 end
 
 function Proc:OnReqSrvLogout(NetId, Pack)
-  print("RequestSrvLogout")
+  Pack.ProcId = "ResSrvLogout"
   Srv:Logout(NetId)
   Pack.Result = 1
   Srv:Dump()
@@ -180,23 +183,48 @@ function Proc:OnClose(NetId)
   print("Logout By Close Succeed!!")
 end
 
-function Proc:GetProcs()
+function Proc:ReqLoginTransmit(NetId, Pack)
+  local SrvMind = Srv:GetByNetId(NetId)
+  local SrvLogin = Srv:GetByType("srvlogin")
+  Pack.MindNetId = NetId
+  if SrvLogin and SrvLogin.State == 1 then
+    assert(LoliCore.Net:PushPackage(SrvLogin.NetId, Pack))
+  else
+    print("Login Server Is Not Connected!")
+  end
+end
+
+function Proc:ResLoginTransmit(NetId, Pack)
+  print(string.format("ResLoginTransmit, ProcId[%s]", Pack.ProcId))
+  local SrvMind = Srv:GetByNetId(Pack.MindNetId)
+  if SrvMind and SrvMind.State == 1 then
+    assert(LoliCore.Net:PushPackage(SrvMind.NetId, Pack))
+  else
+    print("Mind Server [%s] Is Not Connected!", Pack.MindNetId)
+  end
+end
+
+function Proc:_GetProcs()
   local Proc =
   {
-    RequestQuerySouler = self.OnReqQuerySouler,
-    RequestCreateSouler = self.OnReqCreateSouler,
-    RequestSelectSouler = self.OnReqSelectSouler,
-    RequestDestroySouler = self.OnReqDestroySouler,
-    RequestGetSouler = self.OnReqGetSouler,
-    RequestClose = self.OnReqClose,
+    --Login
+    ReqRegister = self.ReqLoginTransmit,
+    ReqAuth = self.ReqLoginTransmit,
+    ResRegister = self.ResLoginTransmit,
+    ResAuth = self.ResLoginTransmit,
 
-    RequestSetEx = self.OnReqSetEx,
-    RequestGetEx = self.OnReqGetEx,
+    ReqQuerySouler = self.OnReqQuerySouler,
+    ReqCreateSouler = self.OnReqCreateSouler,
+    ReqSelectSouler = self.OnReqSelectSouler,
+    ReqDestroySouler = self.OnReqDestroySouler,
+    ReqGetSouler = self.OnReqGetSouler,
+    ReqSetEx = self.OnReqSetEx,
+    ReqGetEx = self.OnReqGetEx,
 
     --其他服务器都得连接到God,通过Key进行身份的匹配验证，汇报相关基本信息
     --God根据不同的服务器类型返回可能不同的数据
-    RequestSrvLogin = self.OnReqSrvLogin,
-    RequestSrvLogout = self.OnReqSrvLogout,
+    ReqSrvLogin = self.OnReqSrvLogin,
+    ReqSrvLogout = self.OnReqSrvLogout,
     Close = self.OnClose,
   }
   return Proc

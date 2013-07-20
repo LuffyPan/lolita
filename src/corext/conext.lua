@@ -61,6 +61,16 @@ function Net:PushPackage(Id, Pack)
   end
 end
 
+function Net:GenPackage(ProcId, Fields)
+  local Pack = {ProcId = ProcId}
+  if Fields then
+    for k, v in pairs(Fields) do
+      Pack[k] = v
+    end
+  end
+  return Pack
+end
+
 function Net:GetInfo(Id)
   local State = self:_Get(Id)
   if State.Attached2Id > 0 then
@@ -99,7 +109,10 @@ function Net:EventConnect(Id, AttachId, Extra)
   if State.Procs then
     local fn = State.Procs.Connect
     if fn then
-      fn(State.Procs.Param, State.Id, Extra)
+      local r, e = pcall(fn, State.Procs.Param, State.Id, Extra)
+      if not r then
+        print(e)
+      end
     end
   else
     assert(State.EventFuncs.Connect)(State.EventFuncs.Param, State.Id, Extra)
@@ -114,7 +127,10 @@ function Net:EventAccept(Id, AttachId, Extra)
   if State.Procs then
     local fn = State.Procs.Accept
     if fn then
-      fn(State.Procs.Param, AttachState.Id)
+      local r, e = pcall(fn, State.Procs.Param, AttachState.Id)
+      if not r then
+        print(e)
+      end
     else
       --TODO:没有注册AcceptProc，是否有必要Log一下
     end
@@ -126,36 +142,45 @@ end
 function Net:EventPackage(Id, AttachId, Extra)
   local State = self:_Get(Id)
   local AttachState = AttachId > 0 and self:_Get(AttachId) or nil
+  local TargetState = AttachState and AttachState or State
   local Pack = assert(LoliCore.Io:Deserialize(Extra))
   if State.Procs then
     --需要过滤一下关键字, Connect, Accept, Close, ProcParam
     local fn = State.Procs[Pack.ProcId]
     if not fn then
       --协议匹配是可以出现匹配不到的情况的，只需要纪录一下log并忽略处理则可。
+      print(string.format("NetId[%s]'s ProcId[%s] Is Not Register!", TargetState.Id, Pack.ProcId))
       return
     end
-    fn(State.Procs.Param, AttachState and AttachState.Id or State.Id, Pack)
+    local r, e = pcall(fn, State.Procs.Param, TargetState.Id, Pack)
+    if not r then
+      print(e)
+    end
   else
-    assert(State.EventFuncs.Package)(State.EventFuncs.Param, AttachState and AttachState.Id or State.Id, Pack)
+    assert(State.EventFuncs.Package)(State.EventFuncs.Param, TargetState.Id, Pack)
   end
   if State.SendBack then
     --自动回包
-    self:PushPackage(AttachState and AttachState.Id or State.Id, Pack)
+    self:PushPackage(TargetState.Id, Pack)
   end
 end
 
 function Net:EventClose(Id, AttachId, Extra)
   local State = self:_Get(Id)
   local AttachState = AttachId > 0 and self:_Get(AttachId) or nil
+  local TargetState = AttachState and AttachState or State
   if State.Procs then
     local fn = State.Procs.Close
     if fn then
-      fn(State.Procs.Param, AttachState and AttachState.Id or State.Id)
+      local r, e = pcall(fn, State.Procs.Param, TargetState.Id)
+      if not r then
+        print(e)
+      end
     end
   else
-    assert(State.EventFuncs.Close)(State.EventFuncs.Param, AttachState and AttachState.Id or State.Id)
+    assert(State.EventFuncs.Close)(State.EventFuncs.Param, TargetState.Id)
   end
-  self:_Delete(AttachState and AttachState.Id or State.Id)
+  self:_Delete(TargetState.Id)
 end
 
 function Net:_New(Id, IsConnector, Attached2Id, Param)

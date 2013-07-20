@@ -140,7 +140,7 @@ end
 
 local _embeserveropt =
 {
-  god = 1, sa = 1, login = 1, area = 1,
+  god = 1, mind = 1, login = 1, area = 1,
 }
 local function _embeserver(t)
   if not _embeserveropt[t] then return end
@@ -385,7 +385,7 @@ newoption
     { "none", "don't embe script, use external" },
     { "core", "only embe core script" },
     { "god", "embe core and god" },
-    { "sa", "embe core and sa" },
+    { "mind", "embe core and mind" },
     { "login", "embe core and login" },
     { "area", "embe core and area" },
   }

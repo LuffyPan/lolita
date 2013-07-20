@@ -5,12 +5,12 @@
 --
 
 local Executor = assert(LoliSrvTest.Executor)
-local Sa = assert(LoliSrvTest.Sa)
+local Mind = assert(LoliSrvTest.Mind)
 
-function Sa:Init()
-  Executor:AttachTarget("sa", Sa)
+function Mind:Init()
+  Executor:AttachTarget("mind", Mind)
 end
 
-function Sa:Execute()
-  print("Sa Execute")
+function Mind:Execute()
+  print("Mind Execute")
 end

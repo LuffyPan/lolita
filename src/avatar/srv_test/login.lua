@@ -12,9 +12,9 @@ function Login:Init()
 end
 
 function Login:Execute()
-  local ConnectParam = {}
-  ConnectParam.Procs = self:_GetProcs()
-  self.LoginNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7000, ConnectParam))
+  local ConnectExParam = {}
+  ConnectExParam.Procs = self:_GetProcs()
+  self.SaNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7000, ConnectExParam))
 end
 
 function Login:OnConnect(NetId, Result)
@@ -22,38 +22,29 @@ function Login:OnConnect(NetId, Result)
 end
 
 function Login:OnClose(NetId)
-  print("Finished By Login Server Closed")
+  print("Finished By Sa Server Closed")
   LoliCore.Avatar:Detach()
 end
 
 function Login:ResRegister(NetId, Pack)
+  print("ResRegister", Pack.Result)
   LoliCore.Imagination:Begin(16, self.ReqAuth, self)
 end
 
 function Login:ResAuth(NetId, Pack)
+  print("ResAuth", Pack.Result)
   print("Finished!!")
   LoliCore.Avatar:Detach()
 end
 
 function Login:ReqRegister()
-  local Pack =
-  {
-    ProcId = "ReqRegister",
-    Account = "LoliAccount",
-    Password = "LoliPassword",
-    Age = 19,
-  }
-  LoliCore.Net:PushPackage(self.LoginNetId, Pack)
+  local Pack = LoliCore.Net:GenPackage("ReqRegister", {Account = "LoliAccount", Password = "LoliPassword", Age = 19})
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
 function Login:ReqAuth()
-  local Pack =
-  {
-    ProcId = "ReqAuth",
-    Account = "LoliAccount",
-    Password = "LoliPassword",
-  }
-  LoliCore.Net:PushPackage(self.LoginNetId, Pack)
+  local Pack = LoliCore.Net:GenPackage("ReqAuth", {Account = "LoliAccount", Password = "LoliPassword"})
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
 function Login:_GetProcs()

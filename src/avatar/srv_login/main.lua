@@ -94,23 +94,43 @@ end
 
 function LoliSrvLogin:LogicRegister(Id, Pack)
   Pack.ProcId = "ResRegister"
-  assert(not self.Accounts[Pack.Account], "Account Exist")
+  Pack.Result = 0
+  if self.Accounts[Pack.Account] then
+    print(string.format("Account[%s] Is Exist", Pack.Account))
+    Pack.ErrorCode = 0
+    assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
+    return
+  end
   local Account = {Account = Pack.Account, Password = Pack.Password, SoulId = self.AccountMeta.SoulId, bNew = 1,}
   self.Accounts[Account.Account] = Account
   self.AccountMeta.Accounts[Pack.Account] = 1
   self.AccountMeta.AccountCount = self.AccountMeta.AccountCount + 1
   self.AccountMeta.SoulId = self.AccountMeta.SoulId + 1
   self.AccountMeta.bDirty = 1
-  Pack.SoulId = Account.SoulId
+  Pack.PersonId = Account.SoulId
   Pack.Result = 1
+  assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
 end
 
 function LoliSrvLogin:LogicAuth(Id, Pack)
   Pack.ProcId = "ResAuth"
-  local Account = assert(self.Accounts[Pack.Account], "Account NOT Exist")
-  assert(Account.Password == Pack.Password, "Password Is NOT Correct")
-  Pack.SoulId = Account.SoulId
+  Pack.Result = 0
+  local Account = self.Accounts[Pack.Account]
+  if not Account then
+    print(string.format("Account[%s] Is Not Exist", Pack.Account))
+    Pack.ErrorCode = 0
+    assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
+    return
+  end
+  if Account.Password ~= Pack.Password then
+    print(string.format("Account[%s]'s Password[%s] Is Not Correct", Pack.Account, Pack.Password))
+    Pack.ErrorCode = 1
+    assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
+    return
+  end
+  Pack.PersonId = Account.SoulId
   Pack.Result = 1
+  assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
 end
 
 function LoliSrvLogin:LOGO()
@@ -157,12 +177,7 @@ function LoliSrvLogin:OnGodConnect(NetId, Result)
     print("Connect To God Is Failed, Don't Request SrvLogin")
     return
   end
-  local Pack =
-  {
-    ProcId = "RequestSrvLogin",
-    Key = "19870805",
-    Extra = {},
-  }
+  local Pack = LoliCore.Net:GenPackage("ReqSrvLogin", {Key = "19870805", Extra = {}})
   LoliCore.Net:PushPackage(self.GodNetId, Pack)
 end
 
@@ -182,14 +197,18 @@ function LoliSrvLogin:GodResSrvLogout(NetId, Pack)
   print(string.format("Logout From God, Result : %s", Pack.Result))
 end
 
+--在这里细分到每个协议是否需要自动回包
 function LoliSrvLogin:_GetGodProcs()
   return
   {
     Param = self,
     Connect = self.OnGodConnect,
     Close = self.OnGodClose,
-    RequestSrvLogin = self.GodResSrvLogin,
-    RequestSrvLogout = self.GodResSrvLogout,
+    ResSrvLogin = self.GodResSrvLogin,
+    ResSrvLogout = self.GodResSrvLogout,
+
+    ReqRegister = self.LogicRegister,
+    ReqAuth = self.LogicAuth,
   }
 end
 

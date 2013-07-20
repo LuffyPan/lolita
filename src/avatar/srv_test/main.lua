@@ -7,7 +7,7 @@
 local Base = LoliSrvTest.Base
 local Login = LoliSrvTest.Login
 local God = LoliSrvTest.God
-local Sa = LoliSrvTest.Sa
+local Mind = LoliSrvTest.Mind
 local Executor = LoliSrvTest.Executor
 
 function LoliSrvTest:OnBorn()
@@ -16,7 +16,7 @@ function LoliSrvTest:OnBorn()
   Executor:Init()
   Login:Init()
   God:Init()
-  Sa:Init()
+  Mind:Init()
   Executor:Execute(LoliCore.Arg:Get("target"))
 end
 

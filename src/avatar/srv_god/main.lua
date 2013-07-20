@@ -6,7 +6,6 @@
 
 local Base = LoliSrvGod.Base
 local Srv = LoliSrvGod.Srv
-local SrvNet = LoliSrvGod.SrvNet
 local Proc = LoliSrvGod.Proc
 local Soul = LoliSrvGod.Soul
 
@@ -14,7 +13,6 @@ function LoliSrvGod:OnBorn()
   print("OnBorn")
   Base:Init()
   Srv:Init()
-  SrvNet:Init()
   Soul:Init()
   Proc:Init()
   Srv:Dump()
