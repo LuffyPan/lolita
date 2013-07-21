@@ -60,6 +60,22 @@ function GodProc:ResAuth(NetId, Pack, Person)
   assert(PersonProc:PushPackage(Person.NetId, Pack))
 end
 
+function GodProc:ResQuerySouler(NetId, Pack, Person)
+  assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
+function GodProc:ResCreateSouler(NetId, Pack, Person)
+  assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
+function GodProc:ResDestroySouler(NetId, Pack, Person)
+  assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
+function GodProc:ResSelectSouler(NetId, Pack, Person)
+  assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
 function GodProc:PreProc(NetId, Pack)
   local Person = PersonRepos:GetByNetId(Pack.PersonNetId)
   if not Person then
@@ -83,5 +99,10 @@ function GodProc:_GetProcs()
     --Login
     ResRegister = self.ResRegister,
     ResAuth = self.ResAuth,
+    --God
+    ResQuerySouler = self.ResQuerySouler,
+    ResCreateSouler = self.ResCreateSouler,
+    ResDestroySouler = self.ResDestroySouler,
+    ResSelectSouler = self.ResSelectSouler,
   }
 end

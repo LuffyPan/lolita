@@ -11,6 +11,7 @@ return
   "base.lua",
   "srv.lua",
   "soul.lua",
+  "personrepos.lua",
   "proc.lua",
   "main.lua", -- This must be the last!!
 }

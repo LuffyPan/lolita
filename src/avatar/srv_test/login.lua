@@ -28,19 +28,30 @@ function Login:OnClose(NetId)
 end
 
 function Login:ResRegister(NetId, Pack)
-  print("ResRegister", Pack.Result)
   LoliCore.Imagination:Begin(16, self.ReqAuth, self)
 end
 
 function Login:ResAuth(NetId, Pack)
-  print("ResAuth", Pack.Result)
   self.AuthCount = self.AuthCount + 1
   if self.AuthCount >= 2 then
-    print("Finished!!")
-    LoliCore.Avatar:Detach()
+    --print("Finished!!")
+    --LoliCore.Avatar:Detach()
+    LoliCore.Imagination:Begin(16, self.ReqSouler, self)
     return
   end
   LoliCore.Imagination:Begin(16, self.ReqAuth, self)
+end
+
+function Login:ResQuerySouler(NetId, Pack)
+end
+
+function Login:ResCreateSouler(NetId, Pack)
+end
+
+function Login:ResDestroySouler(NetId, Pack)
+end
+
+function Login:ResSelectSouler(NetId, Pack)
 end
 
 function Login:ReqRegister()
@@ -53,13 +64,40 @@ function Login:ReqAuth()
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
+function Login:ReqSouler()
+  local Pack = LoliCore.Net:GenPackage("ReqQuerySouler", {})
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+
+  Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
+  Pack.SoulerInfo = {}
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+
+  Pack = LoliCore.Net:GenPackage("ReqDestroySouler", {})
+  Pack.SoulerId = 110
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+
+  Pack = LoliCore.Net:GenPackage("ReqSelectSouler", {})
+  Pack.SoulerId = 110
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
+
+function Login:PreProc(NetId, Pack)
+  print(string.format("Net[%s], %s, Result[%s]", NetId, Pack.ProcId, Pack.Result))
+  return 1
+end
+
 function Login:_GetProcs()
   return
   {
     Param = self,
+    Pre = self.PreProc,
     Connect = self.OnConnect,
     Close = self.OnClose,
     ResRegister = self.ResRegister,
     ResAuth = self.ResAuth,
+    ResQuerySouler = self.ResQuerySouler,
+    ResCreateSouler = self.ResCreateSouler,
+    ResDestroySouler = self.ResDestroySouler,
+    ResSelectSouler = self.ResSelectSouler,
   }
 end

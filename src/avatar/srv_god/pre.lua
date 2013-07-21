@@ -9,3 +9,4 @@ LoliSrvGod.Base = {}
 LoliSrvGod.Srv = {}
 LoliSrvGod.Proc = {}
 LoliSrvGod.Soul = {}
+LoliSrvGod.PersonRepos = {}

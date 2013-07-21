@@ -34,38 +34,20 @@ function PersonProc:OnClose(NetId)
   print(string.format("Person[%s,%s,%s], Disconnected!", Person.NetId, Person.Id, Person.SoulerId))
 end
 
-function PersonProc:ReqRegister(NetId, Pack, Person)
+function PersonProc:ReqGodTransmitWithNetId(NetId, Pack, Person)
   Pack.PersonNetId = Person.NetId
   assert(GodProc:PushPackage(Pack))
 end
 
-function PersonProc:ReqAuth(NetId, Pack, Person)
+function PersonProc:ReqGodTransmitWithId(NetId, Pack, Person)
   Pack.PersonNetId = Person.NetId
+  Pack.PersonId = Person.Id
   assert(GodProc:PushPackage(Pack))
 end
 
-function PersonProc:ReqQuerySouler(NetId, Pack, Person)
-  print("Person Request QuerySouler")
-end
-
-function PersonProc:ReqCreateSouler(NetId, Pack, Person)
-  print("Person Request CreateSouler")
-end
-
-function PersonProc:ReqDestroySouler(NetId, Pack, Person)
-  print("Person Request DestroySouler")
-end
-
-function PersonProc:ReqSelectSouler(NetId, Pack, Person)
-  print("Person Request SelectSouler")
-end
-
-function PersonProc:ReqArrival(NetId, Pack, Person)
-  print("Person Request Arrival")
-end
-
-function PersonProc:ReqDeparture(NetId, Pack, Person)
-  print("Person Request Departure")
+function PersonProc:ReqGodTransmitWithSoulerId(NetId, Pack, Person)
+  Pack.PersonSoulerId = Person.SoulerId
+  assert(GodProc:PushPackage(Pack))
 end
 
 function PersonProc:PreProc(NetId, Pack)
@@ -82,15 +64,15 @@ function PersonProc:_GetProcs()
     Accept = self.OnAccept,
     Close = self.OnClose,
     --Login
-    ReqRegister = self.ReqRegister,
-    ReqAuth = self.ReqAuth,
+    ReqRegister = self.ReqGodTransmitWithNetId,
+    ReqAuth = self.ReqGodTransmitWithNetId,
     --God
-    ReqQuerySouler = self.ReqQuerySouler,
-    ReqCreateSouler = self.ReqCreateSouler,
-    ReqDestroySouler = self.ReqDestroySouler,
-    ReqSelectSouler = self.ReqSelectSouler,
+    ReqQuerySouler = self.ReqGodTransmitWithId,
+    ReqCreateSouler = self.ReqGodTransmitWithId,
+    ReqDestroySouler = self.ReqGodTransmitWithId,
+    ReqSelectSouler = self.ReqGodTransmitWithId,
     --Area
-    ReqArrival = self.ReqArrival,
-    ReqDeparture = self.ReqDeparture,
+    ReqArrival = self.ReqGodTransmitWithSoulerId,
+    ReqDeparture = self.ReqGodTransmitWithSoulerId,
   }
 end

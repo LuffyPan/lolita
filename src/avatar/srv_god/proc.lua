@@ -8,6 +8,7 @@ local Base = LoliSrvGod.Base
 local Srv = LoliSrvGod.Srv
 local Proc = LoliSrvGod.Proc
 local Soul = LoliSrvGod.Soul
+local PersonRepos = LoliSrvGod.PersonRepos
 
 function Proc:Init()
   local D = Base:GetDefaultConfig()
@@ -19,60 +20,43 @@ function Proc:Init()
   self.NetId = LoliCore.Net:ListenEx(Ip, Port, ListenExParam)
 end
 
-function Proc:OnReqQuerySouler(NetId, Pack)
-  print("OnRequestQuerySouler")
-  local Souler = assert(Soul:Load(Pack.SoulId)) --Step 1
+function Proc:ReqQuerySouler(NetId, Pack)
+  print("RequestQuerySouler")
+  Pack.ProcId = "ResQuerySouler"
+  local SoulerList = PersonRepos:GetSoulerList(Pack.PersonId)
   Pack.Result = 1
-  Pack.Souler = Souler.Fragments
+  Pack.SoulerList = SoulerList
+  assert(LoliCore.Net:PushPackage(NetId, Pack))
 end
 
-function Proc:OnReqCreateSouler(NetId, Pack)
-  print("OnRequestCreateSouler")
-  local Souler = assert(Soul:Load(Pack.SoulId))
-  if Souler.Fragments then
-    Pack.Result = 0
-    Pack.ErrorCode = 1
-    print(string.format("Souler[%u]'s Fragments Already Created", Pack.SoulId))
-    return
-  end
-  --Step 2. CHeck Name.
-  --Step 3. Create.
-  local SoulInfo = Pack.SoulInfo
-  local Fragments =
-  {
-    SoulId= Pack.SoulId,
-    Name = SoulInfo.Name,
-    Sex = SoulInfo.Sex,
-    Job = SoulInfo.Job,
-    GovId = SoulInfo.GovId,
-    SoulLv = 1,
-    Soul = 0,
-    MaxSoul = 1000,
-  }
-  Souler.Fragments = Fragments
-  --Step 4. Save, Should use timer to save, and log failed
-  assert(Soul:Save(Souler.SoulId))
-  Pack.Result = 1
+function Proc:ReqCreateSouler(NetId, Pack)
+  print("RequestCreateSouler")
+  Pack.ProcId = "ResCreateSouler"
+  local SoulerId, e = PersonRepos:CreateSouler(Pack.PersonId, Pack.SoulerInfo)
+  Pack.SoulerId = SoulerId
+  Pack.Result = SoulerId and 1 or 0
+  Pack.ErrorCode = e
+  assert(LoliCore.Net:PushPackage(NetId, Pack))
 end
 
-function Proc:OnReqSelectSouler(NetId, Pack)
-  print("OnRequestSelectSouler")
-  local Souler = assert(Soul:Load(Pack.SoulId))
-  if not Souler.Fragments then
-    Pack.Result = 0
-    Pack.ErrorCode = 1
-    print(string.format("Souler[%u]'s Fragments Has Not Create", Souler.SoulId))
-    return
-  end
-  if Souler.Moments.Selected == 1 then
-    Pack.Result = 0
-    Pack.ErrorCode = 2
-    print(string.format("Souler[%u] Already Selected", Souler.SoulId))
-    return
-  end
-  Souler.Moments.Selected = 1
-  Pack.GovId = Souler.Fragments.GovId
-  Pack.Result = 1
+function Proc:ReqDestroySouler(NetId, Pack)
+  print("RequestDestroySouler")
+  Pack.ProcId = "ResDestroySouler"
+  local SoulerId, e = PersonRepos:DestroySouler(Pack.PersonId, Pack.SoulerId)
+  Pack.SoulerId = SoulerId
+  Pack.Result = SoulerId and 1 or 0
+  Pack.ErrorCode = e
+  assert(LoliCore.Net:PushPackage(NetId, Pack))
+end
+
+function Proc:ReqSelectSouler(NetId, Pack)
+  print("RequestSelectSouler")
+  Pack.ProcId = "ResSelectSouler"
+  local SoulerId, e = PersonRepos:SelectSouler(Pack.PersonId, Pack.SoulerId)
+  Pack.SoulerId = SoulerId
+  Pack.Result = SoulerId and 1 or 0
+  Pack.ErrorCode = e
+  assert(LoliCore.Net:PushPackage(NetId, Pack))
 end
 
 function Proc:OnReqGetSouler(NetId, Pack)
@@ -99,10 +83,6 @@ function Proc:OnReqGetSouler(NetId, Pack)
   Pack.Souler = Souler.Fragments
   Pack.Result = 1
   print("RequestGetSouler Succeed")
-end
-
-function Proc:OnReqDestroySouler(NetId, Pack)
-  print("OnRequestDestroySouler")
 end
 
 function Proc:OnReqClose(NetId)
@@ -213,10 +193,10 @@ function Proc:_GetProcs()
     ResRegister = self.ResLoginTransmit,
     ResAuth = self.ResLoginTransmit,
 
-    ReqQuerySouler = self.OnReqQuerySouler,
-    ReqCreateSouler = self.OnReqCreateSouler,
-    ReqSelectSouler = self.OnReqSelectSouler,
-    ReqDestroySouler = self.OnReqDestroySouler,
+    ReqQuerySouler = self.ReqQuerySouler,
+    ReqCreateSouler = self.ReqCreateSouler,
+    ReqSelectSouler = self.ReqSelectSouler,
+    ReqDestroySouler = self.ReqDestroySouler,
     ReqGetSouler = self.OnReqGetSouler,
     ReqSetEx = self.OnReqSetEx,
     ReqGetEx = self.OnReqGetEx,
