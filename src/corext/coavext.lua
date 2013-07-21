@@ -70,7 +70,8 @@ function Avatar:ImageClose(Im)
 end
 
 function Avatar:ImageMem(Im)
-  print(string.format("Mem:%d/%d", LoliCore.Base.GetMem()))
+  --暂时屏蔽了
+  --print(string.format("Mem:%d/%d", LoliCore.Base.GetMem()))
   LoliCore.Imagination:Begin(16 * 60, self.ImageMem, self)
 end
 

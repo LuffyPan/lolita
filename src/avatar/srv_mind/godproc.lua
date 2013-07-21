@@ -41,23 +41,13 @@ end
 function GodProc:ResSrvLogout(NetId, Pack)
 end
 
-function GodProc:ResRegister(NetId, Pack)
-  print(string.format("Person NetId[%s] Register Result[%s], ErrorCode[%s]", Pack.PersonNetId, Pack.Result, Pack.ErrorCode))
-  local Person = PersonRepos:GetByNetId(Pack.PersonNetId)
-  if not Person then
-    --Person Already Disconnect
-    return
-  end
+function GodProc:ResRegister(NetId, Pack, Person)
   assert(PersonProc:PushPackage(Person.NetId, Pack))
 end
 
-function GodProc:ResAuth(NetId, Pack)
-  print(string.format("Person NetId[%s] Auth Result[%s], ErrorCode[%s]", Pack.PersonNetId, Pack.Result, Pack.ErrorCode))
-  local Person = PersonRepos:GetByNetId(Pack.PersonNetId)
-  if not Person then
-    return
-  end
+function GodProc:ResAuth(NetId, Pack, Person)
   if Person.Id > 0 then
+    print("Auth Failed, Already Authed!")
     Pack.Result = 0
     Pack.ErrorCode = 0 --Person Already Authed!
     assert(PersonProc:PushPackage(Person.NetId, Pack))
@@ -65,15 +55,27 @@ function GodProc:ResAuth(NetId, Pack)
   end
   if Pack.Result == 1 then
     Person.Id = assert(Pack.PersonId)
+    print(string.format("Auth Succeed With Id[%s]!", Person.Id))
   end
-  print(string.format("Person NId[%d], PId[%d], SId[%d]", Person.NetId, Person.Id, Person.SoulerId))
   assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
+function GodProc:PreProc(NetId, Pack)
+  local Person = PersonRepos:GetByNetId(Pack.PersonNetId)
+  if not Person then
+    --可以通过返回值告诉地层，不进行后续调用
+    print(string.format("Net[%s], Attached Person Already Disconnected Before This Time!", Pack.PersonNetId))
+    return
+  end
+  print(string.format("Person[%s,%s,%s], %s, RAE[%s,%s]", Person.NetId, Person.Id, Person.SoulerId, Pack.ProcId, Pack.Result, Pack.ErrorCode))
+  return Person
 end
 
 function GodProc:_GetProcs()
   return
   {
     Param = self,
+    Pre = self.PreProc,
     Connect = self.OnConnect,
     Close = self.OnClose,
     ResSrvLogin = self.ResSrvLogin,

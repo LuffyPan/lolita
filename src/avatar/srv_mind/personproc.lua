@@ -25,65 +25,60 @@ function PersonProc:PushPackage(NetId, Pack)
 end
 
 function PersonProc:OnAccept(NetId)
-  print("Person Connected", NetId)
   local Person = assert(PersonRepos:New(NetId))
-  print(string.format("Person NetId[%u], Id[%s], SoulerId[%s]", Person.NetId, Person.Id, Person.SoulerId))
+  print(string.format("Person[%s,%s,%s], Connected!", Person.NetId, Person.Id, Person.SoulerId))
 end
 
 function PersonProc:OnClose(NetId)
-  print("Person DisConnected", NetId)
   local Person = assert(PersonRepos:Delete(NetId))
-  print(string.format("Person NetId[%u], Id[%s], SoulerId[%s]", Person.NetId, Person.Id, Person.SoulerId))
+  print(string.format("Person[%s,%s,%s], Disconnected!", Person.NetId, Person.Id, Person.SoulerId))
 end
 
-function PersonProc:ReqRegister(NetId, Pack)
-  local Person = assert(PersonRepos:GetByNetId(NetId))
-  print(string.format("Person NetId[%u], Id[%s], SoulerId[%s] Request Register", Person.NetId, Person.Id, Person.SoulerId))
+function PersonProc:ReqRegister(NetId, Pack, Person)
   Pack.PersonNetId = Person.NetId
   assert(GodProc:PushPackage(Pack))
 end
 
-function PersonProc:ReqAuth(NetId, Pack)
-  local Person = assert(PersonRepos:GetByNetId(NetId))
-  print(string.format("Person NetId[%u], Id[%s], SoulerId[%s] Request Auth", Person.NetId, Person.Id, Person.SoulerId))
-  if Person.Id > 0 then
-    Pack.Result = 0
-    Pack.ErrorCode = 1
-    assert(LoliCore.Net:PushPackage(Person.NetId, Pack))
-    return
-  end
+function PersonProc:ReqAuth(NetId, Pack, Person)
   Pack.PersonNetId = Person.NetId
   assert(GodProc:PushPackage(Pack))
 end
 
-function PersonProc:ReqQuerySouler(NetId, Pack)
+function PersonProc:ReqQuerySouler(NetId, Pack, Person)
   print("Person Request QuerySouler")
 end
 
-function PersonProc:ReqCreateSouler(NetId, Pack)
+function PersonProc:ReqCreateSouler(NetId, Pack, Person)
   print("Person Request CreateSouler")
 end
 
-function PersonProc:ReqDestroySouler(NetId, Pack)
+function PersonProc:ReqDestroySouler(NetId, Pack, Person)
   print("Person Request DestroySouler")
 end
 
-function PersonProc:ReqSelectSouler(NetId, Pack)
+function PersonProc:ReqSelectSouler(NetId, Pack, Person)
   print("Person Request SelectSouler")
 end
 
-function PersonProc:ReqArrival(NetId, Pack)
+function PersonProc:ReqArrival(NetId, Pack, Person)
   print("Person Request Arrival")
 end
 
-function PersonProc:ReqDeparture(NetId, Pack)
+function PersonProc:ReqDeparture(NetId, Pack, Person)
   print("Person Request Departure")
+end
+
+function PersonProc:PreProc(NetId, Pack)
+  local Person = assert(PersonRepos:GetByNetId(NetId))
+  print(string.format("Person[%s,%s,%s], %s", Person.NetId, Person.Id, Person.SoulerId, Pack.ProcId))
+  return Person
 end
 
 function PersonProc:_GetProcs()
   return
   {
     Param = self,
+    Pre = self.PreProc,
     Accept = self.OnAccept,
     Close = self.OnClose,
     --Login

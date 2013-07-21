@@ -94,7 +94,7 @@ function Net:Active()
 end
 
 function Net:Event(EventType, Id, AttachId, Extra)
-  print(string.format("Net Event[%d], Id[%d], AttachId[%d]", EventType, Id, AttachId))
+  --print(string.format("Net Event[%d], Id[%d], AttachId[%d]", EventType, Id, AttachId))
   local fn = assert(self.EventFunc[EventType])
   local r, e = pcall(fn, self, Id, AttachId, Extra)
   if not r then
@@ -147,14 +147,28 @@ function Net:EventPackage(Id, AttachId, Extra)
   if State.Procs then
     --需要过滤一下关键字, Connect, Accept, Close, ProcParam
     local fn = State.Procs[Pack.ProcId]
+    local Prefn = State.Procs.Pre
     if not fn then
       --协议匹配是可以出现匹配不到的情况的，只需要纪录一下log并忽略处理则可。
       print(string.format("NetId[%s]'s ProcId[%s] Is Not Register!", TargetState.Id, Pack.ProcId))
       return
     end
-    local r, e = pcall(fn, State.Procs.Param, TargetState.Id, Pack)
-    if not r then
-      print(e)
+
+    local pr, pe, parg
+    if Prefn then
+      pr, pe = pcall(Prefn, State.Procs.Param, TargetState.Id, Pack)
+      if pr then
+        parg = pe
+      else
+        print(pe)
+      end
+    end
+
+    if (Prefn and parg) or (not Prefn) then
+      local r, e = pcall(fn, State.Procs.Param, TargetState.Id, Pack, parg)
+      if not r then
+        print(e)
+      end
     end
   else
     assert(State.EventFuncs.Package)(State.EventFuncs.Param, TargetState.Id, Pack)

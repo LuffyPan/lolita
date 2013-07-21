@@ -15,6 +15,7 @@ function Login:Execute()
   local ConnectExParam = {}
   ConnectExParam.Procs = self:_GetProcs()
   self.SaNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7000, ConnectExParam))
+  self.AuthCount = 0
 end
 
 function Login:OnConnect(NetId, Result)
@@ -33,8 +34,13 @@ end
 
 function Login:ResAuth(NetId, Pack)
   print("ResAuth", Pack.Result)
-  print("Finished!!")
-  LoliCore.Avatar:Detach()
+  self.AuthCount = self.AuthCount + 1
+  if self.AuthCount >= 2 then
+    print("Finished!!")
+    LoliCore.Avatar:Detach()
+    return
+  end
+  LoliCore.Imagination:Begin(16, self.ReqAuth, self)
 end
 
 function Login:ReqRegister()

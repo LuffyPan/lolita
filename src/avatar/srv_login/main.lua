@@ -140,23 +140,15 @@ function LoliSrvLogin:LOGO()
 end
 
 function LoliSrvLogin:InitNet()
-  core.base.settracelv(4)
   --取消监听7000端口,直接通过God转发
   --TODO配置表读取相关的信息
   local ConnectParam = {}
   ConnectParam.Procs = self:_GetGodProcs()
   self.GodNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7700, ConnectParam))
-  core.base.settracelv(0)
 end
 
 function LoliSrvLogin:InitImagination()
-  LoliCore.Imagination:Begin(16 * 10, self.ImageMem, self)
   LoliCore.Imagination:Begin(16 * 20, self.ImageSaveAccounts, self)
-end
-
-function LoliSrvLogin:ImageMem(Im)
-  print(string.format("Memory:%u/%u", LoliCore.Base:GetMem()))
-  LoliCore.Imagination:Begin(16 * 10, self.ImageMem, self)
 end
 
 local function msgh(x)
