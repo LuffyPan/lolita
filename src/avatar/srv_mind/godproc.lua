@@ -73,6 +73,10 @@ function GodProc:ResDestroySouler(NetId, Pack, Person)
 end
 
 function GodProc:ResSelectSouler(NetId, Pack, Person)
+  if Person.Result == 1 then
+    PersonRepos:AttachSoulerId(Person.NetId, Pack.SoulerId)
+    print(string.format("Attach Net[%s] With Souler[%s]", Person.NetId, Person.SoulerId))
+  end
   assert(PersonProc:PushPackage(Person.NetId, Pack))
 end
 

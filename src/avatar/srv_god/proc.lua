@@ -21,42 +21,66 @@ function Proc:Init()
 end
 
 function Proc:ReqQuerySouler(NetId, Pack)
-  print("RequestQuerySouler")
+  Pack.MindNetId = NetId
+  local Soulers = PersonRepos:QuerySouler(Pack.PersonId)
   Pack.ProcId = "ResQuerySouler"
-  local SoulerList = PersonRepos:GetSoulerList(Pack.PersonId)
   Pack.Result = 1
-  Pack.SoulerList = SoulerList
-  assert(LoliCore.Net:PushPackage(NetId, Pack))
+  Pack.Soulers = Soulers
+  self:ResQuerySouler(NetId, Pack)
 end
 
 function Proc:ReqCreateSouler(NetId, Pack)
-  print("RequestCreateSouler")
-  Pack.ProcId = "ResCreateSouler"
+  Pack.MindNetId = NetId
   local SoulerId, e = PersonRepos:CreateSouler(Pack.PersonId, Pack.SoulerInfo)
+  Pack.ProcId = "ResCreateSouler"
   Pack.SoulerId = SoulerId
   Pack.Result = SoulerId and 1 or 0
   Pack.ErrorCode = e
-  assert(LoliCore.Net:PushPackage(NetId, Pack))
+  self:ResCreateSouler(NetId, Pack)
 end
 
 function Proc:ReqDestroySouler(NetId, Pack)
-  print("RequestDestroySouler")
-  Pack.ProcId = "ResDestroySouler"
+  Pack.MindNetId = NetId
   local SoulerId, e = PersonRepos:DestroySouler(Pack.PersonId, Pack.SoulerId)
+  Pack.ProcId = "ResDestroySouler"
   Pack.SoulerId = SoulerId
   Pack.Result = SoulerId and 1 or 0
   Pack.ErrorCode = e
-  assert(LoliCore.Net:PushPackage(NetId, Pack))
+  self:ResDestroySouler(NetId, Pack)
 end
 
 function Proc:ReqSelectSouler(NetId, Pack)
-  print("RequestSelectSouler")
+  Pack.MindNetId = NetId
+  local Souler, e = PersonRepos:SelectSouler(Pack.PersonId, Pack.SoulerId)
   Pack.ProcId = "ResSelectSouler"
-  local SoulerId, e = PersonRepos:SelectSouler(Pack.PersonId, Pack.SoulerId)
-  Pack.SoulerId = SoulerId
-  Pack.Result = SoulerId and 1 or 0
+  Pack.Souler = Souler
+  Pack.Result = Souler and 1 or 0
   Pack.ErrorCode = e
-  assert(LoliCore.Net:PushPackage(NetId, Pack))
+  self:ResSelectSouler(NetId, Pack)
+end
+
+function Proc:ResQuerySouler(NetId, Pack)
+  assert(LoliCore.Net:PushPackage(Pack.MindNetId, Pack))
+end
+
+function Proc:ResCreateSouler(NetId, Pack)
+  assert(LoliCore.Net:PushPackage(Pack.MindNetId, Pack))
+end
+
+function Proc:ResDestroySouler(NetId, Pack)
+  assert(LoliCore.Net:PushPackage(Pack.MindNetId, Pack))
+end
+
+function Proc:ResSelectSouler(NetId, Pack)
+  local Souler = Pack.Souler
+  Pack.Souler = nil
+  Pack.SoulerId = Souler.Id
+  if Pack.Result == 1 then
+    local Person = PersonRepos:New(Pack.PersonId, Pack.SoulerId, Pack.MindNetId, 0)
+    Person.Souler = Souler
+  else
+  end
+  assert(LoliCore.Net:PushPackage(Pack.MindNetId, Pack))
 end
 
 function Proc:OnReqGetSouler(NetId, Pack)
@@ -175,7 +199,6 @@ function Proc:ReqLoginTransmit(NetId, Pack)
 end
 
 function Proc:ResLoginTransmit(NetId, Pack)
-  print(string.format("ResLoginTransmit, ProcId[%s]", Pack.ProcId))
   local SrvMind = Srv:GetByNetId(Pack.MindNetId)
   if SrvMind and SrvMind.State == 1 then
     assert(LoliCore.Net:PushPackage(SrvMind.NetId, Pack))
@@ -184,9 +207,16 @@ function Proc:ResLoginTransmit(NetId, Pack)
   end
 end
 
+function Proc:PreProc(NetId, Pack)
+  print(string.format("Net[%s], %s", NetId, Pack.ProcId))
+  return 1
+end
+
 function Proc:_GetProcs()
   local Proc =
   {
+    Param = self,
+    Pre = self.PreProc,
     --Login
     ReqRegister = self.ReqLoginTransmit,
     ReqAuth = self.ReqLoginTransmit,

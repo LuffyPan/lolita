@@ -69,15 +69,22 @@ function Login:ReqSouler()
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 
   Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
-  Pack.SoulerInfo = {}
+  Pack.SoulerInfo =
+  {
+    Name = "Fuck",
+    Sex = 1,
+    Job = 1,
+  }
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 
   Pack = LoliCore.Net:GenPackage("ReqDestroySouler", {})
-  Pack.SoulerId = 110
+  Pack.SoulerId = 1988
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 
   Pack = LoliCore.Net:GenPackage("ReqSelectSouler", {})
-  Pack.SoulerId = 110
+  Pack.SoulerId = 1987
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
