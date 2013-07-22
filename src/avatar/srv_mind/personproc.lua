@@ -67,6 +67,7 @@ function PersonProc:_GetProcs()
     ReqRegister = self.ReqGodTransmitWithNetId,
     ReqAuth = self.ReqGodTransmitWithNetId,
     --God
+    ReqQueryArea = self.ReqGodTransmitWithId,
     ReqQuerySouler = self.ReqGodTransmitWithId,
     ReqCreateSouler = self.ReqGodTransmitWithId,
     ReqDestroySouler = self.ReqGodTransmitWithId,

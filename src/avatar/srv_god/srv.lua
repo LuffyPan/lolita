@@ -57,6 +57,10 @@ function Srv:Logout(NetId)
   self.SrvNetIdIdx[NetId] = nil
 end
 
+function Srv:GetById(Id)
+  return self.SrvIdIdx[Id]
+end
+
 function Srv:GetByNetId(NetId)
   return self.SrvNetIdIdx[NetId]
 end
@@ -67,6 +71,17 @@ function Srv:GetByType(Type)
       return v
     end
   end
+end
+
+--可以预先根据Type进行索引
+function Srv:GetAllByType(Type)
+  local t = {}
+  for k, v in pairs(self.SrvRepos) do
+    if v.Type == Type then
+      table.insert(t, v)
+    end
+  end
+  return t
 end
 
 function Srv:GetBasic(Id)

@@ -20,6 +20,19 @@ function Proc:Init()
   self.NetId = LoliCore.Net:ListenEx(Ip, Port, ListenExParam)
 end
 
+function Proc:ReqQueryArea(NetId, Pack)
+  Pack.ProcId = "ResQueryArea"
+  local t = Srv:GetAllByType("srvarea")
+  local AreaList = {}
+  --TODO:这里的列表也可以预先计算好
+  for _, s in ipairs(t) do
+    table.insert(AreaList, {Id = s.Id, Available = s.NetId > 0 and 1 or 0})
+  end
+  Pack.AreaList = AreaList
+  Pack.Result = 1
+  LoliCore.Net:PushPackage(NetId, Pack)
+end
+
 function Proc:ReqQuerySouler(NetId, Pack)
   Pack.MindNetId = NetId
   local Soulers = PersonRepos:QuerySouler(Pack.PersonId)
@@ -222,6 +235,8 @@ function Proc:_GetProcs()
     ReqAuth = self.ReqLoginTransmit,
     ResRegister = self.ResLoginTransmit,
     ResAuth = self.ResLoginTransmit,
+
+    ReqQueryArea = self.ReqQueryArea,
 
     ReqQuerySouler = self.ReqQuerySouler,
     ReqCreateSouler = self.ReqCreateSouler,

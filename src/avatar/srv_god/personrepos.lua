@@ -6,6 +6,7 @@
 
 
 local PersonRepos = LoliSrvGod.PersonRepos
+local SrvRepos = LoliSrvGod.Srv
 
 function PersonRepos:Init()
   self.Root = "data/god"
@@ -58,12 +59,19 @@ function PersonRepos:CreateSouler(PersonId, SoulerInfo)
     return nil, 1
   end
 
+  if not SrvRepos:GetById(SoulerInfo.AreaId) then
+    --非法的一個Area
+    return nil, 2
+  end
+
   local NewSouler =
   {
     Id = self.BaseFile.SoulerId,
     Name = SoulerInfo.Name,
     Sex = SoulerInfo.Sex,
     Job = SoulerInfo.Job,
+    AreaId = SoulerInfo.AreaId,
+    CurrentAreaId = SoulerInfo.AreaId,
     Level = 0,
   }
   self.BaseFile.SoulerId = self.BaseFile.SoulerId + 1

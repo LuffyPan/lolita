@@ -36,10 +36,20 @@ function Login:ResAuth(NetId, Pack)
   if self.AuthCount >= 2 then
     --print("Finished!!")
     --LoliCore.Avatar:Detach()
-    LoliCore.Imagination:Begin(16, self.ReqSouler, self)
+    LoliCore.Imagination:Begin(16, self.ReqQueryArea, self)
     return
   end
   LoliCore.Imagination:Begin(16, self.ReqAuth, self)
+end
+
+function Login:ResQueryArea(NetId, Pack)
+  if Pack.Result == 1 then
+    print("The Areas Oooof The World:")
+    for _, Area in ipairs(Pack.AreaList) do
+      print(string.format("Id[%s], Name[%s], Available[%s]", Area.Id, "Unknown", Area.Available))
+    end
+  end
+  LoliCore.Imagination:Begin(16, self.ReqSouler, self)
 end
 
 function Login:ResQuerySouler(NetId, Pack)
@@ -64,6 +74,11 @@ function Login:ReqAuth()
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
+function Login:ReqQueryArea()
+  local Pack = LoliCore.Net:GenPackage("ReqQueryArea", {})
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
+
 function Login:ReqSouler()
   local Pack = LoliCore.Net:GenPackage("ReqQuerySouler", {})
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
@@ -71,9 +86,10 @@ function Login:ReqSouler()
   Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
   Pack.SoulerInfo =
   {
-    Name = "Fuck",
-    Sex = 1,
-    Job = 1,
+    Name = "Fuck", --不能免俗的名字
+    Sex = 1, --不能免俗的性別Id
+    Job = 1, --不能免俗的職業Id
+    AreaId = 2003, --所屬於的AreaId
   }
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
@@ -102,6 +118,7 @@ function Login:_GetProcs()
     Close = self.OnClose,
     ResRegister = self.ResRegister,
     ResAuth = self.ResAuth,
+    ResQueryArea = self.ResQueryArea,
     ResQuerySouler = self.ResQuerySouler,
     ResCreateSouler = self.ResCreateSouler,
     ResDestroySouler = self.ResDestroySouler,
