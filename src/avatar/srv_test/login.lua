@@ -16,6 +16,7 @@ function Login:Execute()
   ConnectExParam.Procs = self:_GetProcs()
   self.SaNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7000, ConnectExParam))
   self.AuthCount = 0
+  self.CreateSoulerCount = 0
 end
 
 function Login:OnConnect(NetId, Result)
@@ -49,19 +50,39 @@ function Login:ResQueryArea(NetId, Pack)
       print(string.format("Id[%s], Name[%s], Available[%s]", Area.Id, "Unknown", Area.Available))
     end
   end
-  LoliCore.Imagination:Begin(16, self.ReqSouler, self)
+  LoliCore.Imagination:Begin(16, self.ReqQuerySouler, self)
 end
 
 function Login:ResQuerySouler(NetId, Pack)
+  if Pack.Result == 1 then
+    print("QuerySouler Finished!")
+  end
+  LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self)
 end
 
 function Login:ResCreateSouler(NetId, Pack)
+  if Pack.Result == 1 then
+    print("CreateSouler Finished!")
+  end
+  self.CreateSoulerCount = self.CreateSoulerCount + 1
+  if self.CreateSoulerCount >=3 then
+    LoliCore.Imagination:Begin(16, self.ReqDestroySouler, self)
+    return
+  end
+  LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self)
 end
 
 function Login:ResDestroySouler(NetId, Pack)
+  if Pack.Result == 1 then
+    print("DestroySouler Finished!")
+  end
+  LoliCore.Imagination:Begin(16, self.ReqSelectSouler, self)
 end
 
 function Login:ResSelectSouler(NetId, Pack)
+  if Pack.Result == 1 then
+    print("SelectSouler Finished!")
+  end
 end
 
 function Login:ReqRegister()
@@ -79,10 +100,12 @@ function Login:ReqQueryArea()
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
-function Login:ReqSouler()
+function Login:ReqQuerySouler()
   local Pack = LoliCore.Net:GenPackage("ReqQuerySouler", {})
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
 
+function Login:ReqCreateSouler()
   Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
   Pack.SoulerInfo =
   {
@@ -92,13 +115,15 @@ function Login:ReqSouler()
     AreaId = 2003, --所屬於的AreaId
   }
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
 
+function Login:ReqDestroySouler()
   Pack = LoliCore.Net:GenPackage("ReqDestroySouler", {})
   Pack.SoulerId = 1988
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
 
+function Login:ReqSelectSouler()
   Pack = LoliCore.Net:GenPackage("ReqSelectSouler", {})
   Pack.SoulerId = 1987
   LoliCore.Net:PushPackage(self.SaNetId, Pack)

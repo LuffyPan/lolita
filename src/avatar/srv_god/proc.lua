@@ -220,6 +220,24 @@ function Proc:ResLoginTransmit(NetId, Pack)
   end
 end
 
+function Proc:ReqArrival(NetId, Pack)
+  Pack.ProcId = "ResArrival"
+  Pack.Result = 1
+  LoliCore.Net:PushPackage(NetId, Pack)
+end
+
+function Proc:ReqDeparture(NetId, Pack)
+  Pack.ProcId = "ResDeparture"
+  Pack.Result = 1
+  LoliCore.Net:PushPackage(NetId, Pack)
+end
+
+function Proc:ResArrival(NetId, Pack)
+end
+
+function Proc:ResDeparture(NetId, Pack)
+end
+
 function Proc:PreProc(NetId, Pack)
   print(string.format("Net[%s], %s", NetId, Pack.ProcId))
   return 1
@@ -245,6 +263,12 @@ function Proc:_GetProcs()
     ReqGetSouler = self.OnReqGetSouler,
     ReqSetEx = self.OnReqSetEx,
     ReqGetEx = self.OnReqGetEx,
+
+    --Area
+    ReqArrival = self.ReqArrival,
+    ReqDeparture = self.ReqDeparture,
+    ResArrival = self.ResArrival,
+    ResDeparture = self.ResDeparture,
 
     --其他服务器都得连接到God,通过Key进行身份的匹配验证，汇报相关基本信息
     --God根据不同的服务器类型返回可能不同的数据

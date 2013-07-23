@@ -84,10 +84,18 @@ function GodProc:ResQueryArea(NetId, Pack, Person)
   assert(PersonProc:PushPackage(Person.NetId, Pack))
 end
 
+function GodProc:ResArrival(NetId, Pack, Person)
+  assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
+function GodProc:ResDeparture(NetId, Pack, Person)
+  assert(PersonProc:PushPackage(Person.NetId, Pack))
+end
+
 function GodProc:PreProc(NetId, Pack)
   local Person = PersonRepos:GetByNetId(Pack.PersonNetId)
   if not Person then
-    --可以通过返回值告诉地层，不进行后续调用
+    --可以通过返回值告诉底层，不进行后续调用
     print(string.format("Net[%s], Attached Person Already Disconnected Before This Time!", Pack.PersonNetId))
     return
   end
@@ -113,5 +121,8 @@ function GodProc:_GetProcs()
     ResCreateSouler = self.ResCreateSouler,
     ResDestroySouler = self.ResDestroySouler,
     ResSelectSouler = self.ResSelectSouler,
+    --Area
+    ResArrival = self.ResArrival,
+    ResDeparture = self.ResDeparture,
   }
 end
