@@ -9,8 +9,7 @@ return
   "pre.lua",
   "conf.lua",
   "base.lua",
-  "srv.lua",
-  "soul.lua",
+  "srvrepos.lua",
   "personrepos.lua",
   "proc.lua",
   "main.lua", -- This must be the last!!

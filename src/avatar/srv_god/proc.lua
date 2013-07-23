@@ -5,9 +5,8 @@
 --
 
 local Base = LoliSrvGod.Base
-local Srv = LoliSrvGod.Srv
+local SrvRepos = LoliSrvGod.SrvRepos
 local Proc = LoliSrvGod.Proc
-local Soul = LoliSrvGod.Soul
 local PersonRepos = LoliSrvGod.PersonRepos
 
 function Proc:Init()
@@ -22,7 +21,7 @@ end
 
 function Proc:ReqQueryArea(NetId, Pack)
   Pack.ProcId = "ResQueryArea"
-  local t = Srv:GetAllByType("srvarea")
+  local t = SrvRepos:GetAllByType("srvarea")
   local AreaList = {}
   --TODO:这里的列表也可以预先计算好
   for _, s in ipairs(t) do
@@ -173,36 +172,36 @@ end
 
 function Proc:OnReqSrvLogin(NetId, Pack)
   Pack.ProcId = "ResSrvLogin"
-  local r, e, es = Srv:Login(NetId, Pack.Key, Pack.Extra)
+  local r, e, es = SrvRepos:Login(NetId, Pack.Key, Pack.Extra)
   if not r then
     Pack.ErrorCode = e
     print(string.format("NetId[%s], Key[%s] Login Failed, Detail[%s]", NetId, Pack.Key, es))
     return
   end
   Pack.Result = 1
-  Pack.Basic = Srv:GetBasic(r.Id)
-  Srv:Dump() -- Just debug
+  Pack.Basic = SrvRepos:GetBasic(r.Id)
+  SrvRepos:Dump() -- Just debug
   print("Login Succeed!!")
 end
 
 function Proc:OnReqSrvLogout(NetId, Pack)
   Pack.ProcId = "ResSrvLogout"
-  Srv:Logout(NetId)
+  SrvRepos:Logout(NetId)
   Pack.Result = 1
-  Srv:Dump()
+  SrvRepos:Dump()
   print("Logout Succeed!!")
 end
 
 function Proc:OnClose(NetId)
   print("Close")
-  Srv:Logout(NetId)
-  Srv:Dump()
+  SrvRepos:Logout(NetId)
+  SrvRepos:Dump()
   print("Logout By Close Succeed!!")
 end
 
 function Proc:ReqLoginTransmit(NetId, Pack)
-  local SrvMind = Srv:GetByNetId(NetId)
-  local SrvLogin = Srv:GetByType("srvlogin")
+  local SrvMind = SrvRepos:GetByNetId(NetId)
+  local SrvLogin = SrvRepos:GetByType("srvlogin")
   Pack.MindNetId = NetId
   if SrvLogin and SrvLogin.State == 1 then
     assert(LoliCore.Net:PushPackage(SrvLogin.NetId, Pack))
@@ -212,7 +211,7 @@ function Proc:ReqLoginTransmit(NetId, Pack)
 end
 
 function Proc:ResLoginTransmit(NetId, Pack)
-  local SrvMind = Srv:GetByNetId(Pack.MindNetId)
+  local SrvMind = SrvRepos:GetByNetId(Pack.MindNetId)
   if SrvMind and SrvMind.State == 1 then
     assert(LoliCore.Net:PushPackage(SrvMind.NetId, Pack))
   else
@@ -227,7 +226,7 @@ function Proc:ReqArrival(NetId, Pack)
     return
   end
   local AreaId = assert(Person.Souler.CurrentAreaId)
-  local Area = Srv:GetById(AreaId)
+  local Area = SrvRepos:GetById(AreaId)
   if not Area then
     print(string.format("Current Area Id[%s] Is Invalid!", AreaId))
     Pack.ProcId = "ResArrival"
@@ -264,7 +263,7 @@ function Proc:ResArrival(NetId, Pack)
     return
   end
   if Pack.Result == 1 then
-    local Area = assert(Srv:GetByNetId(NetId))
+    local Area = assert(SrvRepos:GetByNetId(NetId))
     if Area.Id == Person.Souler.CurrentAreaId then
       print(string.format("Attach AreaNetId[%s] To Person", Area.NetId))
       Person.AreaNetId = Area.NetId

@@ -10,8 +10,8 @@ end
 
 function LoliSrvArea:OnBorn()
   self:InitTraceLevel()
+  self.SoulerRepos:Init()
   self.GodProc:Init()
-  self.Logic:Init()
   self:LOGO()
 end
 

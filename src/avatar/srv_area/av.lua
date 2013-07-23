@@ -6,7 +6,8 @@
 
 return
 {
+  "pre.lua",
+  "soulerrepos.lua",
   "godproc.lua",
-  "logic.lua",
   "main.lua",
 }

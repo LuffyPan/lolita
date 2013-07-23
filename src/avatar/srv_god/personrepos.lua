@@ -6,7 +6,7 @@
 
 
 local PersonRepos = LoliSrvGod.PersonRepos
-local SrvRepos = LoliSrvGod.Srv
+local SrvRepos = LoliSrvGod.SrvRepos
 
 function PersonRepos:Init()
   self.Root = "data/god"

@@ -1,13 +1,13 @@
 --
--- Servers
+-- God's ServersRepository
 -- Chamz Lau, Copyright (C) 2013-2017
 -- 2013/07/03 19:12:58
 --
 
 local Base = LoliSrvGod.Base
-local Srv = LoliSrvGod.Srv
+local SrvRepos = LoliSrvGod.SrvRepos
 
-function Srv:Init()
+function SrvRepos:Init()
   self.SrvRepos = {}
   self.SrvIdIdx = {}
   self.SrvNetIdIdx = {}
@@ -25,7 +25,7 @@ function Srv:Init()
   end
 end
 
-function Srv:Login(NetId, Key, Extra)
+function SrvRepos:Login(NetId, Key, Extra)
   if self.SrvNetIdIdx[NetId] then
     return nil, 1, "Already Logined"
   end
@@ -45,7 +45,7 @@ function Srv:Login(NetId, Key, Extra)
   return x
 end
 
-function Srv:Logout(NetId)
+function SrvRepos:Logout(NetId)
   local x = self.SrvNetIdIdx[NetId]
   if not x then
     return
@@ -57,15 +57,15 @@ function Srv:Logout(NetId)
   self.SrvNetIdIdx[NetId] = nil
 end
 
-function Srv:GetById(Id)
+function SrvRepos:GetById(Id)
   return self.SrvIdIdx[Id]
 end
 
-function Srv:GetByNetId(NetId)
+function SrvRepos:GetByNetId(NetId)
   return self.SrvNetIdIdx[NetId]
 end
 
-function Srv:GetByType(Type)
+function SrvRepos:GetByType(Type)
   for k, v in pairs(self.SrvNetIdIdx) do
     if v.Type == Type then
       return v
@@ -74,7 +74,7 @@ function Srv:GetByType(Type)
 end
 
 --可以预先根据Type进行索引
-function Srv:GetAllByType(Type)
+function SrvRepos:GetAllByType(Type)
   local t = {}
   for k, v in pairs(self.SrvRepos) do
     if v.Type == Type then
@@ -84,12 +84,12 @@ function Srv:GetAllByType(Type)
   return t
 end
 
-function Srv:GetBasic(Id)
+function SrvRepos:GetBasic(Id)
   local x = assert(self.SrvIdIdx[Id])
   return {Id = x.Id, Type = x.Type}
 end
 
-function Srv:Dump()
+function SrvRepos:Dump()
   print("Servers's State:")
   for k, v in pairs(self.SrvRepos) do
     print(string.format("%d--%s--%s--%d", v.Id, v.Key, v.Type, v.State))

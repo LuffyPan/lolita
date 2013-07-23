@@ -4,8 +4,6 @@
 -- 2013/07/05 19:42:52
 --
 
-LoliSrvArea = {}
-LoliSrvArea.GodProc = {}
 local GodProc = LoliSrvArea.GodProc
 
 function GodProc:Init()
@@ -43,6 +41,7 @@ function GodProc:ReqArrival(NetId, Pack)
   Pack.ProcId = "ResArrival"
   Pack.Result = 1
   local Souler = Pack.Souler
+  Pack.Souler = nil
   print(string.format("Welcome To The Area[%s], %s", "Unknown", Souler.Name))
   print(string.format("Sex[%s], Job[%s], Level[%s], AreaId[%s], CurrentAreaId[%s]", Souler.Sex, Souler.Job, Souler.Level, Souler.AreaId, Souler.CurrentAreaId))
   LoliCore.Net:PushPackage(self.NetId, Pack)

@@ -5,19 +5,17 @@
 --
 
 local Base = LoliSrvGod.Base
-local Srv = LoliSrvGod.Srv
+local SrvRepos = LoliSrvGod.SrvRepos
 local Proc = LoliSrvGod.Proc
-local Soul = LoliSrvGod.Soul
 local PersonRepos = LoliSrvGod.PersonRepos
 
 function LoliSrvGod:OnBorn()
   print("OnBorn")
   Base:Init()
-  Srv:Init()
-  --Soul:Init()
+  SrvRepos:Init()
   PersonRepos:Init()
   Proc:Init()
-  Srv:Dump()
+  SrvRepos:Dump()
   Base:Logo()
 end
 

@@ -6,7 +6,6 @@
 
 LoliSrvGod = {}
 LoliSrvGod.Base = {}
-LoliSrvGod.Srv = {}
+LoliSrvGod.SrvRepos = {}
 LoliSrvGod.Proc = {}
-LoliSrvGod.Soul = {}
 LoliSrvGod.PersonRepos = {}
