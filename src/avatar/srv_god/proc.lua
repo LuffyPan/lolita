@@ -89,7 +89,7 @@ function Proc:ResSelectSouler(NetId, Pack)
   Pack.Souler = nil
   Pack.SoulerId = Souler.Id
   if Pack.Result == 1 then
-    local Person = PersonRepos:New(Pack.PersonId, Pack.SoulerId, Pack.MindNetId, 0)
+    local Person = PersonRepos:New(Pack.PersonId, Pack.SoulerId, Pack.MindNetId)
     Person.Souler = Souler
   else
   end
@@ -221,21 +221,71 @@ function Proc:ResLoginTransmit(NetId, Pack)
 end
 
 function Proc:ReqArrival(NetId, Pack)
-  Pack.ProcId = "ResArrival"
-  Pack.Result = 1
-  LoliCore.Net:PushPackage(NetId, Pack)
+  local Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
+  if not Person then
+    print(string.format("Person[%s] Is Invalid", Pack.PersonSoulerId))
+    return
+  end
+  local AreaId = assert(Person.Souler.CurrentAreaId)
+  local Area = Srv:GetById(AreaId)
+  if not Area then
+    print(string.format("Current Area Id[%s] Is Invalid!", AreaId))
+    Pack.ProcId = "ResArrival"
+    Pack.ErrorCode = 1
+    LoliCore.Net:PushPackage(Person.MindNetId, Pack)
+  else
+    print(string.format("Current Area Id[%s], NetId[%s]!", AreaId, Area.NetId))
+    if Area.NetId > 0 then
+      Pack.Souler = Person.Souler --角色数据发送给Area
+      LoliCore.Net:PushPackage(Area.NetId, Pack)
+    else
+      Pack.ProcId = "ResArrival"
+      Pack.ErrorCode = 2
+      LoliCore.Net:PushPackage(Person.MindNetId, Pack)
+    end
+  end
 end
 
 function Proc:ReqDeparture(NetId, Pack)
-  Pack.ProcId = "ResDeparture"
-  Pack.Result = 1
-  LoliCore.Net:PushPackage(NetId, Pack)
+  local Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
+  if not Person then
+    print(string.format("Person[%s] Is Invalid", Pack.PersonSoulerId))
+    return
+  end
+  if Person.AreaNetId > 0 then
+    LoliCore.Net:PushPackage(Person.AreaNetId, Pack)
+  end
 end
 
 function Proc:ResArrival(NetId, Pack)
+  local Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
+  if not Person then
+    print(string.format("Person[%s] Is Invalid", Pack.PersonSoulerId))
+    return
+  end
+  if Pack.Result == 1 then
+    local Area = assert(Srv:GetByNetId(NetId))
+    if Area.Id == Person.Souler.CurrentAreaId then
+      print(string.format("Attach AreaNetId[%s] To Person", Area.NetId))
+      Person.AreaNetId = Area.NetId
+    else
+      print("AreaId[%s] Is Not Match Person's CurrentAreaId[%s]", Area.Id, Person.Souler.CurrentAreaId)
+    end
+  end
+  LoliCore.Net:PushPackage(Person.MindNetId, Pack)
 end
 
 function Proc:ResDeparture(NetId, Pack)
+  local Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
+  if not Person then
+    print(string.format("Person[%s] Is Invalid", Pack.PersonSoulerId))
+    return
+  end
+  if Pack.Result == 1 then
+    print(string.format("Deatach AreaNetId[%s] From Person", Person.AreaNetId))
+    Person.AreaNetId = 0
+  end
+  LoliCore.Net:PushPackage(Person.MindNetId, Pack)
 end
 
 function Proc:PreProc(NetId, Pack)

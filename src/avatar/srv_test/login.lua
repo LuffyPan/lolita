@@ -83,6 +83,14 @@ function Login:ResSelectSouler(NetId, Pack)
   if Pack.Result == 1 then
     print("SelectSouler Finished!")
   end
+  LoliCore.Imagination:Begin(16, self.ReqArrival, self)
+end
+
+function Login:ResArrival(NetId, Pack)
+  LoliCore.Imagination:Begin(16, self.ReqDeparture, self)
+end
+
+function Login:ResDeparture(NetId, Pack)
 end
 
 function Login:ReqRegister()
@@ -106,7 +114,7 @@ function Login:ReqQuerySouler()
 end
 
 function Login:ReqCreateSouler()
-  Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
+  local Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
   Pack.SoulerInfo =
   {
     Name = "Fuck", --不能免俗的名字
@@ -118,14 +126,24 @@ function Login:ReqCreateSouler()
 end
 
 function Login:ReqDestroySouler()
-  Pack = LoliCore.Net:GenPackage("ReqDestroySouler", {})
+  local Pack = LoliCore.Net:GenPackage("ReqDestroySouler", {})
   Pack.SoulerId = 1988
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
 function Login:ReqSelectSouler()
-  Pack = LoliCore.Net:GenPackage("ReqSelectSouler", {})
+  local Pack = LoliCore.Net:GenPackage("ReqSelectSouler", {})
   Pack.SoulerId = 1987
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
+
+function Login:ReqArrival()
+  local Pack = LoliCore.Net:GenPackage("ReqArrival", {})
+  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+end
+
+function Login:ReqDeparture()
+  local Pack = LoliCore.Net:GenPackage("ReqDeparture", {})
   LoliCore.Net:PushPackage(self.SaNetId, Pack)
 end
 
@@ -148,5 +166,7 @@ function Login:_GetProcs()
     ResCreateSouler = self.ResCreateSouler,
     ResDestroySouler = self.ResDestroySouler,
     ResSelectSouler = self.ResSelectSouler,
+    ResArrival = self.ResArrival,
+    ResDeparture = self.ResDeparture,
   }
 end

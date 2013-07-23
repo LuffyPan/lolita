@@ -39,14 +39,37 @@ function GodProc:ResSrvLogout(NetId, Pack)
   --暂时不触发
 end
 
+function GodProc:ReqArrival(NetId, Pack)
+  Pack.ProcId = "ResArrival"
+  Pack.Result = 1
+  local Souler = Pack.Souler
+  print(string.format("Welcome To The Area[%s], %s", "Unknown", Souler.Name))
+  print(string.format("Sex[%s], Job[%s], Level[%s], AreaId[%s], CurrentAreaId[%s]", Souler.Sex, Souler.Job, Souler.Level, Souler.AreaId, Souler.CurrentAreaId))
+  LoliCore.Net:PushPackage(self.NetId, Pack)
+end
+
+function GodProc:ReqDeparture(NetId, Pack)
+  Pack.ProcId = "ResDeparture"
+  Pack.Result = 1
+  LoliCore.Net:PushPackage(self.NetId, Pack)
+end
+
+function GodProc:PreProc(NetId, Pack)
+  print(string.format("NetId[%s], %s", NetId, Pack.ProcId))
+  return 1
+end
+
 function GodProc:_GetProcs()
   return
   {
     Param = self,
+    Pre = self.PreProc,
     Connect = self.OnConnect,
     Close = self.OnClose,
     ResSrvLogin = self.ResSrvLogin,
     ResSrvLogout = self.ResSrvLogout,
+    ReqArrival = self.ReqArrival,
+    ReqDeparture = self.ReqDeparture,
   }
 end
 

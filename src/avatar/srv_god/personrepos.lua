@@ -14,6 +14,7 @@ function PersonRepos:Init()
   self.PersonRoot = "data/god/person"
   self.SoulerRoot = "data/god/souler"
   self.Id2Person = {}
+  self.SoulerId2Person = {}
   LoliCore.Os:MkDirEx(self.PersonRoot)
   LoliCore.Os:MkDirEx(self.SoulerRoot)
 
@@ -123,25 +124,31 @@ end
 
 
 -------------------------PersonRepos----------------------------
-function PersonRepos:New(Id, SoulerId, MindNetId, AreaNetId)
+function PersonRepos:New(Id, SoulerId, MindNetId)
   assert(not self.Id2Person[Id])
   local Person =
   {
     Id = Id,
     SoulerId = SoulerId,
     MindNetId = MindNetId,
-    AreaNetId = AreaNetId,
+    AreaNetId = 0,
   }
   self.Id2Person[Id] = Person
+  self.SoulerId2Person[SoulerId] = Person
   return Person
 end
 
 function PersonRepos:Delete(Id)
   local Person = assert(self.Id2Person[Id])
   self.Id2Person[Id] = nil
+  self.SoulerId2Person[Person.SoulerId] = nil
   return Person
 end
 
 function PersonRepos:GetById(Id)
   return self.Id2Person[Id]
+end
+
+function PersonRepos:GetBySoulerId(SoulerId)
+  return self.SoulerId2Person[SoulerId]
 end

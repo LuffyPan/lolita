@@ -73,7 +73,7 @@ function GodProc:ResDestroySouler(NetId, Pack, Person)
 end
 
 function GodProc:ResSelectSouler(NetId, Pack, Person)
-  if Person.Result == 1 then
+  if Pack.Result == 1 then
     PersonRepos:AttachSoulerId(Person.NetId, Pack.SoulerId)
     print(string.format("Attach Net[%s] With Souler[%s]", Person.NetId, Person.SoulerId))
   end
@@ -93,7 +93,12 @@ function GodProc:ResDeparture(NetId, Pack, Person)
 end
 
 function GodProc:PreProc(NetId, Pack)
-  local Person = PersonRepos:GetByNetId(Pack.PersonNetId)
+  local Person
+  if Pack.PersonSoulerId then
+    Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
+  else
+    Person = PersonRepos:GetByNetId(Pack.PersonNetId)
+  end
   if not Person then
     --可以通过返回值告诉底层，不进行后续调用
     print(string.format("Net[%s], Attached Person Already Disconnected Before This Time!", Pack.PersonNetId))
