@@ -34,13 +34,27 @@ function PersonProc:OnClose(NetId)
   print(string.format("Person[%s,%s,%s], Disconnected!", Person.NetId, Person.Id, Person.SoulerId))
   if Person.Id > 0 then
     Person.Lost = 1
-    print("Already Authed, ReqDeparture!")
+    print("Request God Departure Because Of Lost!")
     local Pack = LoliCore.Net:GenPackage("ReqDeparture", {Type="Lost"})
     Pack.PersonId = Person.Id
     assert(GodProc:PushPackage(Pack))
   else
     assert(PersonRepos:Delete(Person.NetId))
-    print("Delete Person Completely!")
+    print("Departured Because Of Lost, Directly!")
+  end
+end
+
+function PersonProc:ReqDeparture(NetId, Pack, Person)
+  if Person.Id > 0 then
+    print("Request God Departure Because Of Apply!")
+    Pack.PersonNetId = Person.NetId
+    Pack.PersonId = Person.Id
+    assert(GodProc:PushPackage(Pack))
+  else
+    print("Departured Because Of Apply, Directly")
+    Pack.ProcId = "ResDeparture"
+    Pack.Result = 1
+    assert(self:PushPackage(Person.NetId, Pack))
   end
 end
 
@@ -92,6 +106,6 @@ function PersonProc:_GetProcs()
     ReqSelectSouler = self.ReqGodTransmitWithId,
     --Area
     ReqArrival = self.ReqGodTransmitWithSoulerId,
-    ReqDeparture = self.ReqGodTransmitWithId,
+    ReqDeparture = self.ReqDeparture,
   }
 end

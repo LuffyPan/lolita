@@ -263,7 +263,7 @@ end
 function Proc:ReqDeparture(NetId, Pack)
   local Person = PersonRepos:GetById(Pack.PersonId)
   if not Person then
-    print(string.format("Nothing Need Cleared!", Pack.PersonId))
+    print(string.format("Souler Is Not Arrival, Should Not Departure!"))
     Pack.ProcId = "ResDeparture"
     Pack.Result = 1
     assert(LoliCore.Net:PushPackage(NetId, Pack))
@@ -274,15 +274,15 @@ function Proc:ReqDeparture(NetId, Pack)
     local AreaId = Person.Souler.CurrentAreaId
     local Area = SrvRepos:GetById(AreaId)
     if Area and Area.NetId > 0 then
-      print(string.format("Request Area[%s] To Departure!", AreaId))
+      print(string.format("Request Area[%s] Departure!", AreaId))
       Pack.PersonSoulerId = Person.SoulerId
       assert(LoliCore.Net:PushPackage(Area.NetId, Pack))
       return
     end
-    print(string.format("The Area[%s] Is Not Available, Don't Request It To Departure!", AreaId))
+    print(string.format("The Area[%s] Is Not Available, Departure Directly!", AreaId))
   end
   --還沒有選擇完成角色或者Area不可達，直接清除狀態並返回成功
-  print("Only Need Cleared Person On God!")
+  print("Departured Directly!")
   PersonRepos:Delete(Person.Id)
   Pack.ProcId = "ResDeparture"
   Pack.Result = 1
@@ -314,11 +314,12 @@ function Proc:ResDeparture(NetId, Pack)
     return
   end
   if Pack.Result == 1 then
-    print(string.format("Deatach AreaNetId[%s] From Person", Person.AreaNetId))
+    print(string.format("Deatach AreaNetId[%s]", Person.AreaNetId))
     Person.AreaNetId = 0
-    print("Clear Person On God!")
     PersonRepos:Delete(Person.Id)
+    print("Departured Throught Area!")
   end
+  --Package中的SoulerId设置为nil，Mind上只需要PersonId即可，对SoulerId不需要关心
   Pack.PersonSoulerId = nil
   LoliCore.Net:PushPackage(Person.MindNetId, Pack)
 end

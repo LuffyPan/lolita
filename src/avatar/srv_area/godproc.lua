@@ -51,13 +51,28 @@ end
 function GodProc:ReqDeparture(NetId, Pack)
   Pack.ProcId = "ResDeparture"
   Pack.Result = 1
-  local Souler = SoulerRepos:Delete(Pack.PersonSoulerId)
+  local Souler = SoulerRepos:GetById(Pack.PersonSoulerId)
+  if Souler then
+    local Souler = SoulerRepos:Delete(Pack.PersonSoulerId)
+    print("Souler Departured!")
+  else
+    print(string.format("Souler Is Not Arrival Already!"))
+  end
   LoliCore.Net:PushPackage(self.NetId, Pack)
 end
 
 function GodProc:PreProc(NetId, Pack)
-  print(string.format("NetId[%s], %s", NetId, Pack.ProcId))
-  return 1
+  local Souler = SoulerRepos:GetById(Pack.PersonSoulerId)
+  if Souler then
+    print(string.format("Souler[%s], %s", Souler.Id, Pack.ProcId))
+    return Souler
+  else
+    if Pack.ProcId == "ReqDeparture" or Pack.ProcId == "ReqArrival" then
+      return 1
+    end
+    print(string.format("Souler[%s] Invalid, %s!!", Pack.PersonSoulerId, Pack.ProcId))
+    return
+  end
 end
 
 function GodProc:_GetProcs()

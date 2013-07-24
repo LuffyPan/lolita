@@ -91,10 +91,12 @@ end
 function GodProc:ResDeparture(NetId, Pack, Person)
   if Person.Lost then
     PersonRepos:Delete(Person.NetId)
+    print("Departured Because Of Lost, Throught God")
   else
     assert(PersonProc:PushPackage(Person.NetId, Pack))
     PersonRepos:DetachSoulerId(Person.NetId)
     PersonRepos:DetachId(Person.NetId)
+    print("Departured Because Of Apply, Throught God")
   end
 end
 
