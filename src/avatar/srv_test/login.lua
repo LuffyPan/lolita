@@ -12,24 +12,38 @@ function Login:Init()
 end
 
 function Login:Execute()
+  self.NetIds = {}
+  self.NetIdCount = 0
   local ConnectExParam = {}
   ConnectExParam.Procs = self:_GetProcs()
-  self.SaNetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7000, ConnectExParam))
+  for i = 1, 10 do
+    local NetId = assert(LoliCore.Net:ConnectEx("127.0.0.1", 7000, ConnectExParam))
+    self.NetIds[NetId] = 1
+    self.NetIdCount = self.NetIdCount + 1
+  end
   self.AuthCount = 0
   self.CreateSoulerCount = 0
 end
 
 function Login:OnConnect(NetId, Result)
-  LoliCore.Imagination:Begin(16, self.ReqRegister, self)
+  if Result == 1 then
+    LoliCore.Imagination:Begin(16, self.ReqRegister, self, NetId)
+  else
+    print("Connect Failed")
+  end
 end
 
 function Login:OnClose(NetId)
-  print("Finished By Sa Server Closed")
-  LoliCore.Avatar:Detach()
+  print("Closed By Mind Server")
+  self.NetIds[NetId] = nil
+  self.NetIdCount = self.NetIdCount - 1
+  if self.NetIdCount == 0 then
+    LoliCore.Avatar:Detach()
+  end
 end
 
 function Login:ResRegister(NetId, Pack)
-  LoliCore.Imagination:Begin(16, self.ReqAuth, self)
+  LoliCore.Imagination:Begin(16, self.ReqAuth, self, NetId)
 end
 
 function Login:ResAuth(NetId, Pack)
@@ -37,10 +51,10 @@ function Login:ResAuth(NetId, Pack)
   if self.AuthCount >= 2 then
     --print("Finished!!")
     --LoliCore.Avatar:Detach()
-    LoliCore.Imagination:Begin(16, self.ReqQueryArea, self)
+    LoliCore.Imagination:Begin(16, self.ReqQueryArea, self, NetId)
     return
   end
-  LoliCore.Imagination:Begin(16, self.ReqAuth, self)
+  LoliCore.Imagination:Begin(16, self.ReqAuth, self, NetId)
 end
 
 function Login:ResQueryArea(NetId, Pack)
@@ -50,14 +64,7 @@ function Login:ResQueryArea(NetId, Pack)
       print(string.format("Id[%s], Name[%s], Available[%s]", Area.Id, "Unknown", Area.Available))
     end
   end
-  LoliCore.Imagination:Begin(16, self.ReqQuerySouler, self)
-end
-
-function Login:ResQuerySouler(NetId, Pack)
-  if Pack.Result == 1 then
-    print("QuerySouler Finished!")
-  end
-  LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self)
+  LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self, NetId)
 end
 
 function Login:ResCreateSouler(NetId, Pack)
@@ -66,85 +73,108 @@ function Login:ResCreateSouler(NetId, Pack)
   end
   self.CreateSoulerCount = self.CreateSoulerCount + 1
   if self.CreateSoulerCount >=3 then
-    LoliCore.Imagination:Begin(16, self.ReqDestroySouler, self)
+    LoliCore.Imagination:Begin(16, self.ReqQuerySouler, self, NetId)
     return
   end
-  LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self)
+  LoliCore.Imagination:Begin(16, self.ReqCreateSouler, self, NetId)
+end
+
+function Login:ResQuerySouler(NetId, Pack)
+  if Pack.Result == 1 then
+    print("QuerySouler Finished!")
+  end
+  local SoulerId = 0
+  for k, v in pairs(Pack.Soulers) do
+    SoulerId = k
+    print(string.format("Souler ----- %s", SoulerId))
+  end
+  LoliCore.Imagination:Begin(16, self.ReqSelectSouler, self, {NetId = NetId, SoulerId = SoulerId})
 end
 
 function Login:ResDestroySouler(NetId, Pack)
   if Pack.Result == 1 then
     print("DestroySouler Finished!")
   end
-  LoliCore.Imagination:Begin(16, self.ReqSelectSouler, self)
+  LoliCore.Imagination:Begin(16, self.ReqSelectSouler, self, NetId)
 end
 
 function Login:ResSelectSouler(NetId, Pack)
   if Pack.Result == 1 then
     print("SelectSouler Finished!")
   end
-  LoliCore.Imagination:Begin(16, self.ReqArrival, self)
+  LoliCore.Imagination:Begin(16, self.ReqArrival, self, NetId)
 end
 
 function Login:ResArrival(NetId, Pack)
-  LoliCore.Imagination:Begin(16, self.ReqDeparture, self)
+  LoliCore.Imagination:Begin(16, self.ReqDeparture, self, NetId)
 end
 
 function Login:ResDeparture(NetId, Pack)
+  LoliCore.Net:Close(NetId)
 end
 
-function Login:ReqRegister()
-  local Pack = LoliCore.Net:GenPackage("ReqRegister", {Account = "LoliAccount", Password = "LoliPassword", Age = 19})
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+function Login:ReqRegister(Im)
+  local NetId = Im.UserParam
+  local Pack = LoliCore.Net:GenPackage("ReqRegister", {Account = string.format("LoliAccount_%s", NetId), Password = "LoliPassword", Age = 19})
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqAuth()
-  local Pack = LoliCore.Net:GenPackage("ReqAuth", {Account = "LoliAccount", Password = "LoliPassword"})
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+function Login:ReqAuth(Im)
+  local NetId = Im.UserParam
+  local Pack = LoliCore.Net:GenPackage("ReqAuth", {Account = string.format("LoliAccount_%s", NetId), Password = "LoliPassword"})
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqQueryArea()
+function Login:ReqQueryArea(Im)
+  local NetId = Im.UserParam
   local Pack = LoliCore.Net:GenPackage("ReqQueryArea", {})
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqQuerySouler()
+function Login:ReqQuerySouler(Im)
+  local NetId = Im.UserParam
   local Pack = LoliCore.Net:GenPackage("ReqQuerySouler", {})
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqCreateSouler()
+function Login:ReqCreateSouler(Im)
+  local NetId = Im.UserParam
   local Pack = LoliCore.Net:GenPackage("ReqCreateSouler", {})
   Pack.SoulerInfo =
   {
-    Name = "Fuck", --不能免俗的名字
+    Name = string.format("Fuck_%s", NetId), --不能免俗的名字
     Sex = 1, --不能免俗的性別Id
     Job = 1, --不能免俗的職業Id
     AreaId = 2003, --所屬於的AreaId
   }
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqDestroySouler()
+function Login:ReqDestroySouler(Im)
+  local NetId = Im.UserParam
   local Pack = LoliCore.Net:GenPackage("ReqDestroySouler", {})
   Pack.SoulerId = 1988
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqSelectSouler()
+function Login:ReqSelectSouler(Im)
+  local NetId = Im.UserParam.NetId
+  local SoulerId = Im.UserParam.SoulerId
   local Pack = LoliCore.Net:GenPackage("ReqSelectSouler", {})
-  Pack.SoulerId = 1987
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  Pack.SoulerId = SoulerId
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqArrival()
+function Login:ReqArrival(Im)
+  local NetId = Im.UserParam
   local Pack = LoliCore.Net:GenPackage("ReqArrival", {})
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
-function Login:ReqDeparture()
+function Login:ReqDeparture(Im)
+  local NetId = Im.UserParam
   local Pack = LoliCore.Net:GenPackage("ReqDeparture", {})
-  LoliCore.Net:PushPackage(self.SaNetId, Pack)
+  LoliCore.Net:PushPackage(NetId, Pack)
 end
 
 function Login:PreProc(NetId, Pack)

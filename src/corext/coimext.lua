@@ -19,7 +19,7 @@ function Imagination:GetTime()
   return LoliCore.Os.GetTime()
 end
 
-function Imagination:Begin(ImCount, Fn, FnParam)
+function Imagination:Begin(ImCount, Fn, FnParam, UserParam)
   local Id = self.NextId
   local Im =
   {
@@ -27,6 +27,7 @@ function Imagination:Begin(ImCount, Fn, FnParam)
     ImCount = self.ImCount + ImCount,
     Fn = Fn,
     FnParam = FnParam,
+    UserParam = UserParam,
     IsClosed = 0,
   }
   self.Ims[Id] = Im

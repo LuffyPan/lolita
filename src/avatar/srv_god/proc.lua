@@ -92,9 +92,6 @@ function Proc:ResDestroySouler(NetId, Pack)
 end
 
 function Proc:ResSelectSouler(NetId, Pack)
-  local Souler = Pack.Souler
-  Pack.Souler = nil
-  Pack.SelectSoulerId = Souler.Id
   local Person = PersonRepos:GetById(Pack.PersonId)
   if not Person then
     print(string.format("Person[%s] Is Already Not Exist!", Pack.PersonId))
@@ -102,11 +99,14 @@ function Proc:ResSelectSouler(NetId, Pack)
   end
   if Pack.Result == 1 then
     --Attach SoulerId To Person
+    local Souler = Pack.Souler
+    Pack.SelectSoulerId = Souler.Id
     PersonRepos:AttachSoulerId(Person.Id, Souler.Id)
     Person.Souler = Souler
   else
     PersonRepos:Delete(Person.Id)
   end
+  Pack.Souler = nil
   assert(LoliCore.Net:PushPackage(Person.MindNetId, Pack))
 end
 
