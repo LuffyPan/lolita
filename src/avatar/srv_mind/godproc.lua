@@ -54,7 +54,7 @@ function GodProc:ResAuth(NetId, Pack, Person)
     return
   end
   if Pack.Result == 1 then
-    Person.Id = assert(Pack.PersonId)
+    PersonRepos:AttachId(Person.NetId, Pack.AuthPersonId)
     print(string.format("Auth Succeed With Id[%s]!", Person.Id))
   end
   assert(PersonProc:PushPackage(Person.NetId, Pack))
@@ -74,7 +74,7 @@ end
 
 function GodProc:ResSelectSouler(NetId, Pack, Person)
   if Pack.Result == 1 then
-    PersonRepos:AttachSoulerId(Person.NetId, Pack.SoulerId)
+    PersonRepos:AttachSoulerId(Person.NetId, Pack.SelectSoulerId)
     print(string.format("Attach Net[%s] With Souler[%s]", Person.NetId, Person.SoulerId))
   end
   assert(PersonProc:PushPackage(Person.NetId, Pack))
@@ -89,14 +89,24 @@ function GodProc:ResArrival(NetId, Pack, Person)
 end
 
 function GodProc:ResDeparture(NetId, Pack, Person)
-  assert(PersonProc:PushPackage(Person.NetId, Pack))
+  if Person.Lost then
+    PersonRepos:Delete(Person.NetId)
+  else
+    assert(PersonProc:PushPackage(Person.NetId, Pack))
+    PersonRepos:DetachSoulerId(Person.NetId)
+    PersonRepos:DetachId(Person.NetId)
+  end
 end
 
 function GodProc:PreProc(NetId, Pack)
   local Person
-  if Pack.PersonSoulerId then
+  if (not Person) and Pack.PersonSoulerId then
     Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
-  else
+  end
+  if (not Person) and Pack.PersonId then
+    Person = PersonRepos:GetById(Pack.PersonId)
+  end
+  if (not Person) and Pack.PersonNetId then
     Person = PersonRepos:GetByNetId(Pack.PersonNetId)
   end
   if not Person then

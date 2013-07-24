@@ -62,11 +62,19 @@ function Proc:ReqDestroySouler(NetId, Pack)
 end
 
 function Proc:ReqSelectSouler(NetId, Pack)
-  Pack.MindNetId = NetId
-  local Souler, e = PersonRepos:SelectSouler(Pack.PersonId, Pack.SoulerId)
+  local Person = PersonRepos:GetById(Pack.PersonId)
+  if Person then
+    print(string.format("Already Selected!!"))
+    Pack.ProcId = "ResSelectSouler"
+    Pack.ErrorCode = 1
+    assert(LoliCore.Net:PushPackage(NetId, Pack))
+    return
+  end
+  Person = assert(PersonRepos:New(Pack.PersonId, NetId))
+  local NewSouler, e = PersonRepos:SelectSouler(Pack.PersonId, Pack.SoulerId)
   Pack.ProcId = "ResSelectSouler"
-  Pack.Souler = Souler
-  Pack.Result = Souler and 1 or 0
+  Pack.Souler = NewSouler
+  Pack.Result = NewSouler and 1 or 0
   Pack.ErrorCode = e
   self:ResSelectSouler(NetId, Pack)
 end
@@ -86,13 +94,20 @@ end
 function Proc:ResSelectSouler(NetId, Pack)
   local Souler = Pack.Souler
   Pack.Souler = nil
-  Pack.SoulerId = Souler.Id
+  Pack.SelectSoulerId = Souler.Id
+  local Person = PersonRepos:GetById(Pack.PersonId)
+  if not Person then
+    print(string.format("Person[%s] Is Already Not Exist!", Pack.PersonId))
+    return
+  end
   if Pack.Result == 1 then
-    local Person = PersonRepos:New(Pack.PersonId, Pack.SoulerId, Pack.MindNetId)
+    --Attach SoulerId To Person
+    PersonRepos:AttachSoulerId(Person.Id, Souler.Id)
     Person.Souler = Souler
   else
+    PersonRepos:Delete(Person.Id)
   end
-  assert(LoliCore.Net:PushPackage(Pack.MindNetId, Pack))
+  assert(LoliCore.Net:PushPackage(Person.MindNetId, Pack))
 end
 
 function Proc:OnReqGetSouler(NetId, Pack)
@@ -246,14 +261,32 @@ function Proc:ReqArrival(NetId, Pack)
 end
 
 function Proc:ReqDeparture(NetId, Pack)
-  local Person = PersonRepos:GetBySoulerId(Pack.PersonSoulerId)
+  local Person = PersonRepos:GetById(Pack.PersonId)
   if not Person then
-    print(string.format("Person[%s] Is Invalid", Pack.PersonSoulerId))
+    print(string.format("Nothing Need Cleared!", Pack.PersonId))
+    Pack.ProcId = "ResDeparture"
+    Pack.Result = 1
+    assert(LoliCore.Net:PushPackage(NetId, Pack))
     return
   end
-  if Person.AreaNetId > 0 then
-    LoliCore.Net:PushPackage(Person.AreaNetId, Pack)
+  if Person.Souler then
+    --只要已經選擇了Souler，不管有沒有Arrival，都往目標Area發送一個Departure請求等待回復
+    local AreaId = Person.Souler.CurrentAreaId
+    local Area = SrvRepos:GetById(AreaId)
+    if Area and Area.NetId > 0 then
+      print(string.format("Request Area[%s] To Departure!", AreaId))
+      Pack.PersonSoulerId = Person.SoulerId
+      assert(LoliCore.Net:PushPackage(Area.NetId, Pack))
+      return
+    end
+    print(string.format("The Area[%s] Is Not Available, Don't Request It To Departure!", AreaId))
   end
+  --還沒有選擇完成角色或者Area不可達，直接清除狀態並返回成功
+  print("Only Need Cleared Person On God!")
+  PersonRepos:Delete(Person.Id)
+  Pack.ProcId = "ResDeparture"
+  Pack.Result = 1
+  assert(LoliCore.Net:PushPackage(NetId, Pack))
 end
 
 function Proc:ResArrival(NetId, Pack)
@@ -283,7 +316,10 @@ function Proc:ResDeparture(NetId, Pack)
   if Pack.Result == 1 then
     print(string.format("Deatach AreaNetId[%s] From Person", Person.AreaNetId))
     Person.AreaNetId = 0
+    print("Clear Person On God!")
+    PersonRepos:Delete(Person.Id)
   end
+  Pack.PersonSoulerId = nil
   LoliCore.Net:PushPackage(Person.MindNetId, Pack)
 end
 

@@ -30,8 +30,18 @@ function PersonProc:OnAccept(NetId)
 end
 
 function PersonProc:OnClose(NetId)
-  local Person = assert(PersonRepos:Delete(NetId))
+  local Person = assert(PersonRepos:GetByNetId(NetId))
   print(string.format("Person[%s,%s,%s], Disconnected!", Person.NetId, Person.Id, Person.SoulerId))
+  if Person.Id > 0 then
+    Person.Lost = 1
+    print("Already Authed, ReqDeparture!")
+    local Pack = LoliCore.Net:GenPackage("ReqDeparture", {Type="Lost"})
+    Pack.PersonId = Person.Id
+    assert(GodProc:PushPackage(Pack))
+  else
+    assert(PersonRepos:Delete(Person.NetId))
+    print("Delete Person Completely!")
+  end
 end
 
 function PersonProc:ReqGodTransmitWithNetId(NetId, Pack, Person)
@@ -40,12 +50,20 @@ function PersonProc:ReqGodTransmitWithNetId(NetId, Pack, Person)
 end
 
 function PersonProc:ReqGodTransmitWithId(NetId, Pack, Person)
+  if Person.Id == 0 then
+    print("Not Authed!!")
+    return
+  end
   Pack.PersonNetId = Person.NetId
   Pack.PersonId = Person.Id
   assert(GodProc:PushPackage(Pack))
 end
 
 function PersonProc:ReqGodTransmitWithSoulerId(NetId, Pack, Person)
+  if Person.SoulerId == 0 then
+    print("Not Selected!")
+    return
+  end
   Pack.PersonSoulerId = Person.SoulerId
   assert(GodProc:PushPackage(Pack))
 end
@@ -74,6 +92,6 @@ function PersonProc:_GetProcs()
     ReqSelectSouler = self.ReqGodTransmitWithId,
     --Area
     ReqArrival = self.ReqGodTransmitWithSoulerId,
-    ReqDeparture = self.ReqGodTransmitWithSoulerId,
+    ReqDeparture = self.ReqGodTransmitWithId,
   }
 end

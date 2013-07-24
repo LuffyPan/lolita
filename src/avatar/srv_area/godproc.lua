@@ -5,6 +5,7 @@
 --
 
 local GodProc = LoliSrvArea.GodProc
+local SoulerRepos = LoliSrvArea.SoulerRepos
 
 function GodProc:Init()
   --通过配置表读取God的信息
@@ -40,16 +41,17 @@ end
 function GodProc:ReqArrival(NetId, Pack)
   Pack.ProcId = "ResArrival"
   Pack.Result = 1
-  local Souler = Pack.Souler
+  local Souler = SoulerRepos:New(Pack.Souler.Id, Pack.Souler)
   Pack.Souler = nil
-  print(string.format("Welcome To The Area[%s], %s", "Unknown", Souler.Name))
-  print(string.format("Sex[%s], Job[%s], Level[%s], AreaId[%s], CurrentAreaId[%s]", Souler.Sex, Souler.Job, Souler.Level, Souler.AreaId, Souler.CurrentAreaId))
+  print(string.format("Welcome To The Area[%s], %s", "Unknown", Souler.File.Name))
+  print(string.format("Sex[%s], Job[%s], Level[%s], AreaId[%s], CurrentAreaId[%s]", Souler.File.Sex, Souler.File.Job, Souler.File.Level, Souler.File.AreaId, Souler.File.CurrentAreaId))
   LoliCore.Net:PushPackage(self.NetId, Pack)
 end
 
 function GodProc:ReqDeparture(NetId, Pack)
   Pack.ProcId = "ResDeparture"
   Pack.Result = 1
+  local Souler = SoulerRepos:Delete(Pack.PersonSoulerId)
   LoliCore.Net:PushPackage(self.NetId, Pack)
 end
 

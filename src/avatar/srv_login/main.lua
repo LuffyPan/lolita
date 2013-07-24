@@ -128,7 +128,7 @@ function LoliSrvLogin:LogicAuth(Id, Pack)
     assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
     return
   end
-  Pack.PersonId = Account.SoulId
+  Pack.AuthPersonId = Account.SoulId
   Pack.Result = 1
   assert(LoliCore.Net:PushPackage(self.GodNetId, Pack))
 end

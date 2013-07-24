@@ -124,24 +124,33 @@ end
 
 
 -------------------------PersonRepos----------------------------
-function PersonRepos:New(Id, SoulerId, MindNetId)
+function PersonRepos:New(Id, MindNetId)
   assert(not self.Id2Person[Id])
   local Person =
   {
     Id = Id,
-    SoulerId = SoulerId,
+    SoulerId = 0,
     MindNetId = MindNetId,
     AreaNetId = 0,
   }
   self.Id2Person[Id] = Person
-  self.SoulerId2Person[SoulerId] = Person
   return Person
 end
 
 function PersonRepos:Delete(Id)
   local Person = assert(self.Id2Person[Id])
   self.Id2Person[Id] = nil
-  self.SoulerId2Person[Person.SoulerId] = nil
+  if Person.SoulerId > 0 then
+    self.SoulerId2Person[Person.SoulerId] = nil
+  end
+  return Person
+end
+
+function PersonRepos:AttachSoulerId(Id, SoulerId)
+  local Person = assert(self.Id2Person[Id])
+  assert(Person.SoulerId == 0)
+  Person.SoulerId = SoulerId
+  self.SoulerId2Person[SoulerId] = Person
   return Person
 end
 
