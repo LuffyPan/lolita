@@ -34,12 +34,16 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
   #define LOLICORE_PLATSTR "win32"
+  #define LOLICORE_EXPORT __declspec(dllexport)
 #elif LOLICORE_PLAT == LOLICORE_PLAT_UNIX
   #define LOLICORE_PLATSTR "unix"
+  #define LOLICORE_EXPORT
 #elif LOLICORE_PLAT == LOLICORE_PLAT_LINUX
   #define LOLICORE_PLATSTR "linux"
+  #define LOLICORE_EXPORT
 #elif LOLICORE_PLAT == LOLICORE_PLAT_MACOSX
   #define LOLICORE_PLATSTR "macosx"
+  #define LOLICORE_EXPORT
 #else
   #error Unknown LOLICORE_PLAT!
 #endif
@@ -47,6 +51,13 @@ Chamz Lau, Copyright (C) 2013-2017
 #define LOLICORE_VERSION 1990
 #define LOLICORE_AUTHOR "Chamz Lau"
 #define LOLICORE_COPYRIGHT "LolitaCore Copyright (C) 2013-2017, " LOLICORE_AUTHOR
+
+#ifndef LOLICORE_LUA
+  #define LOLICORE_LUA LUA_VERSION
+#endif
+#if LOLICORE_LUA_514
+  #define LUA_OK 0
+#endif
 
 typedef struct coN coN;
 typedef struct coOs coOs;

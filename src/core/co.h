@@ -22,6 +22,13 @@ const char* lolicore_getlvname(lolicore* Co, int lv);
 
 #define co_L(Co) ((Co)->L)
 #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L)
+#if LOLICORE_LUA_514
+  /* 用宏模拟失败会导致数据不一致 */
+  #define lua_rawgetp(L, t, p) lua_pushlightuserdata(L, p); lua_rawget(L, t)
+  #define lua_rawsetp(L, t, p) lua_pushlightuserdata(L, p); lua_insert(L, -2); lua_rawset(L, t)
+  #define luaL_checkunsigned(L, idx) (unsigned int)luaL_checknumber(L, idx)
+  #define luaL_setfuncs(L, l, nups) co_assert(nups == 0); luaL_register(L, NULL, l)
+#endif
 #define co_pushcore(L, Co) lua_rawgetp(L, LUA_REGISTRYINDEX, Co); co_assert(lua_istable(L, -1));
 
 #endif

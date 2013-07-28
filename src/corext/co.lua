@@ -4,6 +4,7 @@
 -- 2013/03/02 23:27:09
 --
 
+assert(_VERSION ~= "Lua 5.1", "lolita.corext Need Lua5.2+")
 local bGetManifest = select(1, ...)
 
 local Manifest =

@@ -1,4 +1,4 @@
-
+--Some Complicate, Need Rewrite This!
 
 
 if not string.find(_PREMAKE_VERSION, "4.4") then
@@ -11,32 +11,13 @@ if not _ACTION then
   return
 end
 
-solution "lolicore"
+solution "lolitall"
   configurations { "debug", "release" }
   location ("_build/" .. _ACTION)
 
   --IS this vs used only?
   debugdir ("_deploy")
   debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/av.lua", "conf=conf/srv_god.conf", }
-
-project "lolicore"
-  targetname "lolicore"
-  language "C"
-  kind "ConsoleApp"
-  includedirs { "src/3rd/lua-5.2.2/src" }
-
-  files
-  {
-    "src/3rd/lua-5.2.2/src/**.h", "src/3rd/lua-5.2.2/**.c",
-    "src/core/**.h", "src/core/**.c",
-  }
-
-  excludes
-  {
-    "src/3rd/lua-5.2.2/src/lua.c",
-    "src/3rd/lua-5.2.2/src/luac.c",
-    "src/core/coconf.h",
-  }
 
   --Platform macro configuration, much more thing to do..
   configuration "vs*"
@@ -83,6 +64,66 @@ project "lolicore"
 
   configuration "solaris"
     linkoptions { "-Wl,--export-dynamic" }
+
+local extlua = _OPTIONS["luaver"] or "5.2.2"
+print(string.format("lolitaext's Lua version is %s", extlua))
+local extluapath = string.format("src/3rd/lua-%s/src", extlua)
+project "lolitaext"
+  targetname "lolitaext"
+  language "C"
+  kind "SharedLib"
+  includedirs {extluapath,}
+
+  files
+  {
+    extluapath .. "/**.h", extluapath .. "/**.c",
+    "src/core/**.h", "src/core/**.c",
+  }
+
+  excludes
+  {
+    extluapath .. "/lua.c",
+    extluapath .. "/luac.c",
+    "src/core/comain.c",
+  }
+
+  if extlua == "5.2.2" then
+    defines {"LOLICORE_LUA_522"}
+  elseif extlua == "5.2.1" then
+    defines {"LOLICORE_LUA_521"}
+  elseif extlua == "5.1.4" then
+    defines {"LOLICORE_LUA_514"}
+  end
+
+local lolitalua = _OPTIONS["luaver2"] or "5.2.2"
+print(string.format("lolita's Lua version is %s", lolitalua))
+local lolitaluapath = string.format("src/3rd/lua-%s/src", lolitalua)
+project "lolita"
+  targetname "lolita"
+  language "C"
+  kind "ConsoleApp"
+  includedirs {lolitaluapath}
+
+  files
+  {
+    lolitaluapath .. "/**.h", lolitaluapath .. "/**.c",
+    "src/core/**.h", "src/core/**.c",
+  }
+
+  excludes
+  {
+    lolitaluapath .. "/lua.c",
+    lolitaluapath .. "/luac.c",
+    "src/core/coexport.c",
+  }
+  if lolitalua == "5.2.2" then
+    defines {"LOLICORE_LUA_522"}
+  elseif lolitalua == "5.2.1" then
+    defines {"LOLICORE_LUA_521"}
+  elseif lolitalua == "5.1.4" then
+    defines {"LOLICORE_LUA_514"}
+  end
+
 
 if _ACTION == "clean" then
   os.rmdir("_bin")
@@ -196,7 +237,8 @@ end
 
 local function _exec(cmd, ...)
   cmd = string.format(cmd, unpack(arg))
-  local z = os.execute(cmd .. " > output.log 2> error.log")
+  --local z = os.execute(cmd .. " > output.log 2> error.log")
+  local z = os.execute(cmd)
   --local z = os.execute(cmd)
   os.remove("output.log")
   os.remove("error.log")
@@ -212,11 +254,13 @@ end
 
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
+  local luaver = _OPTIONS["luaver"] or "5.2.2"
+  local luaver2 = _OPTIONS["luaver2"] or "5.2.2"
   printf("Premaking %s...", action)
   os.mkdir("_deploy")
   _version()
   _embe()
-  _exec("premake4 %s", action)
+  _exec("premake4 --%s=%s --%s=%s %s", "luaver", luaver, "luaver2", luaver2, action)
 end
 
 local function _domake()
@@ -267,15 +311,15 @@ local function _dodeploy()
     os.execute(string.format("chmod 755 %s", v[2]))
   end
 
-  local src = string.format("%s/lolicore.exe", bin)
-  local dest = string.format("_deploy/lolicore.exe")
+  local src = string.format("%s/lolita.exe", bin)
+  local dest = string.format("_deploy/lolita.exe")
   if not os.isfile(src) then
     printf("%s is not a file", src)
   else
     os.copyfile(src, dest)
   end
-  src = string.format("%s/lolicore", bin)
-  dest = string.format("_deploy/lolicore")
+  src = string.format("%s/lolita", bin)
+  dest = string.format("_deploy/lolita")
   if not os.isfile(src) then
     printf("%s is not a file", src)
   else
@@ -389,4 +433,30 @@ newoption
     { "login", "embe core and login" },
     { "area", "embe core and area" },
   }
+}
+
+newoption
+{
+  trigger = "luaver",
+  value = "luaversion",
+  description = "lua version",
+  allowed =
+  {
+    {"5.2.2", "version 5.2.2"},
+    {"5.2.1", "version 5.2.1"},
+    {"5.1.4", "version 5.1.4"},
+  },
+}
+
+newoption
+{
+  trigger = "luaver2",
+  value = "luaversion",
+  description = "lua version",
+  allowed =
+  {
+    {"5.2.2", "version 5.2.2"},
+    {"5.2.1", "version 5.2.1"},
+    {"5.1.4", "version 5.1.4"},
+  },
 }
