@@ -70,6 +70,8 @@ solution "lolitall"
 local extlua = _OPTIONS["luaver"] or "5.2.2"
 print(string.format("lolitaext's Lua version is %s", extlua))
 local extluapath = string.format("src/3rd/lua-%s/src", extlua)
+local lualibname = _OPTIONS["lualibname"]
+local lualibpath = _OPTIONS["lualibpath"]
 
 project "lua"
   targetname "lua"
@@ -113,7 +115,16 @@ project "lolitaext"
     defines {"LOLICORE_LUA_514"}
   end
 
-  links { "lua" }
+  if lualibpath then
+    print(string.format("specify lualibpath %s", lualibpath))
+    libdirs {lualibpath}
+  end
+  if lualibname then
+    print(string.format("specify lualibname %s", lualibname))
+    links {lualibname}
+  else
+    links {"lua"}
+  end
 
 project "lolita"
   targetname "lolita"
@@ -270,11 +281,17 @@ end
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
   local luaver = _OPTIONS["luaver"] or "5.2.2"
+  local lualibname = _OPTIONS["lualibname"]
+  local lualibpath = _OPTIONS["lualibpath"]
+  local lualib = ""
+  if lualibname then lualib = lualib .. " --lualibname=" .. lualibname end
+  if lualibpath then lualib = lualib .. " --lualibpath=" .. lualibpath end
+  lualib = lualib:gsub("\\", "\\\\")
   printf("Premaking %s...", action)
   os.mkdir("_deploy")
   _version()
   _embe()
-  _exec("premake4 --%s=%s %s", "luaver", luaver, action)
+  _exec("premake4 --%s=%s %s %s", "luaver", luaver, lualib, action)
 end
 
 local function _domake()
@@ -464,4 +481,18 @@ newoption
     {"5.2.1", "version 5.2.1"},
     {"5.1.4", "version 5.1.4"},
   },
+}
+
+newoption
+{
+  trigger = "lualibname",
+  value = "lua lib's name",
+  description = "specify lua lib's name for lolitaext",
+}
+
+newoption
+{
+  trigger = "lualibpath",
+  value = "lua lib's path",
+  description = "specify lua lib's path for lolitaext",
 }
