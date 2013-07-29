@@ -39,7 +39,7 @@ int main(int argc, const char** argv)
 #if LOLICORE_USE_EXTERNALXLLOC
   x = externalxlloc;
 #endif
-  Co = lolicore_born(argc, argv, x, NULL, externaltracef);if (!Co){return 1;}
+  Co = lolicore_born(argc, argv, x, NULL, externaltracef, NULL);if (!Co){return 1;}
   lolicore_alive(Co);
   lolicore_die(Co);
   return 0;

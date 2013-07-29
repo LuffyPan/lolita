@@ -78,17 +78,17 @@ int coOs_pexportapi(co* Co, lua_State* L)
 
 int coOs_pexport(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   coOs_pexportapi(Co, L);
   return 0;
 }
 
 void coOs_export(co* Co)
 {
-  int z;
+  int z, top;
   lua_State* L = co_L(Co);
-  co_assert(lua_gettop(L) == 0);
+  top = lua_gettop(L);
+  if (!Co->battachL) {co_assert(top == 0);}
   lua_pushcfunction(L, coOs_pexport);
   z = lua_pcall(L, 0, 0, 0);
   if (z)
@@ -97,7 +97,8 @@ void coOs_export(co* Co)
     lua_pop(L,1); co_assert(lua_gettop(L) == 0);
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
-  co_assert(lua_gettop(L) == 0);
+  co_assert(top == lua_gettop(L));
+  if (!Co->battachL) {co_assert(lua_gettop(L) == 0);}
 }
 
 static coOs* _coOs = NULL;
@@ -162,7 +163,7 @@ void coOs_born(co* Co)
   Os = co_cast(coOs*, coM_newobj(Co, coOs));
   Os->sigcnt = 0;
   Co->Os = Os;
-  coOs_initsig(Co);
+  if (!Co->battachL) {coOs_initsig(Co);}
   coOs_export(Co);
 }
 
@@ -331,9 +332,8 @@ static int coOs_export_ispath(lua_State* L)
 
 static int coOs_export_mkdir(lua_State* L)
 {
-  co* Co = NULL;
+  co* Co = co_C(L);
   const char* path = NULL;
-  co_C(L, Co);
   path = luaL_checkstring(L, 1);
   if (coOs_mkdir(Co, path))
   {
@@ -347,8 +347,7 @@ static int coOs_export_getcwd(lua_State* L)
 {
   char buf[1024];
   size_t bufs = 1024;
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   if (coOs_getcwd(Co, buf, bufs))
   {
     lua_pushstring(L, buf);
@@ -359,17 +358,15 @@ static int coOs_export_getcwd(lua_State* L)
 
 static int coOs_export_getpid(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   lua_pushnumber(L, coOs_getpid(Co));
   return 1;
 }
 
 static int coOs_export_active(lua_State* L)
 {
-  co* Co = NULL;
+  co* Co = co_C(L);
   int msec = 0;
-  co_C(L, Co);
   msec = luaL_optint(L, 1, 0);
   coOs_activesig(Co);
   if (msec > 0) coOs_sleep(msec);
@@ -379,9 +376,8 @@ static int coOs_export_active(lua_State* L)
 static int coOs_export_register(lua_State* L)
 {
   int t;
-  co* Co = NULL;
+  co* Co = co_C(L);
   coOs* Os = NULL;
-  co_C(L, Co);
   Os = Co->Os;co_assert(Os);
   if (lua_gettop(L) != 2) luaL_error(L, "a function and a table or nil!");
   t = lua_type(L, 2);

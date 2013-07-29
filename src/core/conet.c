@@ -448,7 +448,7 @@ static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
   co* Co = NULL;
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
-  co_C(L, Co);
+  Co = co_C(L);
   co_pushcore(L, Co);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
@@ -466,7 +466,7 @@ static int cosockid2idx_getidx(cosockid2idx* id2idx, int id)
   co* Co = NULL;
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
-  co_C(L, Co);
+  Co = co_C(L);
   co_pushcore(L, Co);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
@@ -542,17 +542,17 @@ int coN_pexportapi(co* Co, lua_State* L)
 
 int coN_pexport(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   coN_pexportapi(Co, L);
   return 0;
 }
 
 static void coN_export(co* Co)
 {
-  int z;
+  int z, top;
   lua_State* L = co_L(Co);
-  co_assert(lua_gettop(L) == 0);
+  top = lua_gettop(L);
+  if (!Co->battachL) {co_assert(lua_gettop(L) == 0);}
   lua_pushcfunction(L, coN_pexport);
   z = lua_pcall(L, 0, 0, 0);
   if (z)
@@ -561,7 +561,8 @@ static void coN_export(co* Co)
     lua_pop(L,1); co_assert(lua_gettop(L) == 0);
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
-  co_assert(lua_gettop(L) == 0);
+  co_assert(top == lua_gettop(L));
+  if (!Co->battachL) {co_assert(lua_gettop(L) == 0);}
 }
 
 static void coN_initenv(co* Co)
@@ -1591,9 +1592,8 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
 
 static int coN_export_register(lua_State* L)
 {
-  co* Co = NULL;
+  co* Co = co_C(L);
   int t;
-  co_C(L, Co);
   if (lua_gettop(L) != 2) luaL_error(L, "fuck, 2 arg please! a function and a table or nil!");
   t = lua_type(L, 2);
   luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -1609,7 +1609,7 @@ static int coN_export_connect(lua_State* L)
   co* Co = NULL;
   const char* addr = NULL;
   unsigned short port = 0;
-  co_C(L, Co);
+  Co = co_C(L);
   addr = luaL_checkstring(L, 1);
   port = (unsigned short)luaL_checkint(L, 2);
   id = coN_connect(Co, addr, port);
@@ -1627,7 +1627,7 @@ static int coN_export_listen(lua_State* L)
   co* Co = NULL;
   const char* addr = NULL;
   unsigned short port = 0;
-  co_C(L, Co);
+  Co = co_C(L);
   addr = luaL_checkstring(L, 1);
   port = (unsigned short)luaL_checkint(L, 2);
   id = coN_listen(Co, addr[0] == 0 ? NULL : addr, port);
@@ -1645,7 +1645,7 @@ static int coN_export_push(lua_State* L)
   int id = 0, attaid = 0;
   const char* data = NULL;
   size_t datasize = 0;
-  co_C(L, Co);
+  Co = co_C(L);
   id = luaL_checkint(L, 1);
   attaid = luaL_checkint(L, 2);
   data = luaL_checklstring(L, 3, &datasize);
@@ -1660,9 +1660,8 @@ static int coN_export_push(lua_State* L)
 
 static int coN_export_close(lua_State* L)
 {
-  co* Co = NULL;
+  co* Co = co_C(L);
   int id = 0, attaid = 0;
-  co_C(L, Co);
   id = luaL_checkint(L, 1);
   attaid = luaL_checkint(L, 2);
   if (!coN_close(Co, id, attaid))
@@ -1675,8 +1674,7 @@ static int coN_export_close(lua_State* L)
 
 static int coN_export_active(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   coN_active(Co);
   lua_pushnumber(L, 1);
   return 1;
@@ -1692,7 +1690,7 @@ static int coN_export_getinfo(lua_State* L)
   int id = 0, attaid = 0;
   char* c = NULL;
   unsigned short port = 0;
-  co_C(L, Co);
+  Co = co_C(L);
   id = luaL_checkint(L, 1);
   attaid = luaL_checkint(L, 2);
   lua_newtable(L);

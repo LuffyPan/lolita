@@ -17,9 +17,10 @@ solution "lolitall"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/av.lua", "conf=conf/srv_god.conf", }
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/av.lua", "target=login", }
 
   --Platform macro configuration, much more thing to do..
+  --LOLICORE_PLAT之类的Macro有点多余，直接在代码中通过平台宏就可以判断出来了
   configuration "vs*"
     defines { "LOLICORE_PLAT=LOLICORE_PLAT_WIN32" }
 
@@ -39,12 +40,13 @@ solution "lolitall"
 
   configuration "vs*"
     defines "_CRT_SECURE_NO_WARNINGS"
+    links { "ole32" }
 
   configuration "vs2005"
     defines "_CRT_SECURE_NO_DEPRECATE"
 
-  configuration "windows"
-    links { "ole32" }
+  configuration {"windows", "gmake"}
+    defines {"LUA_USE_LINUX"}
 
   configuration "linux or bsd"
     defines { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
@@ -68,6 +70,24 @@ solution "lolitall"
 local extlua = _OPTIONS["luaver"] or "5.2.2"
 print(string.format("lolitaext's Lua version is %s", extlua))
 local extluapath = string.format("src/3rd/lua-%s/src", extlua)
+
+project "lua"
+  targetname "lua"
+  language "C"
+  kind "SharedLib"
+  files
+  {
+    extluapath .. "/**.h", extluapath .. "/**.c",
+  }
+  excludes
+  {
+    extluapath .. "/lua.c",
+    extluapath .. "/luac.c",
+    extluapath .. "/print.c",
+  }
+  configuration "vs*"
+    defines {"LUA_BUILD_AS_DLL"}
+
 project "lolitaext"
   targetname "lolitaext"
   language "C"
@@ -76,14 +96,12 @@ project "lolitaext"
 
   files
   {
-    extluapath .. "/**.h", extluapath .. "/**.c",
+    extluapath .. "/**.h",
     "src/core/**.h", "src/core/**.c",
   }
 
   excludes
   {
-    extluapath .. "/lua.c",
-    extluapath .. "/luac.c",
     "src/core/comain.c",
   }
 
@@ -95,35 +113,32 @@ project "lolitaext"
     defines {"LOLICORE_LUA_514"}
   end
 
-local lolitalua = _OPTIONS["luaver2"] or "5.2.2"
-print(string.format("lolita's Lua version is %s", lolitalua))
-local lolitaluapath = string.format("src/3rd/lua-%s/src", lolitalua)
+  links { "lua" }
+
 project "lolita"
   targetname "lolita"
   language "C"
   kind "ConsoleApp"
-  includedirs {lolitaluapath}
+  includedirs {extluapath}
 
   files
   {
-    lolitaluapath .. "/**.h", lolitaluapath .. "/**.c",
+    extluapath .. "/**.h",
     "src/core/**.h", "src/core/**.c",
   }
 
   excludes
   {
-    lolitaluapath .. "/lua.c",
-    lolitaluapath .. "/luac.c",
     "src/core/coexport.c",
   }
-  if lolitalua == "5.2.2" then
+  if extlua == "5.2.2" then
     defines {"LOLICORE_LUA_522"}
-  elseif lolitalua == "5.2.1" then
+  elseif extlua == "5.2.1" then
     defines {"LOLICORE_LUA_521"}
-  elseif lolitalua == "5.1.4" then
+  elseif extlua == "5.1.4" then
     defines {"LOLICORE_LUA_514"}
   end
-
+  links { "lua" }
 
 if _ACTION == "clean" then
   os.rmdir("_bin")
@@ -255,12 +270,11 @@ end
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
   local luaver = _OPTIONS["luaver"] or "5.2.2"
-  local luaver2 = _OPTIONS["luaver2"] or "5.2.2"
   printf("Premaking %s...", action)
   os.mkdir("_deploy")
   _version()
   _embe()
-  _exec("premake4 --%s=%s --%s=%s %s", "luaver", luaver, "luaver2", luaver2, action)
+  _exec("premake4 --%s=%s %s", "luaver", luaver, action)
 end
 
 local function _domake()
@@ -311,19 +325,23 @@ local function _dodeploy()
     os.execute(string.format("chmod 755 %s", v[2]))
   end
 
-  local src = string.format("%s/lolita.exe", bin)
-  local dest = string.format("_deploy/lolita.exe")
-  if not os.isfile(src) then
-    printf("%s is not a file", src)
-  else
-    os.copyfile(src, dest)
-  end
-  src = string.format("%s/lolita", bin)
-  dest = string.format("_deploy/lolita")
-  if not os.isfile(src) then
-    printf("%s is not a file", src)
-  else
-    os.copyfile(src, dest)
+  local _deployexe =
+  {
+    {string.format("%s/lolita.exe", bin), "_deploy/lolita.exe"},
+    {string.format("%s/lolita", bin), "_deploy/lolita"},
+    {string.format("%s/lolitaext.dll", bin), "_deploy/lolitaext.dll"},
+    {string.format("%s/lolitaext.dll", bin), "_deploy/lolitaext.so"},
+    {string.format("%s/lolitaext.so", bin), "_deploy/lolitaext.so"},
+    {string.format("%s/lua.dll", bin), "_deploy/lua.dll"},
+    {string.format("%s/lua.so", bin), "_deploy/lua.so"},
+  }
+
+  for _, v in ipairs(_deployexe) do
+    if os.isfile(v[1]) then
+      print(string.format("copy %s to %s", v[1], v[2]))
+      os.copyfile(v[1], v[2])
+      os.execute(string.format("chmod 755 %s", v[2]))
+    end
   end
 end
 
@@ -438,19 +456,6 @@ newoption
 newoption
 {
   trigger = "luaver",
-  value = "luaversion",
-  description = "lua version",
-  allowed =
-  {
-    {"5.2.2", "version 5.2.2"},
-    {"5.2.1", "version 5.2.1"},
-    {"5.1.4", "version 5.1.4"},
-  },
-}
-
-newoption
-{
-  trigger = "luaver2",
   value = "luaversion",
   description = "lua version",
   allowed =

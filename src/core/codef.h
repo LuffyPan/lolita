@@ -87,6 +87,7 @@ struct co
   int argc;
   const char** argv;
   lua_State* L;
+  int battachL;
   coN* N;
   coOs* Os;
 };

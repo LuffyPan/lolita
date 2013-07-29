@@ -29,8 +29,9 @@ static const char* co_errorstr(co* Co, int e);
 static int co_export_setmaxmem(lua_State* L);
 static int co_export_getmem(lua_State* L);
 static int co_export_settracelv(lua_State* L);
+static int co_export_getregistry(lua_State* L);
 
-lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf)
+lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
 {
   int z = 0;
   co* Co;
@@ -52,7 +53,8 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
   }
   Co->tracelv = CO_LVFATAL;
   Co->errjmp = NULL;
-  Co->L = NULL;
+  Co->L = L;
+  Co->battachL = 0;
   Co->N = NULL;
   Co->Os = NULL;
   z = coR_pcall(Co, co_born, NULL);
@@ -78,6 +80,12 @@ void lolicore_alive(lolicore* Co)
 void lolicore_die(lolicore* Co)
 {
   co_free(Co);
+}
+
+void lolicore_pushcore(lolicore* Co)
+{
+  lua_State* L = co_L(Co);
+  co_pushcore(L, Co);
 }
 
 size_t lolicore_getusedmem(lolicore* Co)
@@ -118,7 +126,7 @@ static int co_palive(lua_State* L)
   int z;
   co* Co = NULL;
   const char* corext = NULL;
-  co_C(L, Co);
+  Co = co_C(L);
   co_assert(lua_gettop(L) == 0);
   co_pushcore(L, Co);
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
@@ -163,28 +171,51 @@ static void co_free(co* Co)
 
 static void co_newlua(co* Co)
 {
+  int top = 0, z = 0;
   lua_State* L = co_L(Co);
-  co_assert(!L);
-  L = lua_newstate(co_lualloc, Co);
-  co_L(Co) = L;
-  if (!L) coR_throw(Co, CO_ERRSCRIPTNEW);
-  lua_atpanic(L, co_panic);
+  if (L)
+  {
+    Co->battachL = 1; /* set first so that co know don't close this L */
+    top = lua_gettop(L);
+    lua_getfield(L, LUA_REGISTRYINDEX, "lolita");
+    if (!lua_isnil(L, -1))
+    {
+      printf("lolita is loaded\n");
+      coR_throw(Co, 1);
+    }
+    lua_pop(L, 1);
+    /* if Host is [lolita], and require [lolitaext], then, below's call will rewrite the registry[L]!!!, so aband this ocurrs */
+    /* Check registry["lolita"], if not nil, then break it */
+  }
+  else
+  {
+    L = lua_newstate(co_lualloc, Co);
+    top = lua_gettop(L); co_assert(top == 0);
+    co_L(Co) = L;
+    if (!L) coR_throw(Co, CO_ERRSCRIPTNEW);
+    lua_atpanic(L, co_panic);
+  }
+  lua_pushlightuserdata(L, Co);
+  lua_setfield(L, LUA_REGISTRYINDEX, "lolita");
+  co_assert(top == lua_gettop(L));
 }
 
 static void co_deletelua(co* Co)
 {
   lua_State* L = co_L(Co);
-  if (L) lua_close(L);
+  if ((!Co->battachL) && L) lua_close(L);
 }
 
 static void co_pexportcore(co* Co, lua_State* L)
 {
   co_assert(lua_gettop(L) == 0);
-  luaL_openlibs(L);
+  if (!Co->battachL) {luaL_openlibs(L);}
+  /* check lolita.core and assert */
   lua_newtable(L); /* core? the name is not important */
   lua_pushvalue(L, -1);
-  lua_rawsetp(L, LUA_REGISTRYINDEX, Co);
-  lua_setglobal(L, "core");
+  lua_setfield(L, LUA_REGISTRYINDEX, "lolita.core");
+  if (!Co->battachL) {lua_setglobal(L, "core");}
+  else {lua_pop(L, 1);}
   co_assert(lua_gettop(L) == 0);
 }
 
@@ -244,6 +275,7 @@ static void co_pexportapi(co* Co, lua_State* L)
     {"getmem", co_export_getmem},
     {"setmaxmem", co_export_setmaxmem},
     {"settracelv", co_export_settracelv},
+    {"getregistry", co_export_getregistry},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -257,8 +289,7 @@ static void co_pexportapi(co* Co, lua_State* L)
 
 static int co_pexport(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   co_assert(lua_gettop(L) == 0);
   co_pexportcore(Co, L);
   co_pexportinfo(Co, L);
@@ -270,18 +301,22 @@ static int co_pexport(lua_State* L)
 
 static void co_export(co* Co)
 {
-  int z;
+  int z, top;
   lua_State* L = co_L(Co);
-  co_assert(lua_gettop(L) == 0);
+  top = lua_gettop(L);
+  if (!Co->battachL) {co_assert(top == 0);}
   lua_pushcfunction(L, co_pexport);
   z = lua_pcall(L, 0, 0, 0);
   if (z)
   {
     co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
-    lua_pop(L,1); co_assert(lua_gettop(L) == 0);
+    printf("%s\n", lua_tostring(L, -1));
+    /* when the failed, you never know the stack would be, so, cancel this assert */
+    /* lua_pop(L,1); co_assert(lua_gettop(L) == 0); */
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
-  co_assert(lua_gettop(L) == 0);
+  co_assert(top == lua_gettop(L));
+  if (!Co->battachL) {co_assert(top == 0);}
 }
 
 static void co_fatalerror(co* Co, int e)
@@ -336,8 +371,7 @@ static const char* co_errorstr(co* Co, int e)
 
 static int co_panic(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "atpanic\?!");
   coR_throw(Co, CO_ERRSCRIPTPANIC);
   return 0;
@@ -382,7 +416,7 @@ static int co_export_setmaxmem(lua_State* L)
 {
   co* Co = NULL;
   size_t maxmem;
-  co_C(L, Co);
+  Co = co_C(L);
   maxmem = co_cast(size_t, luaL_checkunsigned(L, 1));
   Co->maxmem = maxmem > Co->maxmem ? maxmem : Co->maxmem;
   return 0;
@@ -390,8 +424,7 @@ static int co_export_setmaxmem(lua_State* L)
 
 static int co_export_getmem(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   lua_pushnumber(L, Co->umem);
   lua_pushnumber(L, Co->maxmem);
   return 2;
@@ -399,10 +432,15 @@ static int co_export_getmem(lua_State* L)
 
 static int co_export_settracelv(lua_State* L)
 {
-  co* Co = NULL;
-  co_C(L, Co);
+  co* Co = co_C(L);
   Co->tracelv = luaL_checkint(L, 1);
   return 0;
+}
+
+static int co_export_getregistry(lua_State* L)
+{
+  lua_pushvalue(L, LUA_REGISTRYINDEX);
+  return 1;
 }
 
 void co_trace(co* Co, int mod, int lv, const char* msg, ...)
@@ -412,4 +450,17 @@ void co_trace(co* Co, int mod, int lv, const char* msg, ...)
   va_start(msgva, msg);
   Co->tf(Co, mod, lv, msg, msgva);
   va_end(msgva);
+}
+
+co* co_C(lua_State* L)
+{
+  int top = 0;
+  co* Co = NULL;
+  top = lua_gettop(L);
+  lua_getfield(L, LUA_REGISTRYINDEX, "lolita");
+  Co = (co*)lua_touserdata(L, -1);
+  co_assert(co_L(Co) == L);
+  lua_pop(L, 1);
+  co_assert(top == lua_gettop(L));
+  return Co;
 }
