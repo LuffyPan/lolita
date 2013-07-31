@@ -13,7 +13,7 @@ LOLICORE_EXPORT int luaopen_lolitaext(lua_State* L)
   lolicore* Co = NULL;
   void* ud = NULL;
   lua_Alloc acfn = NULL;
-  /* LuaµÄ°æ±¾¼ì²âºÜ¼¦Àß,¶ş½øÖÆÈç¹û¼æÈİ¼ì²âµÃµ½£¬µ«ÊÇÃ»ÒâÒå£¬¶ş½øÖÆ²»¼æÈİ£¬ÔõÃ´¼ì²â£¿ ÓÃ°æ±¾×Ö·û´®±È½Ï¸ü¿¿Æ× */
+  /* Luaçš„ç‰ˆæœ¬æ£€æµ‹å¥½é¸¡è‚‹,äºŒè¿›åˆ¶å¦‚æœä¸å…¼å®¹ï¼Œæ€ä¹ˆæ£€æµ‹ï¼Œç‰ˆæœ¬å­—ç¬¦ä¸²æ›´é è°±å§? */
 #ifndef LOLICORE_LUA_514
   const lua_Number* v = lua_version(L);
   printf("version:%d\n", (int)(*v));
