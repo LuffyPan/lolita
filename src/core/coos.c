@@ -180,8 +180,8 @@ void coOs_sleep(int msec)
   Sleep((DWORD)msec);
 #else
   struct timeval delay;
-  delay.tv_sec = 0;
-  delay.tv_usec = msec * 1000; // 20 ms
+  delay.tv_sec = (msec * 1000) / (1000 * 1000);
+  delay.tv_usec = (msec * 1000) % (1000 * 1000); // 20 ms
   select(0, NULL, NULL, NULL, &delay);
 #endif
 }
