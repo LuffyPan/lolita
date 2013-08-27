@@ -69,7 +69,7 @@ solution "lolitall"
 
 local extlua = _OPTIONS["luaver"] or "5.2.2"
 print(string.format("lolitaext's Lua version is %s", extlua))
-local extluapath = string.format("src/3rd/lua-%s/src", extlua)
+local extluapath = string.format("src/deps/lua-%s/src", extlua)
 local lualibname = _OPTIONS["lualibname"]
 local lualibpath = _OPTIONS["lualibpath"]
 
