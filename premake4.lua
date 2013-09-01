@@ -56,6 +56,9 @@ solution "lolitall"
   configuration "linux"
     links { "dl" }
 
+  configuration "macosx or bsd"
+    defines { "LOLITA_USE_KQUEUE" }
+
   configuration "macosx"
     defines { "LUA_USE_MACOSX" }
     links { "CoreServices.framework" }

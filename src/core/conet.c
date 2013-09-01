@@ -11,6 +11,12 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cort.h"
 #include "comm.h"
 
+#ifdef LOLITA_USE_KQUEUE
+  #define LOLITA_NET_MODE "kqueue"
+#else
+  #define LOLITA_NET_MODE "select"
+#endif
+
 #if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
 #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
@@ -19,8 +25,10 @@ Chamz Lau, Copyright (C) 2013-2017
 #include <winsock2.h>
 #include <winerror.h>
 #pragma comment(lib, "ws2_32.lib")
+typedef int cosockfdm;
 typedef SOCKET cosockfd;
 typedef int cosockfd_size;
+#define COSOCKFDM_NULL (0)
 #define COSOCKFD_ERROR (SOCKET_ERROR)
 #define COSOCKFD_NULL (INVALID_SOCKET)
 #define COSOCKFD_EINVAL WSAEINVAL
@@ -43,8 +51,15 @@ typedef int cosockfd_size;
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <errno.h>
+
+#ifdef LOLITA_USE_KQUEUE
+#include <sys/event.h>
+#endif
+
+typedef int cosockfdm;
 typedef int cosockfd;
 typedef socklen_t cosockfd_size;
+#define COSOCKFDM_NULL (-1)
 #define COSOCKFD_EINVAL EINVAL
 #define COSOCKFD_EWOULDBLOCK EWOULDBLOCK
 #define COSOCKFD_EAGAIN EAGAIN
@@ -56,8 +71,13 @@ typedef socklen_t cosockfd_size;
 #define cosockfd_ioctl ioctl
 #define cosockfd_errno errno
 #define cosockfd_errstr(ec) strerror((ec))
-#define cosock_activeconn cosock_activeconn_ux
-#define cosock_activeaccp cosock_activeaccp_common /* hoho */
+#ifdef LOLITA_USE_KQUEUE
+  #define cosock_activeconn cosock_active_kqueue
+  #define cosock_activeaccp cosock_active_kqueue
+#else
+  #define cosock_activeconn cosock_activeconn_ux
+  #define cosock_activeaccp cosock_activeaccp_common /* hoho */
+#endif
 #endif
 
 #define COSOCKFD_INVALIDIP "-1.-1.-1.-1"
@@ -104,6 +124,10 @@ static void cosock_activeaccp_common(co* Co, cosock* s);
 static void cosock_activeconn_win32(co* Co, cosock* s);
 #else
 static void cosock_activeconn_ux(co* Co, cosock* s);
+#endif
+
+#ifdef LOLITA_USE_KQUEUE
+  static void cosock_active_kqueue(co* Co, cosock* s);
 #endif
 
 /* align & littleending ! */
@@ -164,6 +188,7 @@ struct cosock
   int poolidx; /* internal use index! */
   int id; /* identify */
   cosockfd fd;
+  cosockfdm fdm; /* kqueue, epoll IOCP used ? */
   int fdt; /* fd type, connector, acceptor, attacher */
   int bactive; /* is in active */
   int bconnected; /* is connected, TCONN used */
@@ -234,9 +259,13 @@ static void cosock_delete(co* Co, cosock* s);
 #define cosock_eventclose(Co, s, as, extra) (s)->eventer->close(Co, s, as, extra)
 
 static int cosock_newfd(co* Co, cosock* s);
+static int cosock_newfdm(co* Co, cosock* s);
+static int cosock_ctlfdm(co* Co, cosock* s, int type, int op);
+static int cosock_markwrite(co* Co, cosock* s);
 static int cosock_attachfd(co* Co, cosock* s, cosockfd fd);
 static void cosock_newfdt(co* Co, cosock* s);
 static void cosock_deletefd(co* Co, cosock* s);
+static void cosock_deletefdm(co* Co, cosock* s);
 static void cosock_deletefdt(co* Co, cosock* s);
 #define cosock_id(s) ((s)->id)
 #define cosock_ec(s) ((s)->ec)
@@ -917,7 +946,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   while (1)
   {
     size_t dsize = 0;
-    if (leftsize < sizeof(cosockpack_hdr) + sizeof(cosockpack_tail)) break;
+    if (leftsize < sizeof(cosockpack_hdr) + sizeof(cosockpack_tail)) break; /* may be attacked by send size less than this */
     hdr = (cosockpack_hdr*)data;
     if (hdr->flag != COSOCKPACK_HDR_FLAG || hdr->ver != COSOCKPACK_VERSION) {bclose = 1; break;}
     if (hdr->dsize >= 1024 * 1024) {bclose = 1; break;}
@@ -983,7 +1012,14 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
 static void cosock_pnew(co* Co, void* ud)
 {
   cosock* s = (cosock*)ud;
+  /* only memory that can cause failed */
   cosock_newfdt(Co, s);
+
+  /*
+    this may failed while file descriptor is out of rang or many other reason,
+    so, don't call it here
+  */
+  /* cosock_newfdm(Co, s); */
 }
 
 static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt)
@@ -992,6 +1028,7 @@ static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosoc
   cosock* s = co_cast(cosock*, coM_newobj(Co, cosock));
   s->poolidx = 0;
   s->id = cosockid2idx_newid(i2i);
+  s->fdm = COSOCKFDM_NULL;
   s->fd = COSOCKFD_NULL;
   s->fdt = fdt;
   s->bactive = 0;
@@ -1021,6 +1058,13 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
     coN_tracedebug(Co, "id[%d,%d] listen failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
+
+  if (!cosock_newfdm(Co, s))
+  {
+    coN_tracedebug(Co, "id[%d,%d] listen failed while newfdm, [%s,%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    return 0;
+  }
+
   sin.sin_family = PF_INET;
   sin.sin_addr.s_addr = addr ? inet_addr(addr) : htonl(INADDR_ANY);
   sin.sin_port = htons(port);
@@ -1051,6 +1095,13 @@ static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short po
     coN_tracedebug(Co, "id[%d,%d] connect failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
+
+  if (!cosock_newfdm(Co, s))
+  {
+    coN_tracedebug(Co, "id[%d,%d] connect failed while newfdm, [%s,%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    return 0;
+  }
+
   sin.sin_family = PF_INET;
   sin.sin_addr.s_addr = inet_addr(addr);
   sin.sin_port = htons(port);
@@ -1097,6 +1148,13 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
     cosock_delete(Co, sn);
     return 0;
   }
+
+  if (!cosock_newfdm(Co, sn))
+  {
+    coN_tracedebug(Co, "id[%d,%d] accept failed while newfdm, [%s,%d]", s->id, sn->id, cosockfd_errstr(cosock_ec(sn)), cosock_ec(sn));
+    return 0;
+  }
+
   if (cosockpool_isfull(Co, s->attapo, 1))
   {
     coN_tracefatal(Co, "id[%d, %d] accept failed while attapo is full");
@@ -1249,6 +1307,7 @@ static void cosock_delete(co* Co, cosock* s)
 {
   if (!s) return;
   co_assertex(!s->bactive, "delete in active is not allowed");
+  cosock_deletefdm(Co, s);
   cosock_deletefdt(Co, s);
   cosock_deletefd(Co, s);
   coM_deleteobj(Co, s);
@@ -1261,6 +1320,61 @@ static int cosock_newfd(co* Co, cosock* s)
   s->fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s->fd == COSOCKFD_NULL) { cosock_logec(s); return 0; }
   if (cosockfd_ioctl(s->fd, FIONBIO, &v)) { cosock_logec(s); return 0; }
+  return 1;
+}
+
+static int cosock_newfdm(co* Co, cosock* s)
+{
+
+/* new kqueue only on platform that support it */
+#ifdef LOLITA_USE_KQUEUE
+
+  co_assert(s->fdm == COSOCKFDM_NULL);
+  if (s->fdt != COSOCKFD_TATTA)
+  {
+    s->fdm = kqueue();
+    if (s->fdm == COSOCKFDM_NULL) { cosock_logec(s); return 0; }
+  }
+  else
+  {
+    co_assert(s->attaed2s->fdm != COSOCKFDM_NULL);
+    s->fdm = s->attaed2s->fdm;
+  }
+
+  if (!cosock_ctlfdm(Co, s, 0, 0)) return 0;
+  if (!cosock_ctlfdm(Co, s, 1, 0)) return 0;
+  if (s->fdt == COSOCKFD_TCONN) { if (!cosock_ctlfdm(Co, s, 0, 3)) return 0;} /* connector disable read while not connected */
+  else if (s->fdt == COSOCKFD_TACCP) { if (!cosock_ctlfdm(Co, s, 1, 3)) return 0;} /* acceptor disable write forever */
+
+#else
+  coN_tracedebug(Co, "id[%d,%d]don't support any net mode, just use select", s->id, s->fdt);
+#endif
+  return 1;
+}
+
+static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
+{
+#ifdef LOLITA_USE_KQUEUE
+  struct kevent ke;
+  if (op == 0) op = EV_ADD;
+  else if(op == 1) op = EV_DELETE;
+  else if(op == 2) op = EV_ENABLE;
+  else if(op == 3) op = EV_DISABLE;
+  else {co_assert(0);}
+  EV_SET(&ke, s->fd, type == 0 ? EVFILT_READ : EVFILT_WRITE, op, 0, 0, s);
+  if (-1 == kevent(s->fdm, &ke, 1, NULL, 0, NULL)) { cosock_logec(s); return 0; }
+#else
+#endif
+  return 1;
+}
+
+static int cosock_markwrite(co* Co, cosock* s)
+{
+  size_t datasize = cosockbuf_datasize(s->sndbuf);
+  coN_tracedebug(Co, "id[%d,%d] datasize:%u, mark write %s", s->id, 0, datasize, datasize ? "enable" : "disable");
+  if (!cosock_ctlfdm(Co, s, 1, datasize ? 2 : 3)) {
+    coN_tracefatal(Co, "id[%d,%d] markwrite failed! [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec); return 0;
+  }
   return 1;
 }
 
@@ -1320,6 +1434,18 @@ static void cosock_deletefdt(co* Co, cosock* s)
     if (s->revbuf) cosockbuf_delete(Co, s->revbuf);
     if (s->sndbuf) cosockbuf_delete(Co, s->sndbuf);
   }
+}
+
+static void cosock_deletefdm(co* Co, cosock* s)
+{
+#ifdef LOLITA_USE_KQUEUE
+  /* TATTA's fdm is use attaed2s's */
+  if (COSOCKFD_TATTA == s->fdt) return;
+  if (COSOCKFDM_NULL == s->fdm) return;
+  /* yes, fdm is a fd same as socket fd in kqueue */
+  if (cosockfd_close(s->fdm)){ cosock_logec(s); /* error ? */ }
+#else
+#endif
 }
 
 static void cosock_activeaccp_common(co* Co, cosock* s)
@@ -1586,6 +1712,131 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
     coN_tracefatal(Co, "id[%d,%d] is in exceptfds\?", s->id, 0);
     cosock_close(Co, s);
   }
+}
+
+#endif
+
+
+#ifdef LOLITA_USE_KQUEUE
+
+static void cosock_evwrite_kqueue(co* Co, cosock* s, struct kevent* ke)
+{
+
+  int r;
+  co_assert(ke->filter == EVFILT_WRITE);
+  co_assert(s->fdt != COSOCKFD_TACCP);
+  if (ke->flags & EV_EOF || ke->flags & EV_ERROR)
+  {
+    cosock_close(Co, s);
+    if (s->fdt == COSOCKFD_TCONN)
+    {
+      if (s->bconnected == 1) { coN_tracedebug(Co, "id[%d,%d] disconnected", s->id, 0); return; }
+      coN_tracedebug(Co, "id[%d,%d] connect failed", s->id, 0);
+      cosock_eventconnect(Co, s, NULL, 0);
+    }
+    return;
+  }
+
+  /* connections is succeed */
+  if (s->bconnected == 0 && s->fdt == COSOCKFD_TCONN)
+  {
+    s->bconnected = 1;
+    cosock_eventconnect(Co, s, NULL, 1);
+    if (!cosock_ctlfdm(Co, s, 0, 2))
+    {
+      coN_tracefatal(Co, "id[%d,%d] connector add kevent failed while connect succeed, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
+      cosock_close(Co, s);
+      return;
+    }
+    /* mark write */
+    cosock_markwrite(Co, s);
+    return;
+  }
+
+  /* do write */
+  coN_tracedebug(Co, "id[%d,%d] have write event", s->attaed2s ? s->attaed2s->id : s->id, s->attaed2s ? s->id : 0);
+  r = cosock_send(Co, s);
+  if (r != 1) { cosock_close(Co, s); return; }
+
+  /* mark write */
+  cosock_markwrite(Co, s);
+
+}
+
+static void cosock_evread_kqueue(co* Co, cosock* s, struct kevent* ke)
+{
+
+  int r;
+  cosock* s1 = s->attaed2s ? s->attaed2s : s;
+  cosock* s2 = s->attaed2s ? s : NULL;
+  co_assert(ke->filter == EVFILT_READ);
+  coN_tracedebug(Co, "id[%d,%d] have read event",s1->id, s2 ? s2->id : 0);
+  if (s->fdt == COSOCKFD_TCONN) { co_assert(s->bconnected == 1); }
+  if (ke->data == 0) /* the connection is closed */
+  {
+    co_assert(s->fdt != COSOCKFD_TACCP);
+    cosock_close(Co, s);
+    coN_tracedebug(Co, "id[%d,%d] closed by remote", s1->id, s2 ? s2->id : 0);
+    return;
+  }
+  co_assert(ke->data > 0);
+
+  /* acceptor accept new sock */
+  if (s->fdt == COSOCKFD_TACCP)
+  {
+    for (r = 0; r < (int)ke->data; ++r)
+    {
+      cosock* ns = NULL;
+      if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
+      else { cosock_eventaccept(Co, s, ns, 1); }
+    }
+    return;
+  }
+
+  /* TODO: USE length of data to recv more percise */
+  r = cosock_recv(Co, s);
+  if (1 != r) { cosock_close(Co, s); }
+  cosock_eventprocesspack(Co, s1, s2, 0);
+
+}
+
+static void cosock_active_kqueue(co* Co, cosock* s)
+{
+
+  int r = 0, i;
+  struct kevent ke[2048]; /* put this to coN ? */
+  struct timespec delay = { 0 };
+
+  /* delay.tv_sec = 0; delay.tv_nsec = 0; */
+  co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP);
+  r = kevent(s->fdm, NULL, 0, ke, 2048, &delay);
+  if (0 == r){cosock_logec(s); return;}
+  if (COSOCKFD_ERROR == r)
+  {
+    cosock_logec(s);
+    cosock_close(Co, s);
+    coN_tracedebug(Co, "id[%d,%d] active failed while kqueue, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
+    return;
+  }
+  co_assert(r > 0 && r <= 2048);
+
+  for (i = 0; i < r; ++i)
+  {
+    cosock* as = ke[i].udata;
+    co_assert(as);
+    if (as->fdt == COSOCKFD_TACCP || as->fdt == COSOCKFD_TCONN){ co_assert(s == as); }
+    else if(as->fdt == COSOCKFD_TATTA) { co_assert(s == as->attaed2s); }
+    co_assert(as->fd == ke[i].ident);
+    if (as->bclosed || (as->attaed2s && as->attaed2s->bclosed))
+    {
+      coN_tracedebug(Co, "id[%d,%d] is closed while in active, ignore follow events", s->id, as == s ? 0 : as->id, 0);
+      continue;
+    }
+    if (ke[i].filter == EVFILT_WRITE) { cosock_evwrite_kqueue(Co, as, &ke[i]); }
+    else if (ke[i].filter == EVFILT_READ) { cosock_evread_kqueue(Co, as, &ke[i]); }
+    else {co_assert(0);}
+  }
+
 }
 
 #endif
