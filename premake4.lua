@@ -195,14 +195,19 @@ end
 
 local function _embecore()
   local embestr = ""
-  local func = assert(loadfile("src/corext/co.lua"))
+  local func = assert(loadfile("../lolitax/src/cox.lua"))
   local manifest = assert(func(1))
   for i, fn in ipairs(manifest) do
-    fn = "src/corext/" .. fn
+    fn = "../lolitax/src/" .. fn
     printf(fn)
     local fi = io.open(fn, "rb") if not fi then printf("Cannot open embe file:%s", fn) end
     local text = fi:read("*a")
-    embestr = embestr .. text
+
+    text = text:gsub("\\", "\\\\")
+    text = text:gsub("\n", "\\n")
+    text = text:gsub("\"", "\\\"")
+
+    embestr = embestr .. "\"" .. text .. "\",\n"
     fi:close()
   end
   return embestr
@@ -240,9 +245,9 @@ local function _embe()
       embestr = embestr .. server
     end
   end
-  embestr = embestr:gsub("\\", "\\\\")
-  embestr = embestr:gsub("\n", "\\n")
-  embestr = embestr:gsub("\"", "\\\"")
+  --embestr = embestr:gsub("\\", "\\\\")
+  --embestr = embestr:gsub("\n", "\\n")
+  --embestr = embestr:gsub("\"", "\\\"")
 
   local fni = "src/core/coembe.h.in"
   local fi = io.open(fni, "rb")
@@ -252,8 +257,8 @@ local function _embe()
   end
   local text = fi:read("*a")
   fi:close()
-  text = text:gsub("@TOBEEMBE@", function(s) return embestr end)
-  text = text:gsub("@TOBEEMBETYPE@", function(s) return embe end)
+  text = text:gsub("@TOBEEMBEX@", function(s) return embestr end)
+  text = text:gsub("@TOBEEMBEMODE@", function(s) return embe end)
   local fno = "src/core/coembe.h"
   local fo = io.open(fno, "wb")
   if not fo then
@@ -465,11 +470,7 @@ newoption
   allowed =
   {
     { "none", "don't embe script, use external" },
-    { "core", "only embe core script" },
-    { "god", "embe core and god" },
-    { "mind", "embe core and mind" },
-    { "login", "embe core and login" },
-    { "area", "embe core and area" },
+    { "lolitax", "only embe core script" },
   }
 }
 

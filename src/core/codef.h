@@ -21,7 +21,6 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "lauxlib.h"
 #include "lualib.h"
 #include "coconf.h"
-#include "coembe.h"
 
 #define LOLICORE_PLAT_WIN32 (1)
 #define LOLICORE_PLAT_UNIX (2)

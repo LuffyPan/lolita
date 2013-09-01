@@ -11,6 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "conet.h"
 #include "coos.h"
 #include "comm.h"
+#include "coembe.h"
 
 static int co_panic(lua_State* L);
 static void* co_xlloc(void* ud, void* p, size_t os, size_t ns);
@@ -132,14 +133,33 @@ static int co_palive(lua_State* L)
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "corext"); co_assert(lua_gettop(L) == 3);
   if (lua_isstring(L, -1)) {corext = lua_tostring(L, -1);}
-  if (corext)
-  {z = luaL_loadfile(L, corext); if (z) lua_error(L);}
-  else if(strcmp(LOLICORE_EMBE_TYPE, LOLICORE_EMBE_TYPE_NONE) != 0)
-  {z = luaL_loadstring(L, LOLICORE_EMBE);if (z) lua_error(L);}
-  else {luaL_error(L, "both arg and embe is none!");}
-  co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-  z = lua_pcall(L, 0, 0, 0);if (z) {lua_error(L);}
-  lua_pop(L, 3);
+
+  /* check embe mode first, so, overwrite is canceled, TODO:support overwrite */
+  if(strcmp(LOLICORE_EMBE_MODE, LOLICORE_EMBE_MODE_NONE) != 0)
+  {
+    const char** embestr = embestrs;
+    while(*embestr)
+    {
+      z = luaL_loadstring(L, *embestr);
+      if (z) lua_error(L);
+      co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
+      z = lua_pcall(L, 0, 0, 0);if (z) {lua_error(L);}
+      ++embestr;
+    }
+    lua_pop(L, 3);
+  }
+  else if (corext)
+  {
+    z = luaL_loadfile(L, corext);
+    if (z) lua_error(L);
+    co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
+    z = lua_pcall(L, 0, 0, 0);if (z) {lua_error(L);}
+    lua_pop(L, 3);
+  }
+  else
+  {
+    luaL_error(L, "both arg and embe is none!");
+  }
   co_assert(lua_gettop(L) == 0);
   return 0;
 }
@@ -232,7 +252,7 @@ static void co_pexportinfo(co* Co, lua_State* L)
   lua_pushnumber(L, LOLICORE_VERSION); lua_setfield(L, -2, "version");
   lua_pushstring(L, LOLICORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
   lua_pushstring(L, LOLICORE_PLATSTR); lua_setfield(L, -2, "platform");
-  lua_pushstring(L, LOLICORE_EMBE_TYPE); lua_setfield(L, -2, "embetype");
+  lua_pushstring(L, LOLICORE_EMBE_MODE); lua_setfield(L, -2, "embemode");
   lua_pop(L, 2); /* core.info */
   co_assert(lua_gettop(L) == 0);
 }

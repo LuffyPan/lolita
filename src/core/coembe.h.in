@@ -6,11 +6,19 @@ Chamz Lau, Copyright (C) 2013-2017
 
 */
 
+#ifdef _COEMBE_H_
+  #error "coembe.h don't include once more!"
+#endif
 #ifndef _COEMBE_H_
 #define _COEMBE_H_
 
-#define LOLICORE_EMBE_TYPE_NONE "none"
-#define LOLICORE_EMBE_TYPE "@TOBEEMBETYPE@"
-#define LOLICORE_EMBE "@TOBEEMBE@"
+#define LOLICORE_EMBE_MODE_NONE "none"
+#define LOLICORE_EMBE_MODE "@TOBEEMBEMODE@"
+
+static const char* embestrs[] =
+{
+  @TOBEEMBEX@
+  NULL,
+};
 
 #endif
