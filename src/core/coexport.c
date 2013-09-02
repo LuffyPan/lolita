@@ -20,7 +20,7 @@ LOLICORE_EXPORT int luaopen_lolitaext(lua_State* L)
 #endif
 
   acfn = lua_getallocf(L, (void**)&ud);
-  printf("AllocFunc:%0x, UserData:%0x\n", acfn, ud);
+  printf("AllocFunc:%p, UserData:%p\n", acfn, ud);
   Co = lolicore_born(0, NULL, NULL, NULL, NULL, L);
   if (!Co)
   {

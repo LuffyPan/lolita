@@ -5,7 +5,7 @@ lolita is a portable, pure c, mini framework mainly for MMO development.
 
 lolita can be used as a independent host program OR a plugin for Lua enviroment.
 
-Dependcy
+Dependency
 ==========================================
 
 * premake4.4
