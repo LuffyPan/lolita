@@ -72,7 +72,7 @@ solution "lolitall"
 
 local extlua = _OPTIONS["luaver"] or "5.2.2"
 print(string.format("lolitaext's Lua version is %s", extlua))
-local extluapath = string.format("src/deps/lua-%s/src", extlua)
+local extluapath = string.format("deps/lua-%s/src", extlua)
 local lualibname = _OPTIONS["lualibname"]
 local lualibpath = _OPTIONS["lualibpath"]
 
@@ -317,13 +317,13 @@ end
 
 local _deployconf =
 {
-  {"src/avatar/srv_god/conf.lua", "_deploy/conf/srv_god.conf"},
+  --{"src/avatar/srv_god/conf.lua", "_deploy/conf/srv_god.conf"},
 }
 
 local _deploysh =
 {
-  {"src/sh/startdev.sh", "_deploy/startdev.sh"},
-  {"src/sh/stopdev.sh", "_deploy/stopdev.sh"},
+  {"tools/sh/startdev.sh", "_deploy/startdev.sh"},
+  {"tools/sh/stopdev.sh", "_deploy/stopdev.sh"},
 }
 
 local function _dodeploy()
@@ -359,6 +359,9 @@ local function _dodeploy()
     {string.format("%s/lolitaext.so", bin), "_deploy/lolitaext.so"},
     {string.format("%s/lua.dll", bin), "_deploy/lua.dll"},
     {string.format("%s/lua.so", bin), "_deploy/lua.so"},
+    {string.format("%s/liblolitaext.so", bin), "_deploy/liblolitaext.so"},
+    {string.format("%s/liblolitaext.dylib", bin), "_deploy/liblolitaext.dylib"},
+    {string.format("%s/liblua.dylib", bin), "_deploy/liblua.dylib"},
   }
 
   for _, v in ipairs(_deployexe) do
