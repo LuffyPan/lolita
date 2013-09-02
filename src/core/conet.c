@@ -809,6 +809,7 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
   cosock_push(Co, ps, data, dsize);
   cosock_push(Co, ps, (const char*)&tail, sizeof(tail));
   coN_tracedebug(Co, "id[%d,%d] pushed data with size[%u]", s->id, attas ? attas->id : 0, dsize);
+  cosock_markwrite(Co, ps);
   return 1;
 }
 
@@ -1137,7 +1138,7 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
   if (nfd == COSOCKFD_NULL)
   {
     cosock_logec(s);
-    coN_tracedebug(Co, "id[%d,%d] accept failed [%s:%d]", s->id, cosockfd_errstr(s->ec), s->ec);
+    coN_tracedebug(Co, "id[%d,%d] accept failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     return 0;
   }
   sn = cosock_new(Co, s->id2idx, s->attaclosedpo, NULL, s, s->eventer, COSOCKFD_TATTA);
