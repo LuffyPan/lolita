@@ -10,12 +10,19 @@ for k, v in pairs(core) do
   print(k,v)
 end
 
+print(core.net.info)
+print(core.net.info.mode)
+print(core.net.info.fdsetsize)
+
 local echo = {}
 
 function echo:init()
   --set trace level
   local tracelv = tonumber(core.arg.tracelv) or 0
   core.base.settracelv(tracelv)
+
+  --set max mem can be alloc to 100M
+  core.base.setmaxmem(1024 * 1024 * 100)
 
   --register os signal
   assert(core.os.register(self.sig, self))

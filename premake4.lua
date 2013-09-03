@@ -358,7 +358,7 @@ local function _dodeploy()
     {string.format("%s/lolitaext.dll", bin), "_deploy/lolitaext.so"},
     {string.format("%s/lolitaext.so", bin), "_deploy/lolitaext.so"},
     {string.format("%s/lua.dll", bin), "_deploy/lua.dll"},
-    {string.format("%s/lua.so", bin), "_deploy/lua.so"},
+    {string.format("%s/liblua.so", bin), "_deploy/liblua.so"},
     {string.format("%s/liblolitaext.so", bin), "_deploy/liblolitaext.so"},
     {string.format("%s/liblolitaext.dylib", bin), "_deploy/liblolitaext.dylib"},
     {string.format("%s/liblua.dylib", bin), "_deploy/liblua.dylib"},

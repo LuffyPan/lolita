@@ -14,6 +14,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifdef LOLITA_USE_KQUEUE
   #define LOLITA_NET_MODE "kqueue"
 #else
+  #define LOLITA_USE_SELECT
   #define LOLITA_NET_MODE "select"
 #endif
 
@@ -95,7 +96,7 @@ typedef socklen_t cosockfd_size;
 #define COSOCKFDEV_CONNSUC 0x00000020
 #define COSOCKFDEV_CONNFAL 0x00000040
 
-#define COSOCK_ATTA_INITCNT 64
+#define COSOCK_ATTA_INITCNT 32
 #define COSOCK_ATTA_STEPCNT 128
 #define COSOCK_ATTA_LIMITCNT 4096
 
@@ -563,6 +564,14 @@ int coN_pexportapi(co* Co, lua_State* L)
   co_pushcore(L, Co);
   lua_newtable(L);
   luaL_setfuncs(L, coN_funcs, 0);
+
+  lua_newtable(L);
+  lua_pushstring(L, LOLITA_NET_MODE);
+  lua_setfield(L, -2, "mode");
+  lua_pushnumber(L, FD_SETSIZE);
+  lua_setfield(L, -2, "fdsetsize");
+  lua_setfield(L, -2, "info");
+
   lua_setfield(L, -2, "net");
   lua_pop(L, 1);
   co_assert(lua_gettop(L) == 0);
@@ -1141,6 +1150,16 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
     coN_tracedebug(Co, "id[%d,%d] accept failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     return 0;
   }
+
+#ifdef LOLITA_USE_SELECT
+  if (cosockpool_cosockcnt(s->attapo) + 20 >= FD_SETSIZE) /* remain 20 free */
+  {
+    coN_tracedebug(Co, "id[%d,%d] accept failed caz select mode reach the limit of fdsetsize[%d]!", s->id, 0, FD_SETSIZE);
+    close(nfd);
+    return 0;
+  }
+#endif
+
   sn = cosock_new(Co, s->id2idx, s->attaclosedpo, NULL, s, s->eventer, COSOCKFD_TATTA);
   if (!cosock_attachfd(Co, sn, nfd))
   {
@@ -1463,7 +1482,7 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
   maxfd = s->fd;
   ps = cosockpool_cosocks(s->attapo);
   cnt = cosockpool_cosockcnt(s->attapo);
-  co_assertex(cnt < FD_SETSIZE, "select mode only support FD_SETSIZE!!");
+  co_assertex(cnt + 1 < FD_SETSIZE, "select mode only support FD_SETSIZE!!");
   for (i = 1; i < cnt; ++i)
   {
     FD_SET(ps[i]->fd, &rfds); FD_SET(ps[i]->fd, &wfds); FD_SET(ps[i]->fd, &efds);
@@ -1484,6 +1503,9 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     cosock* ns = NULL;
     if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
     else { cosock_eventaccept(Co, s, ns, 1); }
+    /* the ps may be changed after this */
+    ps = cosockpool_cosocks(s->attapo); co_assert(ps);
+    cnt = cosockpool_cosockcnt(s->attapo); co_assert(cnt > 0);
   }
   if (FD_ISSET(s->fd, &wfds)){co_assertex(0, "acceptor has write event!!!!"); return;}
   if (FD_ISSET(s->fd, &efds)){co_assertex(0, "acceptor has except event!!!"); return;}
