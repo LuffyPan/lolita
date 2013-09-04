@@ -34,7 +34,10 @@ Usage
 used as a independent program
 
     $ cd _deploy
-    $ ./lolita corext=path2lolitax/cox.lua avatar=path2avatar/av.lua
+    $ export LD_LIBRARY_PATH=.
+    $ export DYLD_LIBRARY_PATH=.
+    $ ./lolita corext=../sample/echo bsrv=1 maxconnection=1024 &
+    $ ./lolita corext=../sample/echo maxconnection=1025 &
     
 used as a plugin for Lua
 

@@ -235,6 +235,7 @@ static void cosockpool_delete(co* Co, cosockpool* po);
 static cosock* cosockpool_getsock(cosockpool* po, int idx);
 #define cosockpool_cosocks(po) ((po)->sp)
 #define cosockpool_cosockcnt(po) ((po)->curcnt)
+#define cosockpool_cosocklimit(po) ((po)->limitcnt)
 #define cosockpool_clear(po) (po)->curcnt = 1
 
 static cosockid2idx* cosockid2idx_new(co* Co);
@@ -302,6 +303,7 @@ static int coN_export_push(lua_State* L);
 static int coN_export_close(lua_State* L);
 static int coN_export_active(lua_State* L);
 static int coN_export_getinfo(lua_State* L);
+static int coN_export_setoption(lua_State* L);
 
 static void cosockbuf_pnew(co* Co, void* ud)
 {
@@ -427,6 +429,7 @@ static void cosockpool_del(co* Co, cosockpool* po, cosock* s)
 static int cosockpool_isfull(co* Co, cosockpool* po, int cnt)
 {
   co_assert(cnt >= 0);
+  if (po->curcnt + cnt > po->limitcnt) return 1; /* limit is first checked */
   while (po->curcnt + cnt > po->maxcnt)
   {
     int stepcnt = 0;
@@ -558,6 +561,7 @@ int coN_pexportapi(co* Co, lua_State* L)
     {"close", coN_export_close},
     {"active", coN_export_active},
     {"getinfo", coN_export_getinfo},
+    {"setoption", coN_export_setoption},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -1988,5 +1992,21 @@ static int coN_export_getinfo(lua_State* L)
   lua_pushnumber(L, idx++);lua_pushnumber(L, port);lua_settable(L, -3);
   /* sock type */
   lua_pushnumber(L, idx++);lua_pushnumber(L, s->fdt);lua_settable(L, -3);
+  return 1;
+}
+
+/* only set the acceptor's max connection now! */
+static int coN_export_setoption(lua_State* L)
+{
+  co* Co = co_C(L);
+  int id = luaL_checkint(L, 1);
+  int attaid = luaL_checkint(L, 2);
+  int maxconn = luaL_checkint(L, 3);
+  cosock* s = coN_getcosock(Co, id, attaid);
+
+  co_assert(maxconn >= 0);
+  co_assert(s->fdt == COSOCKFD_TACCP);
+  cosockpool_cosocklimit(s->attapo) = maxconn;
+  lua_pushnumber(L, 1);
   return 1;
 }

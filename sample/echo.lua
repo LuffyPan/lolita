@@ -5,14 +5,28 @@
 --
 
 assert(_VERSION == "Lua 5.2", string.format("Lua5.2+ please!, %s", _VERSION))
-print(core)
+assert(core)
+print(string.format("core:%s", core))
 for k, v in pairs(core) do
   print(k,v)
 end
 
-print(core.net.info)
-print(core.net.info.mode)
-print(core.net.info.fdsetsize)
+assert(core.net.info)
+print("--------------------------------------------------------------------")
+print(string.format("platform:%s", core.info.platform))
+print(string.format("embe mode:%s", core.info.embemode))
+print(string.format("net mode:%s, fdsetsize:%s", core.net.info.mode, core.net.info.fdsetsize))
+print("")
+
+print("--------------------------------------------------------------------")
+print(string.format("%s", core.info.lcopyright))
+print(string.format("%s", core.info.lauthors))
+print("")
+print("--------------------------------------------------------------------")
+print(string.format("%s", core.info.copyright))
+print(string.format("%s", core.info.author))
+print(string.format("%s", core.info.reposversion))
+print("")
 
 local echo = {}
 
@@ -44,10 +58,11 @@ function echo:init()
     --listen @ ip:port
     self.netid = core.net.listen(ip, port)
     assert(self.netid, "listen failed")
+    core.net.setoption(self.netid, 0, tonumber(core.arg.maxconnection) or 110);
     print(string.format("listening @ %s:%s", ip, port))
   else
     --connect to ip:port
-    self.maxclientcnt = core.arg.maxconnection or 120 --128 limits a process
+    self.maxclientcnt = tonumber(core.arg.maxconnection) or 120 --128 limits a process
     self.netids = {}
     for i = 1, self.maxclientcnt do
       local netid = core.net.connect(ip, port)
