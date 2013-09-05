@@ -1343,10 +1343,12 @@ static void cosock_delete(co* Co, cosock* s)
 static int cosock_newfd(co* Co, cosock* s)
 {
   unsigned long v = 1;
+  int flag = 1;
   co_assert(s->fd == COSOCKFD_NULL);
   s->fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s->fd == COSOCKFD_NULL) { cosock_logec(s); return 0; }
   if (cosockfd_ioctl(s->fd, FIONBIO, &v)) { cosock_logec(s); return 0; }
+  if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag))) { cosock_logec(s); return 0; }
   return 1;
 }
 
