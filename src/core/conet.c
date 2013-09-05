@@ -1,6 +1,6 @@
 /*
 
-LoliCore net
+Lolita Core net
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/04 21:16:16
 
@@ -11,14 +11,17 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cort.h"
 #include "comm.h"
 
-#ifdef LOLITA_USE_KQUEUE
-  #define LOLITA_NET_MODE "kqueue"
+#ifdef LOLITA_CORE_USE_KQUEUE
+  #define LOLITA_CORE_NET_MODE "kqueue"
+#elif LOLITA_CORE_USE_EPOLL
+  #define LOLITA_CORE_USE_SELECT
+  #define LOLITA_CORE_NET_MODE "epoll"
 #else
-  #define LOLITA_USE_SELECT
-  #define LOLITA_NET_MODE "select"
+  #define LOLITA_CORE_USE_SELECT
+  #define LOLITA_CORE_NET_MODE "select"
 #endif
 
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
 #endif
@@ -53,7 +56,7 @@ typedef int cosockfd_size;
 #include <arpa/inet.h>
 #include <errno.h>
 
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
 #include <sys/event.h>
 #endif
 
@@ -72,7 +75,7 @@ typedef socklen_t cosockfd_size;
 #define cosockfd_ioctl ioctl
 #define cosockfd_errno errno
 #define cosockfd_errstr(ec) strerror((ec))
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
   #define cosock_activeconn cosock_active_kqueue
   #define cosock_activeaccp cosock_active_kqueue
 #else
@@ -121,13 +124,13 @@ typedef void (*cosockeventer)(co* Co, cosock* s, cosock* as, int extra);
 /* typedef void (*cosock_activefunc)(void* p, cosock* s, cosock* sa); */
 
 static void cosock_activeaccp_common(co* Co, cosock* s);
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 static void cosock_activeconn_win32(co* Co, cosock* s);
 #else
 static void cosock_activeconn_ux(co* Co, cosock* s);
 #endif
 
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
   static void cosock_active_kqueue(co* Co, cosock* s);
 #endif
 
@@ -570,7 +573,7 @@ int coN_pexportapi(co* Co, lua_State* L)
   luaL_setfuncs(L, coN_funcs, 0);
 
   lua_newtable(L);
-  lua_pushstring(L, LOLITA_NET_MODE);
+  lua_pushstring(L, LOLITA_CORE_NET_MODE);
   lua_setfield(L, -2, "mode");
   lua_pushnumber(L, FD_SETSIZE);
   lua_setfield(L, -2, "fdsetsize");
@@ -609,7 +612,7 @@ static void coN_export(co* Co)
 
 static void coN_initenv(co* Co)
 {
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   WSADATA wsadata = { 0 };
   coR_runerror(Co, 0 == WSAStartup(MAKEWORD(2, 2), &wsadata));
 #endif
@@ -617,7 +620,7 @@ static void coN_initenv(co* Co)
 
 static void coN_uninitenv(co* Co)
 {
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   WSACleanup();
 #endif
 }
@@ -1155,7 +1158,7 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
     return 0;
   }
 
-#ifdef LOLITA_USE_SELECT
+#ifdef LOLITA_CORE_USE_SELECT
   if (cosockpool_cosockcnt(s->attapo) + 20 >= FD_SETSIZE) /* remain 20 free */
   {
     coN_tracedebug(Co, "id[%d,%d] accept failed caz select mode reach the limit of fdsetsize[%d]!", s->id, 0, FD_SETSIZE);
@@ -1181,7 +1184,7 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
 
   if (cosockpool_isfull(Co, s->attapo, 1))
   {
-    coN_tracefatal(Co, "id[%d, %d] accept failed while attapo is full");
+    coN_tracefatal(Co, "id[%d, %d] accept failed while attapo is full, will close it", s->id, sn->id);
     cosock_delete(Co, sn);
     return 0;
   }
@@ -1351,7 +1354,7 @@ static int cosock_newfdm(co* Co, cosock* s)
 {
 
 /* new kqueue only on platform that support it */
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
 
   co_assert(s->fdm == COSOCKFDM_NULL);
   if (s->fdt != COSOCKFD_TATTA)
@@ -1378,7 +1381,7 @@ static int cosock_newfdm(co* Co, cosock* s)
 
 static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
 {
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
   struct kevent ke;
   if (op == 0) op = EV_ADD;
   else if(op == 1) op = EV_DELETE;
@@ -1462,7 +1465,7 @@ static void cosock_deletefdt(co* Co, cosock* s)
 
 static void cosock_deletefdm(co* Co, cosock* s)
 {
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
   /* TATTA's fdm is use attaed2s's */
   if (COSOCKFD_TATTA == s->fdt) return;
   if (COSOCKFDM_NULL == s->fdm) return;
@@ -1560,7 +1563,7 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
   }
 }
 
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 
 static void cosock_activeconn_win32(co* Co, cosock* s)
 {
@@ -1744,7 +1747,7 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
 #endif
 
 
-#ifdef LOLITA_USE_KQUEUE
+#ifdef LOLITA_CORE_USE_KQUEUE
 
 static void cosock_evwrite_kqueue(co* Co, cosock* s, struct kevent* ke)
 {

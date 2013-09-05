@@ -1,6 +1,6 @@
 /*
 
-LoliCore definitions
+Lolita Core definitions
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 10:37:35
 
@@ -22,39 +22,39 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "lualib.h"
 #include "coconf.h"
 
-#define LOLICORE_PLAT_WIN32 (1)
-#define LOLICORE_PLAT_UNIX (2)
-#define LOLICORE_PLAT_LINUX (3)
-#define LOLICORE_PLAT_MACOSX (4)
+#define LOLITA_CORE_PLAT_WIN32 (1)
+#define LOLITA_CORE_PLAT_UNIX (2)
+#define LOLITA_CORE_PLAT_LINUX (3)
+#define LOLITA_CORE_PLAT_MACOSX (4)
 
-#ifndef LOLICORE_PLAT
-  #error No definition of LOLICORE_PLAT!
+#ifndef LOLITA_CORE_PLAT
+  #error No definition of LOLITA_CORE_PLAT!
 #endif
 
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
-  #define LOLICORE_PLATSTR "win32"
-  #define LOLICORE_EXPORT __declspec(dllexport)
-#elif LOLICORE_PLAT == LOLICORE_PLAT_UNIX
-  #define LOLICORE_PLATSTR "unix"
-  #define LOLICORE_EXPORT
-#elif LOLICORE_PLAT == LOLICORE_PLAT_LINUX
-  #define LOLICORE_PLATSTR "linux"
-  #define LOLICORE_EXPORT
-#elif LOLICORE_PLAT == LOLICORE_PLAT_MACOSX
-  #define LOLICORE_PLATSTR "macosx"
-  #define LOLICORE_EXPORT
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+  #define LOLITA_CORE_PLATSTR "win32"
+  #define LOLITA_CORE_EXPORT __declspec(dllexport)
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_UNIX
+  #define LOLITA_CORE_PLATSTR "unix"
+  #define LOLITA_CORE_EXPORT
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
+  #define LOLITA_CORE_PLATSTR "linux"
+  #define LOLITA_CORE_EXPORT
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
+  #define LOLITA_CORE_PLATSTR "macosx"
+  #define LOLITA_CORE_EXPORT
 #else
-  #error Unknown LOLICORE_PLAT!
+  #error Unknown LOLITA_CORE_PLAT!
 #endif
 
-#define LOLICORE_VERSION 1990
-#define LOLICORE_AUTHOR "Chamz Lau"
-#define LOLICORE_COPYRIGHT "LolitaCore Copyright (C) 2013-2017, " LOLICORE_AUTHOR
+#define LOLITA_CORE_VERSION 1990
+#define LOLITA_CORE_AUTHOR "Chamz Lau"
+#define LOLITA_CORE_COPYRIGHT "LolitaCore Copyright (C) 2013-2017, " LOLITA_CORE_AUTHOR
 
-#ifndef LOLICORE_LUA
-  #define LOLICORE_LUA LUA_VERSION
+#ifndef LOLITA_CORE_LUA
+  #define LOLITA_CORE_LUA LUA_VERSION
 #endif
-#if LOLICORE_LUA_514
+#if LOLITA_CORE_LUA_514
   #define LUA_OK 0
 #endif
 
@@ -63,9 +63,8 @@ typedef struct coOs coOs;
 
 typedef struct co_longjmp co_longjmp;
 typedef struct co co;
-typedef co lolicore;
 typedef void* (*co_xllocf)(void* ud, void* p, size_t olds, size_t news);
-typedef void (*co_tracef)(lolicore* Co, int mod, int lv, const char* msg, va_list msgva);
+typedef void (*co_tracef)(co*Co, int mod, int lv, const char* msg, va_list msgva);
 
 struct co_longjmp
 {
@@ -107,13 +106,13 @@ struct co
 #define CO_MOD_NET 1
 #define CO_MOD_SCRIPT 2
 
-#define LOLICORE_LVFATAL CO_LVFATAL
-#define LOLICORE_LVDEBUG CO_LVDEBUG
-#define LOLICORE_LVINFO CO_LVINFO
+#define LOLITA_CORE_LVFATAL CO_LVFATAL
+#define LOLITA_CORE_LVDEBUG CO_LVDEBUG
+#define LOLITA_CORE_LVINFO CO_LVINFO
 
-#define LOLICORE_MOD_CORE CO_MOD_CORE
-#define LOLICORE_MOD_NET CO_MOD_NET
-#define LOLICORE_MOD_SCRIPT CO_MOD_SCRIPT
+#define LOLITA_CORE_MOD_CORE CO_MOD_CORE
+#define LOLITA_CORE_MOD_NET CO_MOD_NET
+#define LOLITA_CORE_MOD_SCRIPT CO_MOD_SCRIPT
 
 #define co_cast(t, exp) ((t)(exp))
 #define co_assert(x) assert((x))

@@ -1,6 +1,6 @@
 /*
 
-LoliCore configuration template.
+Lolita Core configuration template.
 Chamz Lau, Copyright (C) 2013-2017
 2013/02/27 22:09:53
 
@@ -9,6 +9,6 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifndef _COCONF_H_
 #define _COCONF_H_
 
-#define LOLICORE_VERSION_REPOS "@REPOS_VERSION@"
+#define LOLITA_CORE_VERSION_REPOS "@REPOS_VERSION@"
 
 #endif

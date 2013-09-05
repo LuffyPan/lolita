@@ -11,22 +11,22 @@ if not _ACTION then
   return
 end
 
+printf("action:%s", _ACTION)
+printf("os:%s", os.get())
+printf("os:%s", tostring(os.is("linux")))
+local v = os.getversion()
+print(string.format("(%s) %d.%d.%d", v.description, v.majorversion, v.minorversion, v.revision))
+
 solution "lolitall"
   configurations { "debug", "release" }
   location ("_build/" .. _ACTION)
 
+  print(string.format("platforms:%s", tostring(platforms())))
+  print(string.format("configurations:%s", tostring(configurations())))
+
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../src/corext/co.lua", "avatar=../src/avatar/srv_test/av.lua", "target=login", }
-
-  --Platform macro configuration, much more thing to do..
-  --LOLICORE_PLAT之类的Macro有点多余，直接在代码中通过平台宏就可以判断出来了
-  configuration "vs*"
-    defines { "LOLICORE_PLAT=LOLICORE_PLAT_WIN32" }
-
-  configuration "gmake"
-    defines { "LOLICORE_PLAT=LOLICORE_PLAT_LINUX" }
-    buildoptions { "-g" }
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../sample/echo.lua", "bsrv=1"}
 
   configuration "debug"
     targetdir ("_bin/" .. _ACTION .. "/debug")
@@ -38,6 +38,35 @@ solution "lolitall"
     defines "NDEBUG"
     flags { "OptimizeSize" }
 
+  --Platform macro configuration, much more thing to do..
+  --macro is useful, simple, so keep this way, just rename to LOLITA_CORE_PLAT_XXX
+  configuration "windows"
+    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_WIN32"}
+  configuration {"windows", "gmake"}
+    --cygwin or mingw
+    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
+    defines {"LUA_USE_LINUX"}
+  configuration "linux"
+    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
+    defines {"LOLITA_CORE_USE_EPOLL"}
+    links { "dl" }
+  configuration "bsd"
+    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_UNIX"}
+    defines {"LOLITA_CORE_USE_KQUEUE"}
+  configuration "macosx"
+    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_MACOSX"}
+    defines {"LOLITA_CORE_USE_KQUEUE"}
+    defines {"LUA_USE_MACOSX"}
+    links {"CoreServices.framework"} -- is this need?
+
+  configuration "linux or bsd"
+    defines { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
+    links { "m" }
+    linkoptions { "-rdynamic" }
+
+  configuration "gmake"
+    buildoptions { "-g" }
+
   configuration "vs*"
     defines "_CRT_SECURE_NO_WARNINGS"
     links { "ole32" }
@@ -45,30 +74,9 @@ solution "lolitall"
   configuration "vs2005"
     defines "_CRT_SECURE_NO_DEPRECATE"
 
-  configuration {"windows", "gmake"}
-    defines {"LUA_USE_LINUX"}
-
-  configuration "linux or bsd"
-    defines { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
-    links { "m" }
-    linkoptions { "-rdynamic" }
-
-  configuration "linux"
-    links { "dl" }
-
-  configuration "macosx or bsd"
-    defines { "LOLITA_USE_KQUEUE" }
-
-  configuration "macosx"
-    defines { "LUA_USE_MACOSX" }
-    links { "CoreServices.framework" }
-
   configuration { "macosx", "gmake" }
     buildoptions { "-mmacosx-version-min=10.4" }
     linkoptions { "-mmacosx-version-min=10.4" }
-
-  configuration "solaris"
-    linkoptions { "-Wl,--export-dynamic" }
 
 local extlua = _OPTIONS["luaver"] or "5.2.2"
 print(string.format("lolitaext's Lua version is %s", extlua))
@@ -111,11 +119,11 @@ project "lolitaext"
   }
 
   if extlua == "5.2.2" then
-    defines {"LOLICORE_LUA_522"}
+    defines {"LOLITA_CORE_LUA_522"}
   elseif extlua == "5.2.1" then
-    defines {"LOLICORE_LUA_521"}
+    defines {"LOLITA_CORE_LUA_521"}
   elseif extlua == "5.1.4" then
-    defines {"LOLICORE_LUA_514"}
+    defines {"LOLITA_CORE_LUA_514"}
   end
 
   if lualibpath then
@@ -128,6 +136,7 @@ project "lolitaext"
   else
     links {"lua"}
   end
+
 
 project "lolita"
   targetname "lolita"
@@ -146,11 +155,11 @@ project "lolita"
     "src/core/coexport.c",
   }
   if extlua == "5.2.2" then
-    defines {"LOLICORE_LUA_522"}
+    defines {"LOLITA_CORE_LUA_522"}
   elseif extlua == "5.2.1" then
-    defines {"LOLICORE_LUA_521"}
+    defines {"LOLITA_CORE_LUA_521"}
   elseif extlua == "5.1.4" then
-    defines {"LOLICORE_LUA_514"}
+    defines {"LOLITA_CORE_LUA_514"}
   end
   links { "lua" }
 
@@ -383,8 +392,10 @@ local function _docheck()
   local confiles = os.matchfiles("src/conf/**.in")
   local docfiles = os.matchfiles("doc/**.md")
   local shfiles = os.matchfiles("src/sh/**.sh")
+  local samplefiles = os.matchfiles("sample/**.lua")
+  local mdfiles = os.matchfiles("README.md")
   table.insert(sfiles, "premake4.lua")
-  local files = {cfiles, chdrfiles, cinfiles, sfiles, afiles, confiles, docfiles, shfiles}
+  local files = {cfiles, chdrfiles, cinfiles, sfiles, afiles, confiles, docfiles, shfiles, samplefiles, mdfiles}
   for _, v in ipairs(files) do
     for _, file in ipairs(v) do
       printf("Checking file %s....", file)

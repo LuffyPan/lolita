@@ -1,6 +1,6 @@
 /*
 
-LoliCore.
+Lolita Core.
 Chamz Lau, Copyright (C) 2013-2017
 2013/02/26 21:10:58
 
@@ -11,21 +11,21 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "codef.h"
 
-lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L);
-void lolicore_alive(lolicore* Co);
-void lolicore_die(lolicore* Co);
-void lolicore_pushcore(lolicore* Co);
-int lolicore_gettracelv(lolicore* Co);
-size_t lolicore_getusedmem(lolicore* Co);
-size_t lolicore_getmaxmem(lolicore* Co);
-const char* lolicore_getmodname(lolicore* Co, int mod);
-const char* lolicore_getlvname(lolicore* Co, int lv);
+co*core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L);
+void core_alive(co*Co);
+void core_die(co*Co);
+void core_pushcore(co*Co);
+int core_gettracelv(co*Co);
+size_t core_getusedmem(co*Co);
+size_t core_getmaxmem(co*Co);
+const char* core_getmodname(co*Co, int mod);
+const char* core_getlvname(co*Co, int lv);
 
 co* co_C(lua_State* L);
 
 #define co_L(Co) ((Co)->L)
 /* #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L) */
-#if LOLICORE_LUA_514
+#if LOLITA_CORE_LUA_514
   /* 用宏模拟失败会导致数据不一致 */
   #define lua_rawgetp(L, t, p) lua_pushlightuserdata(L, p); lua_rawget(L, t)
   #define lua_rawsetp(L, t, p) lua_pushlightuserdata(L, p); lua_insert(L, -2); lua_rawset(L, t)

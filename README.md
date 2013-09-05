@@ -1,9 +1,9 @@
-lolita - The Purest C Mini Framework 4 MMO
+Lolita - The Purest C Mini Framework 4 MMO
 ==========================================
 
-lolita is a portable, pure c, mini framework mainly for MMO development.
+Lolita is a portable, pure c, mini framework mainly for MMO development.
 
-lolita can be used as a independent host program OR a plugin for Lua enviroment.
+Lolita can be used as a independent host program OR a plugin for Lua enviroment.
 
 Dependency
 ==========================================

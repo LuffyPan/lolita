@@ -1,6 +1,6 @@
 /*
 
-LoliCore OS
+Lolita Core OS
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/16 20:48:02
 
@@ -12,7 +12,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "comm.h"
 #include <sys/stat.h>
 
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   #include <Windows.h>
 #else
   #include <unistd.h>
@@ -102,7 +102,7 @@ void coOs_export(co* Co)
 }
 
 static coOs* _coOs = NULL;
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 BOOL WINAPI coOs_signalhandler(DWORD t)
 {
   if (!_coOs) return FALSE;
@@ -124,7 +124,7 @@ void coOs_signalhandler(int t)
 
 void coOs_initsig(co* Co)
 {
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   BOOL b = FALSE;
   b = SetConsoleCtrlHandler(coOs_signalhandler, TRUE);
   co_assert(b);
@@ -176,7 +176,7 @@ void coOs_die(co* Co)
 void coOs_sleep(int msec)
 {
   co_assertex(msec >= 0 && msec < 1000 * 60, "fuck, need so long..\?");
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   Sleep((DWORD)msec);
 #else
   struct timeval delay;
@@ -188,7 +188,7 @@ void coOs_sleep(int msec)
 
 double coOs_gettime()
 {
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   LARGE_INTEGER frequency;
   LARGE_INTEGER counter;
   double dfre, dc, sec;
@@ -244,7 +244,7 @@ int coOs_ispath(const char* path)
 int coOs_mkdir(co* Co, const char* path)
 {
   int z = 0;
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   z = CreateDirectoryA(path, NULL);
 #else
   z = (mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0);
@@ -255,7 +255,7 @@ int coOs_mkdir(co* Co, const char* path)
 int coOs_getcwd(co* Co, char* buf, size_t bufs)
 {
   int z = 0;
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   DWORD r = 0;
   r = GetCurrentDirectoryA(bufs, buf);
   z = (r > 0 && r < (DWORD)bufs);
@@ -271,7 +271,7 @@ int coOs_getcwd(co* Co, char* buf, size_t bufs)
 
 int coOs_getpid(co* Co)
 {
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   return (int)GetCurrentProcessId();
 #else
   pid_t pid = getpid();

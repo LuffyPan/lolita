@@ -1,6 +1,6 @@
 /*
 
-LoliCore memory
+Lolita Core memory
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 12:59:23
 

@@ -1,6 +1,6 @@
 /*
 
-LoliCore runtime
+Lolita Core runtime
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/03 13:53:52
 

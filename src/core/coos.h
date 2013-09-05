@@ -1,6 +1,6 @@
 /*
 
-LoliCore OS
+Lolita Core OS
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/16 20:48:48
 

@@ -1,6 +1,6 @@
 /*
 
-LoliCore.
+Lolita Core.
 Chamz Lau, Copyright (C) 2013-2017
 2013/02/26 21:11:26
 
@@ -32,7 +32,7 @@ static int co_export_getmem(lua_State* L);
 static int co_export_settracelv(lua_State* L);
 static int co_export_getregistry(lua_State* L);
 
-lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
+co*core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
 {
   int z = 0;
   co* Co;
@@ -65,10 +65,10 @@ lolicore* lolicore_born(int argc, const char** argv, co_xllocf x, void* ud, co_t
     co_free(Co);
     return NULL;
   }
-  return (lolicore*)Co;
+  return (co*)Co;
 }
 
-void lolicore_alive(lolicore* Co)
+void core_alive(co*Co)
 {
   int z = coR_pcall(Co, co_alive, NULL);
   if (z)
@@ -78,38 +78,38 @@ void lolicore_alive(lolicore* Co)
   }
 }
 
-void lolicore_die(lolicore* Co)
+void core_die(co*Co)
 {
   co_free(Co);
 }
 
-void lolicore_pushcore(lolicore* Co)
+void core_pushcore(co*Co)
 {
   lua_State* L = co_L(Co);
   co_pushcore(L, Co);
 }
 
-size_t lolicore_getusedmem(lolicore* Co)
+size_t core_getusedmem(co*Co)
 {
   return Co->umem;
 }
 
-size_t lolicore_getmaxmem(lolicore* Co)
+size_t core_getmaxmem(co*Co)
 {
   return Co->maxmem;
 }
 
-const char* lolicore_getmodname(lolicore* Co, int mod)
+const char* core_getmodname(co*Co, int mod)
 {
   return co_modname(Co, mod);
 }
 
-const char* lolicore_getlvname(lolicore* Co, int lv)
+const char* core_getlvname(co*Co, int lv)
 {
   return co_lvname(Co, lv);
 }
 
-int lolicore_gettracelv(lolicore* Co)
+int core_gettracelv(co*Co)
 {
   return Co->tracelv;
 }
@@ -135,7 +135,7 @@ static int co_palive(lua_State* L)
   if (lua_isstring(L, -1)) {corext = lua_tostring(L, -1);}
 
   /* check embe mode first, so, overwrite is canceled, TODO:support overwrite */
-  if(strcmp(LOLICORE_EMBE_MODE, LOLICORE_EMBE_MODE_NONE) != 0)
+  if(strcmp(LOLITA_CORE_EMBE_MODE, LOLITA_CORE_EMBE_MODE_NONE) != 0)
   {
     const char** embestr = embestrs;
     while(*embestr)
@@ -247,12 +247,12 @@ static void co_pexportinfo(co* Co, lua_State* L)
   lua_pushvalue(L, -1); lua_setfield(L, -3, "info"); /* core.info */
   lua_pushstring(L, LUA_COPYRIGHT); lua_setfield(L, -2, "lcopyright");
   lua_pushstring(L, LUA_AUTHORS); lua_setfield(L, -2, "lauthors");
-  lua_pushstring(L, LOLICORE_COPYRIGHT); lua_setfield(L, -2, "copyright");
-  lua_pushstring(L, LOLICORE_AUTHOR); lua_setfield(L, -2, "author");
-  lua_pushnumber(L, LOLICORE_VERSION); lua_setfield(L, -2, "version");
-  lua_pushstring(L, LOLICORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
-  lua_pushstring(L, LOLICORE_PLATSTR); lua_setfield(L, -2, "platform");
-  lua_pushstring(L, LOLICORE_EMBE_MODE); lua_setfield(L, -2, "embemode");
+  lua_pushstring(L, LOLITA_CORE_COPYRIGHT); lua_setfield(L, -2, "copyright");
+  lua_pushstring(L, LOLITA_CORE_AUTHOR); lua_setfield(L, -2, "author");
+  lua_pushnumber(L, LOLITA_CORE_VERSION); lua_setfield(L, -2, "version");
+  lua_pushstring(L, LOLITA_CORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
+  lua_pushstring(L, LOLITA_CORE_PLATSTR); lua_setfield(L, -2, "platform");
+  lua_pushstring(L, LOLITA_CORE_EMBE_MODE); lua_setfield(L, -2, "embemode");
   lua_pop(L, 2); /* core.info */
   co_assert(lua_gettop(L) == 0);
 }

@@ -1,13 +1,13 @@
 /*
 
-LoliCore program entry point.
+Lolita Core program entry point.
 Chamz Lau, Copyright (C) 2013-2017
 2013/02/26 20:51:04
 
 */
 
 #include "co.h"
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 #include <crtdbg.h>
 #endif
 
@@ -19,28 +19,28 @@ void* externalxlloc(void* ud, void* p, size_t os, size_t ns)
   return x;
 }
 
-void externaltracef(lolicore* Co, int mod, int lv, const char* msg, va_list msgva)
+void externaltracef(co*Co, int mod, int lv, const char* msg, va_list msgva)
 {
-  if (lv > lolicore_gettracelv(Co)) return;
-  printf("<%s><%s> ", lolicore_getmodname(Co, mod), lolicore_getlvname(Co, lv));
+  if (lv > core_gettracelv(Co)) return;
+  printf("<%s><%s> ", core_getmodname(Co, mod), core_getlvname(Co, lv));
   vprintf(msg, msgva);
   printf("\n");
 }
 
 int main(int argc, const char** argv)
 {
-  lolicore* Co;
+  co*Co;
   co_xllocf x = NULL;
   /* Todo: hide plat */
-#if LOLICORE_PLAT == LOLICORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-#if LOLICORE_USE_EXTERNALXLLOC
+#if LOLITA_CORE_USE_EXTERNALXLLOC
   x = externalxlloc;
 #endif
-  Co = lolicore_born(argc, argv, x, NULL, externaltracef, NULL);if (!Co){return 1;}
-  lolicore_alive(Co);
-  lolicore_die(Co);
+  Co = core_born(argc, argv, x, NULL, externaltracef, NULL);if (!Co){return 1;}
+  core_alive(Co);
+  core_die(Co);
   return 0;
 }

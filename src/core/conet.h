@@ -1,6 +1,6 @@
 /*
 
-LoliCore net
+Lolita Core net
 Chamz Lau, Copyright (C) 2013-2017
 2013/03/04 21:15:41
 
