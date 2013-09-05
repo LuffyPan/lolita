@@ -11,11 +11,10 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cort.h"
 #include "comm.h"
 
-#ifdef LOLITA_CORE_USE_KQUEUE
-  #define LOLITA_CORE_NET_MODE "kqueue"
-#elif LOLITA_CORE_USE_EPOLL
-  #define LOLITA_CORE_USE_SELECT
+#if LOLITA_CORE_USE_EPOLL
   #define LOLITA_CORE_NET_MODE "epoll"
+#elif LOLITA_CORE_USE_KQUEUE
+  #define LOLITA_CORE_NET_MODE "kqueue"
 #else
   #define LOLITA_CORE_USE_SELECT
   #define LOLITA_CORE_NET_MODE "select"
@@ -56,9 +55,12 @@ typedef int cosockfd_size;
 #include <arpa/inet.h>
 #include <errno.h>
 
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE
 #include <sys/event.h>
+#elif LOLITA_CORE_USE_EPOLL
+#include <sys/epoll.h>
 #endif
+
 
 typedef int cosockfdm;
 typedef int cosockfd;
@@ -75,9 +77,12 @@ typedef socklen_t cosockfd_size;
 #define cosockfd_ioctl ioctl
 #define cosockfd_errno errno
 #define cosockfd_errstr(ec) strerror((ec))
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE
   #define cosock_activeconn cosock_active_kqueue
   #define cosock_activeaccp cosock_active_kqueue
+#elif LOLITA_CORE_USE_EPOLL
+  #define cosock_activeconn cosock_active_epoll
+  #define cosock_activeaccp cosock_active_epoll
 #else
   #define cosock_activeconn cosock_activeconn_ux
   #define cosock_activeaccp cosock_activeaccp_common /* hoho */
@@ -130,8 +135,10 @@ static void cosock_activeconn_win32(co* Co, cosock* s);
 static void cosock_activeconn_ux(co* Co, cosock* s);
 #endif
 
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE
   static void cosock_active_kqueue(co* Co, cosock* s);
+#elif LOLITA_CORE_USE_EPOLL
+  static void cosock_active_epoll(co* Co, cosock* s);
 #endif
 
 /* align & littleending ! */
@@ -1356,12 +1363,16 @@ static int cosock_newfdm(co* Co, cosock* s)
 {
 
 /* new kqueue only on platform that support it */
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE || LOLITA_CORE_USE_EPOLL
 
   co_assert(s->fdm == COSOCKFDM_NULL);
   if (s->fdt != COSOCKFD_TATTA)
   {
+#if LOLITA_CORE_USE_KQUEUE
     s->fdm = kqueue();
+#else
+    s->fdm = epoll_create(1);
+#endif
     if (s->fdm == COSOCKFDM_NULL) { cosock_logec(s); return 0; }
   }
   else
@@ -1370,10 +1381,14 @@ static int cosock_newfdm(co* Co, cosock* s)
     s->fdm = s->attaed2s->fdm;
   }
 
+#if LOLITA_CORE_USE_KQUEUE
   if (!cosock_ctlfdm(Co, s, 0, 0)) return 0;
   if (!cosock_ctlfdm(Co, s, 1, 0)) return 0;
   if (s->fdt == COSOCKFD_TCONN) { if (!cosock_ctlfdm(Co, s, 0, 3)) return 0;} /* connector disable read while not connected */
   else if (s->fdt == COSOCKFD_TACCP) { if (!cosock_ctlfdm(Co, s, 1, 3)) return 0;} /* acceptor disable write forever */
+#elif LOLITA_CORE_USE_EPOLL
+  if (!cosock_ctlfdm(Co, s, EPOLLIN | EPOLLOUT, EPOLL_CTL_ADD)) return 0;
+#endif
 
 #else
   coN_tracedebug(Co, "id[%d,%d]don't support any net mode, just use select", s->id, s->fdt);
@@ -1393,6 +1408,10 @@ static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
   EV_SET(&ke, s->fd, type == 0 ? EVFILT_READ : EVFILT_WRITE, op, 0, 0, s);
   if (-1 == kevent(s->fdm, &ke, 1, NULL, 0, NULL)) { cosock_logec(s); return 0; }
 #else
+  struct epoll_event ev;
+  ev.data.ptr = s;
+  ev.events = type;
+  if (-1 == epoll_ctl(s->fdm, op, s->fd, &ev)) { cosock_logec(s); return 0; }
 #endif
   return 1;
 }
@@ -1401,7 +1420,12 @@ static int cosock_markwrite(co* Co, cosock* s)
 {
   size_t datasize = cosockbuf_datasize(s->sndbuf);
   coN_tracedebug(Co, "id[%d,%d] datasize:%u, mark write %s", s->id, 0, datasize, datasize ? "enable" : "disable");
-  if (!cosock_ctlfdm(Co, s, 1, datasize ? 2 : 3)) {
+#if LOLITA_CORE_USE_KQUEUE
+  if (!cosock_ctlfdm(Co, s, 1, datasize ? 2 : 3))
+#elif LOLITA_CORE_USE_EPOLL
+  if (!cosock_ctlfdm(Co, s, datasize ? EPOLLIN | EPOLLOUT : EPOLLIN, EPOLL_CTL_MOD))
+#endif
+  {
     coN_tracefatal(Co, "id[%d,%d] markwrite failed! [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec); return 0;
   }
   return 1;
@@ -1467,7 +1491,7 @@ static void cosock_deletefdt(co* Co, cosock* s)
 
 static void cosock_deletefdm(co* Co, cosock* s)
 {
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE || LOLITA_CORE_USE_EPOLL
   /* TATTA's fdm is use attaed2s's */
   if (COSOCKFD_TATTA == s->fdt) return;
   if (COSOCKFDM_NULL == s->fdm) return;
@@ -1867,6 +1891,131 @@ static void cosock_active_kqueue(co* Co, cosock* s)
     if (ke[i].filter == EVFILT_WRITE) { cosock_evwrite_kqueue(Co, as, &ke[i]); }
     else if (ke[i].filter == EVFILT_READ) { cosock_evread_kqueue(Co, as, &ke[i]); }
     else {co_assert(0);}
+  }
+
+}
+
+#elif LOLITA_CORE_USE_EPOLL
+
+static void cosock_evaccp_epoll(co* Co, cosock* s, struct epoll_event* ev)
+{
+  co_assert(s->fdt == COSOCKFD_TACCP);
+  if (ev->events & EPOLLERR || ev->events & EPOLLHUP || ev->events & EPOLLRDHUP)
+  {
+    cosock_close(Co, s);
+    coN_tracefatal(Co, "id[%d,%d] ocurrs fatal error caz is acceptor", s->id, 0);
+    return;
+  }
+
+  if (ev->events & EPOLLIN)
+  {
+    cosock* ns = NULL;
+    if (!cosock_accept(Co, s, &ns)) { co_assert(!ns); }
+    else { cosock_eventaccept(Co, s, ns, 1); }
+  }
+}
+
+static void cosock_evconn_epoll(co* Co, cosock* s, struct epoll_event* ev)
+{
+
+  int r = 0;
+  if (ev->events & EPOLLERR || ev->events & EPOLLHUP || ev->events & EPOLLRDHUP)
+  {
+    cosock_close(Co, s);
+    if (s->bconnected == 1) { coN_tracedebug(Co, "id[%d,%d] disconnected", s->id, 0); return; }
+    coN_tracedebug(Co, "id[%d,%d] connect failed", s->id, 0);
+    cosock_eventconnect(Co, s, NULL, 0);
+    return;
+  }
+  if (ev->events & EPOLLIN)
+  {
+    coN_tracedebug(Co, "id[%d,%d] have epoll read event", s->id, 0);
+    r = cosock_recv(Co, s);
+    if (1 != r) { cosock_close(Co, s); }
+    cosock_eventprocesspack(Co, s, NULL, 0);
+  }
+  if (ev->events & EPOLLOUT)
+  {
+    coN_tracedebug(Co, "id[%d,%d] have epoll write event", s->id, 0);
+    if (s->bconnected == 0)
+    {
+      s->bconnected = 1;
+      cosock_eventconnect(Co, s, NULL, 1);
+      cosock_markwrite(Co, s);
+      return;
+    }
+    r = cosock_send(Co, s);
+    if (r != 1) { cosock_close(Co, s); return; }
+
+    /* mark write */
+    cosock_markwrite(Co, s);
+  }
+
+}
+
+static void cosock_evatta_epoll(co* Co, cosock* s, struct epoll_event* ev)
+{
+  int r = 0;
+  cosock* s1 = s->attaed2s;
+  co_assert(s->fdt == COSOCKFD_TATTA);
+  co_assert(s1->fdt == COSOCKFD_TACCP);
+
+  if (ev->events & EPOLLERR || ev->events & EPOLLHUP || ev->events & EPOLLRDHUP)
+  {
+    cosock_close(Co, s);
+    coN_tracefatal(Co, "id[%d,%d] is closed..", s1->id, s->id);
+    return;
+  }
+  if (ev->events & EPOLLIN)
+  {
+    coN_tracedebug(Co, "id[%d,%d] have epoll read event", s1->id, s->id);
+    r = cosock_recv(Co, s);
+    if (1 != r) { cosock_close(Co, s); }
+    cosock_eventprocesspack(Co, s1, s, 0);
+  }
+  if (ev->events & EPOLLOUT)
+  {
+    coN_tracedebug(Co, "id[%d,%d] have epoll write event", s1->id, s->id);
+    r = cosock_send(Co, s);
+    if (r != 1) { cosock_close(Co, s); return; }
+
+    /* mark write */
+    cosock_markwrite(Co, s);
+  }
+}
+
+static void cosock_active_epoll(co* Co, cosock* s)
+{
+
+  int r = 0, i;
+  struct epoll_event ev[128]; /* would the socket larger than 128 be have no event notify? */
+
+  co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP);
+  r = epoll_wait(s->fdm, ev, 128, 0); cosock_logec(s);
+  if (0 == r) return;
+  if (-1 == r)
+  {
+    cosock_close(Co, s);
+    coN_tracedebug(Co, "id[%d,%d] active failed while epoll, [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
+    return;
+  }
+  co_assert(r > 0 && r <= 128);
+
+  for (i = 0; i < r; ++i)
+  {
+    cosock* as = (cosock*)ev[i].data.ptr;
+    co_assert(as);
+    if (as->fdt == COSOCKFD_TACCP || as->fdt == COSOCKFD_TCONN){ co_assert(s == as); }
+    else if(as->fdt == COSOCKFD_TATTA) { co_assert(s == as->attaed2s); }
+    if (as->bclosed || (as->attaed2s && as->attaed2s->bclosed))
+    {
+      coN_tracedebug(Co, "id[%d,%d] is closed while in active, ignore follow events", s->id, as == s ? 0 : as->id, 0);
+      continue;
+    }
+    if (as->fdt == COSOCKFD_TACCP) { cosock_evaccp_epoll(Co, as, &ev[i]); }
+    else if (as->fdt == COSOCKFD_TCONN) { cosock_evconn_epoll(Co, as, &ev[i]); }
+    else if (as->fdt == COSOCKFD_TATTA) { cosock_evatta_epoll(Co, as, &ev[i]); }
+    else { co_assert(0); }
   }
 
 }
