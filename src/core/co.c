@@ -122,45 +122,80 @@ static void co_born(co* Co, void* ud)
   coN_born(Co);
 }
 
+static void co_ploadembe(co* Co, lua_State* L)
+{
+  int z = 0, top = 0;
+  const char** embestr = embestrs;
+
+  /* if have embe, load and execute it first */
+  if(strcmp(LOLITA_CORE_EMBE_MODE, LOLITA_CORE_EMBE_MODE_NONE) == 0)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty embe script. didn't load anything!");
+    return;
+  }
+
+  top = lua_gettop(L); co_assert(top == 1); /* only the core is on the stack */
+  while(*embestr)
+  {
+    z = luaL_loadstring(L, *embestr);
+    if (z) lua_error(L);
+    co_assert(lua_gettop(L) == 2 && lua_isfunction(L, -1));
+    lua_call(L, 0, 0);
+    ++embestr;
+  }
+  co_assert(top == lua_gettop(L));
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed embe script.");
+
+}
+
+static void co_ploadext(co* Co, lua_State* L)
+{
+  int z = 0, top = 0;
+  const char* ext = NULL;
+
+  top = lua_gettop(L); co_assert(top == 1); /* caz the core is on the stack */
+  lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "ext"); co_assert(lua_gettop(L) == 3);
+  if (lua_isstring(L, -1)) {ext = lua_tostring(L, -1);}
+
+  if (!ext) 
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty embe script. didn't load anything!");
+    lua_pop(L, 2); /* pop the arg.ext */
+    return;
+  }
+
+  z = luaL_loadfile(L, ext); if (z) lua_error(L);
+  co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
+  lua_call(L, 0, 0);
+  lua_pop(L, 2);
+  co_assert(top == lua_gettop(L));
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed ext script.");
+}
+
+/* core is on the top of stack */
+static void co_pload(co* Co, lua_State* L)
+{
+  co_ploadembe(Co, L);
+  co_ploadext(Co, L);
+}
+
+static void co_pactive(co* Co, lua_State* L)
+{
+  co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "have not register active func");
+}
+
 static int co_palive(lua_State* L)
 {
-  int z;
   co* Co = NULL;
-  const char* corext = NULL;
   Co = co_C(L);
+
   co_assert(lua_gettop(L) == 0);
   co_pushcore(L, Co);
-  lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "corext"); co_assert(lua_gettop(L) == 3);
-  if (lua_isstring(L, -1)) {corext = lua_tostring(L, -1);}
-
-  /* check embe mode first, so, overwrite is canceled, TODO:support overwrite */
-  if(strcmp(LOLITA_CORE_EMBE_MODE, LOLITA_CORE_EMBE_MODE_NONE) != 0)
-  {
-    const char** embestr = embestrs;
-    while(*embestr)
-    {
-      z = luaL_loadstring(L, *embestr);
-      if (z) lua_error(L);
-      co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-      lua_call(L, 0, 0);
-      ++embestr;
-    }
-    lua_pop(L, 3);
-  }
-  else if (corext)
-  {
-    z = luaL_loadfile(L, corext);
-    if (z) lua_error(L);
-    co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-    lua_call(L, 0, 0);
-    lua_pop(L, 3);
-  }
-  else
-  {
-    luaL_error(L, "both arg and embe is none!");
-  }
-  co_assert(lua_gettop(L) == 0);
+  co_pload(Co, L);
+  co_pactive(Co, L);
+  co_assert(lua_gettop(L) == 1);
+  lua_pop(L, 1);
   return 0;
 }
 
@@ -234,10 +269,18 @@ static void co_pexportcore(co* Co, lua_State* L)
   co_assert(lua_gettop(L) == 0);
   if (!Co->battachL) {luaL_openlibs(L);}
   /* check lolita.core and assert */
-  lua_newtable(L); /* core? the name is not important */
+  lua_newtable(L); /* lolita? the name is not important */
+  lua_newtable(L); /* lolita.core */
   lua_pushvalue(L, -1);
+  lua_setfield(L, -3, "core");
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.core");
-  if (!Co->battachL) {lua_setglobal(L, "core");}
+
+  lua_newtable(L);
+  lua_pushvalue(L, -1);
+  lua_setfield(L, -3, "avatar");
+  lua_setfield(L, LUA_REGISTRYINDEX, "lolita.avatar");
+
+  if (!Co->battachL) {lua_setglobal(L, "lolita");}
   else {lua_pop(L, 1);}
   co_assert(lua_gettop(L) == 0);
 }

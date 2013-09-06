@@ -34,5 +34,6 @@ int co_pcallmsg(lua_State* L);
   #define luaL_setfuncs(L, l, nups) co_assert(nups == 0); luaL_register(L, NULL, l)
 #endif
 #define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1));
+#define co_pushavatar(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.avatar"); co_assert(lua_istable(L, -1));
 
 #endif

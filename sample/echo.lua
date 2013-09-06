@@ -5,11 +5,15 @@
 --
 
 assert(_VERSION == "Lua 5.2", string.format("Lua5.2+ please!, %s", _VERSION))
-assert(core)
-print(string.format("core:%s", core))
-for k, v in pairs(core) do
+assert(lolita)
+assert(lolita.core)
+assert(lolita.avatar)
+print(string.format("lolita:%s", lolita))
+for k, v in pairs(lolita) do
   print(k,v)
 end
+
+local core = lolita.core
 
 assert(core.net.info)
 print("--------------------------------------------------------------------")
