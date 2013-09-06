@@ -42,7 +42,9 @@ function echo:init()
   assert(core.os.register(self.sig, self))
 
   --initialize net environment
-  core.net.ids = {}
+  --core.net.ids = {}
+  --build-in initialize
+
   --register net event
   assert(core.net.register(self.ev, self))
 

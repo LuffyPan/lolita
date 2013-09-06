@@ -586,6 +586,9 @@ int coN_pexportapi(co* Co, lua_State* L)
   lua_setfield(L, -2, "fdsetsize");
   lua_setfield(L, -2, "info");
 
+  lua_newtable(L);
+  lua_setfield(L, -2, "ids");
+
   lua_setfield(L, -2, "net");
   lua_pop(L, 1);
   co_assert(lua_gettop(L) == 0);
