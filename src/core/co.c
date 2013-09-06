@@ -143,7 +143,7 @@ static int co_palive(lua_State* L)
       z = luaL_loadstring(L, *embestr);
       if (z) lua_error(L);
       co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-      z = lua_pcall(L, 0, 0, 0);if (z) {lua_error(L);}
+      lua_call(L, 0, 0);
       ++embestr;
     }
     lua_pop(L, 3);
@@ -153,7 +153,7 @@ static int co_palive(lua_State* L)
     z = luaL_loadfile(L, corext);
     if (z) lua_error(L);
     co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-    z = lua_pcall(L, 0, 0, 0);if (z) {lua_error(L);}
+    lua_call(L, 0, 0);
     lua_pop(L, 3);
   }
   else
@@ -170,13 +170,16 @@ static void co_alive(co* Co, void* ud)
   lua_State* L = NULL;
   L = co_L(Co);
   co_assert(lua_gettop(L) == 0);
+  lua_pushcfunction(L, co_pcallmsg);
   lua_pushcfunction(L, co_palive);
-  z = lua_pcall(L, 0, 0, 0);
+  z = lua_pcall(L, 0, 0, 1);
   if (z)
   {
-    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
+    co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L);
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
+  co_assert(lua_gettop(L) == 1);
+  lua_pop(L, 1);
   co_assert(lua_gettop(L) == 0);
 }
 
@@ -325,17 +328,18 @@ static void co_export(co* Co)
   lua_State* L = co_L(Co);
   top = lua_gettop(L);
   if (!Co->battachL) {co_assert(top == 0);}
+  lua_pushcfunction(L, co_pcallmsg);
   lua_pushcfunction(L, co_pexport);
-  z = lua_pcall(L, 0, 0, 0);
+  z = lua_pcall(L, 0, 0, top + 1);
   if (z)
   {
-    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
-    printf("%s\n", lua_tostring(L, -1));
+    co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L);
     /* when the failed, you never know the stack would be, so, cancel this assert */
     /* lua_pop(L,1); co_assert(lua_gettop(L) == 0); */
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
-  co_assert(top == lua_gettop(L));
+  co_assert(top + 1 == lua_gettop(L)); /* caz co_pcallmsg is not poped */
+  lua_pop(L, 1); co_assert(top == lua_gettop(L));
   if (!Co->battachL) {co_assert(top == 0);}
 }
 
@@ -470,6 +474,18 @@ void co_trace(co* Co, int mod, int lv, const char* msg, ...)
   va_start(msgva, msg);
   Co->tf(Co, mod, lv, msg, msgva);
   va_end(msgva);
+}
+
+void co_tracecallstack(co* Co, int mod, int lv, lua_State* L)
+{
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "=================================== |\n%s", lua_tostring(L, -1));
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "=================================== |");
+}
+
+int co_pcallmsg(lua_State* L)
+{
+  luaL_traceback(L, L, lua_tostring(L, 1), 0);
+  return 1;
 }
 
 co* co_C(lua_State* L)

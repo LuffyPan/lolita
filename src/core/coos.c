@@ -89,15 +89,16 @@ void coOs_export(co* Co)
   lua_State* L = co_L(Co);
   top = lua_gettop(L);
   if (!Co->battachL) {co_assert(top == 0);}
+  lua_pushcfunction(L, co_pcallmsg);
   lua_pushcfunction(L, coOs_pexport);
-  z = lua_pcall(L, 0, 0, 0);
+  z = lua_pcall(L, 0, 0, top + 1);
   if (z)
   {
-    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, lua_tostring(L, -1));
-    lua_pop(L,1); co_assert(lua_gettop(L) == 0);
+    co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L);
     coR_throw(Co, CO_ERRSCRIPTCALL);
   }
-  co_assert(top == lua_gettop(L));
+  co_assert(top + 1 == lua_gettop(L));
+  lua_pop(L, 1); co_assert(top == lua_gettop(L));
   if (!Co->battachL) {co_assert(lua_gettop(L) == 0);}
 }
 

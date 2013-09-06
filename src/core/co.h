@@ -22,6 +22,7 @@ const char* core_getmodname(co*Co, int mod);
 const char* core_getlvname(co*Co, int lv);
 
 co* co_C(lua_State* L);
+int co_pcallmsg(lua_State* L);
 
 #define co_L(Co) ((Co)->L)
 /* #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L) */

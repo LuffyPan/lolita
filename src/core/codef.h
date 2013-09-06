@@ -118,4 +118,5 @@ struct co
 #define co_assert(x) assert((x))
 #define co_assertex(x,msg) co_assert((x) && msg)
 void co_trace(co* Co, int mod, int lv, const char* msg, ...);
+void co_tracecallstack(co* Co, int mod, int lv, lua_State* L);
 #endif
