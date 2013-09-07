@@ -148,36 +148,103 @@ static void co_ploadembe(co* Co, lua_State* L)
 
 }
 
-static void co_ploadext(co* Co, lua_State* L)
+/* TODO:Simple the implelemt, suck as dir operation */
+/* more option to control the load process, don't error spread and so on. */
+static void co_ploadexts(co* Co, lua_State* L)
 {
   int z = 0, top = 0;
-  const char* ext = NULL;
+  size_t len = 0, len2 = 0;
+  const char* exts = NULL;
+  const char* p1 = NULL;
+  const char* p2 = NULL;
+  const char *p3 = NULL, *p4 = NULL, *p5 = NULL;
+  char ext[256];
+  char extpath[256];
 
   top = lua_gettop(L); co_assert(top == 1); /* caz the core is on the stack */
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "ext"); co_assert(lua_gettop(L) == 3);
-  if (lua_isstring(L, -1)) {ext = lua_tostring(L, -1);}
+  lua_getfield(L, -1, "exts"); co_assert(lua_gettop(L) == 3);
+  if (lua_isstring(L, -1)) {exts = lua_tostring(L, -1);}
 
-  if (!ext) 
+  if (!exts) 
   {
     co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty embe script. didn't load anything!");
-    lua_pop(L, 2); /* pop the arg.ext */
+    lua_pop(L, 2); /* pop the arg.exts */
     return;
   }
 
-  z = luaL_loadfile(L, ext); if (z) lua_error(L);
-  co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-  lua_call(L, 0, 0);
+  p1 = exts;
+  while(1)
+  {
+    p2 = strchr(p1, ',');
+    len = p2 ? p2 - p1 : strlen(p1);
+    len2 = len >= 256 ? 32 : len;
+    strncpy(ext, p1, len2); ext[len2] = 0;
+    if (len >= 256) luaL_error(L, "%s... is too long.. paused!", ext);
+
+    z = luaL_loadfile(L, ext); if (z) lua_error(L);
+    co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
+    lua_call(L, 0, 2); /* with 2 result */
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s is loaded and executed!", ext);
+    co_assert(lua_gettop(L) == 5);
+    if (lua_isstring(L, -2) && strcmp(lua_tostring(L, -2), "load") == 0 && lua_istable(L, -1))
+    {
+      p3 = ext; p5 = NULL;
+      while((p4 = strchr(p3, '/'))){p5 = p4; p3 = p4 + 1;}
+      len = p5 ? p5 - ext + 1 : 0;
+      strncpy(extpath, ext, len); extpath[len] = 0;
+      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "continue to load with path:%s", extpath);
+
+      lua_pushnil(L);
+      while(lua_next(L, -2))
+      {
+        if (lua_type(L, -1) != LUA_TSTRING)
+        {
+          co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the format is invalid!");
+          lua_pop(L, 1);
+          continue;
+        }
+        p5 = lua_tolstring(L, -1, &len2);
+        if (len + len2 + 1 >= 256)
+        {
+          co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the length of name is so big?!");
+          lua_pop(L, 1);
+          continue;
+        }
+        sprintf(ext, "%s%s", extpath, p5);
+        z = luaL_loadfile(L, ext); if (z) lua_error(L);
+        co_assert(lua_gettop(L) == 8 && lua_isfunction(L, -1));
+        lua_call(L, 0, 0);
+        co_assert(lua_gettop(L) == 7);
+        co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "\t%s is loaded and executed", ext);
+        lua_pop(L, 1);
+      }
+      co_assert(lua_gettop(L) == 5);
+
+    }
+    else
+    {
+      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "DON'T load caz the return indicated");
+    }
+    co_assert(lua_gettop(L) == 5);
+    lua_pop(L, 2);
+
+    if (!p2) break;
+    p1 = p2 + 1;
+    p2 = NULL;
+  }
+
+  co_assert(3 == lua_gettop(L));
   lua_pop(L, 2);
   co_assert(top == lua_gettop(L));
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed ext script.");
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed exts script");
 }
 
 /* core is on the top of stack */
 static void co_pload(co* Co, lua_State* L)
 {
   co_ploadembe(Co, L);
-  co_ploadext(Co, L);
+  co_ploadexts(Co, L);
 }
 
 static void co_pactive(co* Co, lua_State* L)
@@ -330,6 +397,11 @@ static void co_pexportarg(co* Co, lua_State* L)
     }
     lua_settable(L, -3);
   }
+
+  lua_getfield(L, -1, "tracelv");
+  Co->tracelv = (int)lua_tonumber(L, -1);
+  lua_pop(L, 1);
+
   lua_pop(L, 2); /* core.arg */
   co_assert(lua_gettop(L) == 0);
 }
