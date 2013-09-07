@@ -78,6 +78,7 @@ function echo:born()
       core.os.active(100)
     end
   end
+  print("oh, i'm born")
 end
 
 function echo:active()
@@ -148,8 +149,7 @@ function echo:evclient(evid, id, attaid, extra)
   end
 end
 
-lolita.core.base.attach(echo)
-lolita.core.base.attach(echo)
+lolita.core.base.attach(echo, 2)
 
 --echo:init()
 --echo:run()

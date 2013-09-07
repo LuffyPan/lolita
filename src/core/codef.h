@@ -47,7 +47,7 @@ Chamz Lau, Copyright (C) 2013-2017
   #error Unknown LOLITA_CORE_PLAT!
 #endif
 
-#define LOLITA_CORE_VERSION 1990
+#define LOLITA_CORE_VERSION 1991
 #define LOLITA_CORE_AUTHOR "Chamz Lau"
 #define LOLITA_CORE_COPYRIGHT "LolitaCore Copyright (C) 2013-2017, " LOLITA_CORE_AUTHOR
 

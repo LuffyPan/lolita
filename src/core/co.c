@@ -629,10 +629,14 @@ static int co_export_getregistry(lua_State* L)
 
 static int co_export_attach(lua_State* L)
 {
+  lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach");
+  if (!lua_isnil(L, -1)) { luaL_error(L, "duplicate attach"); }
+  lua_pop(L, 1);
   luaL_checktype(L, 1, LUA_TTABLE);
-  /* check more detail, born, active, die is function */
-  /* check duplicate attach */
   lua_pushvalue(L, 1); /* ensure that the -1 is this table */
+  lua_getfield(L, -1, "born"); luaL_checktype(L, -1, LUA_TFUNCTION); lua_pop(L, 1);
+  lua_getfield(L, -1, "active"); luaL_checktype(L, -1, LUA_TFUNCTION); lua_pop(L, 1);
+  lua_getfield(L, -1, "die"); luaL_checktype(L, -1, LUA_TFUNCTION); lua_pop(L, 1);
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   return 1;
 }
