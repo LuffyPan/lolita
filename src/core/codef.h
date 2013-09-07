@@ -75,6 +75,7 @@ struct co_longjmp
 
 struct co
 {
+  int bactive;
   int tracelv;
   co_xllocf xlloc;
   co_tracef tf;

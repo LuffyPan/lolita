@@ -31,8 +31,10 @@ static int co_export_setmaxmem(lua_State* L);
 static int co_export_getmem(lua_State* L);
 static int co_export_settracelv(lua_State* L);
 static int co_export_getregistry(lua_State* L);
+static int co_export_attach(lua_State* L);
+static int co_export_detach(lua_State* L);
 
-co*core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
+co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
 {
   int z = 0;
   co* Co;
@@ -52,6 +54,7 @@ co*core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, l
     Co->umem = sizeof(*Co);
     co_assertex(Co->umem <= Co->maxmem, "maxmem is set to small!");
   }
+  Co->bactive = 0;
   Co->tracelv = CO_LVFATAL;
   Co->errjmp = NULL;
   Co->L = L;
@@ -68,7 +71,7 @@ co*core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, l
   return (co*)Co;
 }
 
-void core_alive(co*Co)
+void core_alive(co* Co)
 {
   int z = coR_pcall(Co, co_alive, NULL);
   if (z)
@@ -78,38 +81,38 @@ void core_alive(co*Co)
   }
 }
 
-void core_die(co*Co)
+void core_die(co* Co)
 {
   co_free(Co);
 }
 
-void core_pushcore(co*Co)
+void core_pushcore(co* Co)
 {
   lua_State* L = co_L(Co);
   co_pushcore(L, Co);
 }
 
-size_t core_getusedmem(co*Co)
+size_t core_getusedmem(co* Co)
 {
   return Co->umem;
 }
 
-size_t core_getmaxmem(co*Co)
+size_t core_getmaxmem(co* Co)
 {
   return Co->maxmem;
 }
 
-const char* core_getmodname(co*Co, int mod)
+const char* core_getmodname(co* Co, int mod)
 {
   return co_modname(Co, mod);
 }
 
-const char* core_getlvname(co*Co, int lv)
+const char* core_getlvname(co* Co, int lv)
 {
   return co_lvname(Co, lv);
 }
 
-int core_gettracelv(co*Co)
+int core_gettracelv(co* Co)
 {
   return Co->tracelv;
 }
@@ -168,7 +171,7 @@ static void co_ploadexts(co* Co, lua_State* L)
 
   if (!exts) 
   {
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty embe script. didn't load anything!");
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty exts script. didn't load anything!");
     lua_pop(L, 2); /* pop the arg.exts */
     return;
   }
@@ -249,7 +252,52 @@ static void co_pload(co* Co, lua_State* L)
 
 static void co_pactive(co* Co, lua_State* L)
 {
-  co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "have not register active func");
+  int top = 0;
+  top = lua_gettop(L); co_assert(top == 1);
+  lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach"); /* idx = 2 */
+  if (!lua_istable(L, -1))
+  {
+    co_assert(lua_isnil(L, -1));
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "have not register active func");
+    lua_pop(L, 1);
+    return;
+  }
+
+  /* born */
+  lua_getfield(L, -1, "born");
+  co_assert(lua_isfunction(L, -1));
+  lua_pushvalue(L, 2); /* param */
+  lua_call(L, 1, 0);
+  co_assert(lua_gettop(L) == 2);
+
+  /* active */
+  lua_getfield(L, -1, "active"); /* idx = 3 */
+  co_assert(lua_isfunction(L, -1));
+  Co->bactive = 1;
+  while(Co->bactive)
+  {
+    co_assert(3 == lua_gettop(L));
+    lua_pushvalue(L, -1); /* function top = 4 */
+    lua_pushvalue(L, 2); /* param top = 5 */
+    lua_call(L, 1, 1);
+    co_assert(lua_gettop(L) == 4);
+    if (lua_tointeger(L, -1) != 1)
+    {
+      Co->bactive = 0;
+      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "active is stoped!");
+    }
+    lua_pop(L, 1);
+  }
+  co_assert(3 == lua_gettop(L));
+  lua_pop(L, 1);
+
+  /* die */
+  lua_getfield(L, -1, "die");
+  co_assert(lua_isfunction(L, -1));
+  lua_pushvalue(L, 2);
+  lua_call(L, 1, 0);
+  co_assert(lua_gettop(L) == 2);
+  lua_pop(L, 1);
 }
 
 static int co_palive(lua_State* L)
@@ -342,11 +390,6 @@ static void co_pexportcore(co* Co, lua_State* L)
   lua_setfield(L, -3, "core");
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.core");
 
-  lua_newtable(L);
-  lua_pushvalue(L, -1);
-  lua_setfield(L, -3, "avatar");
-  lua_setfield(L, LUA_REGISTRYINDEX, "lolita.avatar");
-
   if (!Co->battachL) {lua_setglobal(L, "lolita");}
   else {lua_pop(L, 1);}
   co_assert(lua_gettop(L) == 0);
@@ -414,6 +457,8 @@ static void co_pexportapi(co* Co, lua_State* L)
     {"setmaxmem", co_export_setmaxmem},
     {"settracelv", co_export_settracelv},
     {"getregistry", co_export_getregistry},
+    {"attach", co_export_attach},
+    {"detach", co_export_detach},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -579,6 +624,25 @@ static int co_export_settracelv(lua_State* L)
 static int co_export_getregistry(lua_State* L)
 {
   lua_pushvalue(L, LUA_REGISTRYINDEX);
+  return 1;
+}
+
+static int co_export_attach(lua_State* L)
+{
+  luaL_checktype(L, 1, LUA_TTABLE);
+  /* check more detail, born, active, die is function */
+  /* check duplicate attach */
+  lua_pushvalue(L, 1); /* ensure that the -1 is this table */
+  lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
+  return 1;
+}
+
+static int co_export_detach(lua_State* L)
+{
+  co* Co = co_C(L);
+  Co->bactive = 0;
+  lua_pushnil(L);
+  lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   return 1;
 }
 

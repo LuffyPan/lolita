@@ -7,7 +7,6 @@
 assert(_VERSION == "Lua 5.2", string.format("Lua5.2+ please!, %s", _VERSION))
 assert(lolita)
 assert(lolita.core)
-assert(lolita.avatar)
 print(string.format("lolita:%s", lolita))
 for k, v in pairs(lolita) do
   print(k,v)
@@ -34,7 +33,7 @@ print("")
 
 local echo = {}
 
-function echo:init()
+function echo:born()
   --set trace level
   local tracelv = tonumber(core.arg.tracelv) or 0
   core.base.settracelv(tracelv)
@@ -81,20 +80,19 @@ function echo:init()
   end
 end
 
-function echo:run()
-  self.brun = 1
-  while self.brun do
-    core.net.active()
-    core.os.active(1)
-  end
+function echo:active()
+  core.net.active()
+  core.os.active(1)
+  return 1;
 end
 
-function echo:uninit()
+function echo:die()
+  print("yeah, i'm die")
 end
 
 --signal process
 function echo:sig()
-  self.brun = nil
+  lolita.core.base.detach()
 end
 
 function echo:ev(evid, id, attaid, extra)
@@ -150,6 +148,9 @@ function echo:evclient(evid, id, attaid, extra)
   end
 end
 
-echo:init()
-echo:run()
-echo:uninit()
+lolita.core.base.attach(echo)
+lolita.core.base.attach(echo)
+
+--echo:init()
+--echo:run()
+--echo:uninit()

@@ -12,14 +12,14 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "codef.h"
 
 co*core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L);
-void core_alive(co*Co);
-void core_die(co*Co);
-void core_pushcore(co*Co);
-int core_gettracelv(co*Co);
-size_t core_getusedmem(co*Co);
-size_t core_getmaxmem(co*Co);
-const char* core_getmodname(co*Co, int mod);
-const char* core_getlvname(co*Co, int lv);
+void core_alive(co* Co);
+void core_die(co* Co);
+void core_pushcore(co* Co);
+int core_gettracelv(co* Co);
+size_t core_getusedmem(co* Co);
+size_t core_getmaxmem(co* Co);
+const char* core_getmodname(co* Co, int mod);
+const char* core_getlvname(co* Co, int lv);
 
 co* co_C(lua_State* L);
 int co_pcallmsg(lua_State* L);
@@ -34,6 +34,5 @@ int co_pcallmsg(lua_State* L);
   #define luaL_setfuncs(L, l, nups) co_assert(nups == 0); luaL_register(L, NULL, l)
 #endif
 #define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1));
-#define co_pushavatar(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.avatar"); co_assert(lua_istable(L, -1));
 
 #endif
