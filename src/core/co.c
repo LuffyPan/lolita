@@ -423,6 +423,9 @@ static void co_pexportarg(co* Co, lua_State* L)
   co_pushcore(L, Co);
   lua_newtable(L);
   lua_pushvalue(L, -1); lua_setfield(L, -3, "arg"); /* core.arg */
+
+  lua_newtable(L);
+  lua_pushvalue(L, -1); lua_setfield(L, -3, "_original"); /* core.arg._original */
   for (i = 1; i < argc; ++i)
   {
     const char* p = strchr(argv[i], '=');
@@ -438,8 +441,13 @@ static void co_pexportarg(co* Co, lua_State* L)
       lua_pushstring(L, argv[i]);
       lua_pushstring(L, "");
     }
+    lua_settable(L, -4);
+
+    lua_pushnumber(L, i);
+    lua_pushstring(L, argv[i]);
     lua_settable(L, -3);
   }
+  lua_pop(L, 1); /* _original */
 
   lua_getfield(L, -1, "tracelv");
   Co->tracelv = (int)lua_tonumber(L, -1);

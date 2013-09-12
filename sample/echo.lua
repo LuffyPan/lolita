@@ -14,6 +14,16 @@ end
 
 local core = lolita.core
 
+print("original arg:")
+for k, v in ipairs(core.arg._original) do
+  print(k, v)
+end
+
+print("arg:")
+for k, v in pairs(core.arg) do
+  print(k, v)
+end
+
 assert(core.net.info)
 print("--------------------------------------------------------------------")
 print(string.format("platform:%s", core.info.platform))
