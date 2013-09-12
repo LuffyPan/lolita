@@ -252,13 +252,13 @@ static void co_pload(co* Co, lua_State* L)
 
 static void co_pactive(co* Co, lua_State* L)
 {
-  int top = 0;
+  int top = 0, z = 0;
   top = lua_gettop(L); co_assert(top == 1);
   lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach"); /* idx = 2 */
   if (!lua_istable(L, -1))
   {
     co_assert(lua_isnil(L, -1));
-    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "have not register active func");
+    co_trace(Co, CO_MOD_CORE, CO_LVINFO, "have not register active func");
     lua_pop(L, 1);
     return;
   }
@@ -267,8 +267,15 @@ static void co_pactive(co* Co, lua_State* L)
   lua_getfield(L, -1, "born");
   co_assert(lua_isfunction(L, -1));
   lua_pushvalue(L, 2); /* param */
-  lua_call(L, 1, 0);
-  co_assert(lua_gettop(L) == 2);
+  lua_call(L, 1, 1);
+  co_assert(lua_gettop(L) == 3);
+  z = lua_tonumber(L, -1);
+  lua_pop(L, 1);
+  if ( z != 1 )
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVINFO, "born's return value is %d, stop active, direct to die", z);
+    goto die;
+  }
 
   /* active */
   lua_getfield(L, -1, "active"); /* idx = 3 */
@@ -291,6 +298,7 @@ static void co_pactive(co* Co, lua_State* L)
   co_assert(3 == lua_gettop(L));
   lua_pop(L, 1);
 
+die:
   /* die */
   lua_getfield(L, -1, "die");
   co_assert(lua_isfunction(L, -1));

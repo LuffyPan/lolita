@@ -12,6 +12,7 @@ local loop = {}
 function loop:born()
   self.count = 0
   print("loop born")
+  return 1
 end
 
 function loop:active()

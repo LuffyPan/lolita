@@ -4,6 +4,26 @@
 -- 2013/09/02 19:48:57
 --
 
+--[[
+
+the arguments works
+
+bsrv
+  1: run as a server
+  0 : run as a client
+
+maxconnection
+  a number to indicate max connection works both on srv or client
+
+ip
+  ip to listen or connect
+
+port
+  port to listen or connect
+
+
+--]]
+
 assert(_VERSION == "Lua 5.2", string.format("Lua5.2+ please!, %s", _VERSION))
 assert(lolita)
 assert(lolita.core)
@@ -73,7 +93,8 @@ function echo:born()
     --listen @ ip:port
     self.netid = core.net.listen(ip, port)
     assert(self.netid, "listen failed")
-    core.net.setoption(self.netid, 0, tonumber(core.arg.maxconnection) or 110);
+    --set max connection can accept.
+    core.net.setoption(self.netid, 0, tonumber(core.arg.maxconnection) or 110)
     print(string.format("listening @ %s:%s", ip, port))
   else
     --connect to ip:port
@@ -89,6 +110,7 @@ function echo:born()
     end
   end
   print("oh, i'm born")
+  return 1
 end
 
 function echo:active()
@@ -159,8 +181,5 @@ function echo:evclient(evid, id, attaid, extra)
   end
 end
 
-lolita.core.base.attach(echo, 2)
-
---echo:init()
---echo:run()
---echo:uninit()
+--born, active, die must be the function of echo to attach
+lolita.core.base.attach(echo)
