@@ -152,10 +152,10 @@ static void co_ploadembe(co* Co, lua_State* L)
 }
 
 /* TODO:Simple the implelemt, suck as dir operation */
-/* more option to control the load process, don't error spread and so on. */
-static void co_ploadexts(co* Co, lua_State* L)
+/* more option to control the load process, don't error spread and so on. DONE */
+static void co_ploadx(co* Co, lua_State* L)
 {
-  int z = 0, top = 0;
+  int z = 0, top = 0, optional = 0;
   size_t len = 0, len2 = 0;
   const char* exts = NULL;
   const char* p1 = NULL;
@@ -166,7 +166,7 @@ static void co_ploadexts(co* Co, lua_State* L)
 
   top = lua_gettop(L); co_assert(top == 1); /* caz the core is on the stack */
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "exts"); co_assert(lua_gettop(L) == 3);
+  lua_getfield(L, -1, "x"); co_assert(lua_gettop(L) == 3);
   if (lua_isstring(L, -1)) {exts = lua_tostring(L, -1);}
 
   if (!exts) 
@@ -190,45 +190,66 @@ static void co_ploadexts(co* Co, lua_State* L)
     lua_call(L, 0, 2); /* with 2 result */
     co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s is loaded and executed!", ext);
     co_assert(lua_gettop(L) == 5);
-    if (lua_isstring(L, -2) && strcmp(lua_tostring(L, -2), "load") == 0 && lua_istable(L, -1))
-    {
-      p3 = ext; p5 = NULL;
-      while((p4 = strchr(p3, '/'))){p5 = p4; p3 = p4 + 1;}
-      len = p5 ? p5 - ext + 1 : 0;
-      strncpy(extpath, ext, len); extpath[len] = 0;
-      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "continue to load with path:%s", extpath);
 
-      lua_pushnil(L);
-      while(lua_next(L, -2))
-      {
-        if (lua_type(L, -1) != LUA_TSTRING)
-        {
-          co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the format is invalid!");
-          lua_pop(L, 1);
-          continue;
-        }
-        p5 = lua_tolstring(L, -1, &len2);
-        if (len + len2 + 1 >= 256)
-        {
-          co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the length of name is so big?!");
-          lua_pop(L, 1);
-          continue;
-        }
-        sprintf(ext, "%s%s", extpath, p5);
-        z = luaL_loadfile(L, ext); if (z) lua_error(L);
-        co_assert(lua_gettop(L) == 8 && lua_isfunction(L, -1));
-        lua_call(L, 0, 0);
-        co_assert(lua_gettop(L) == 7);
-        co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "\t%s is loaded and executed", ext);
-        lua_pop(L, 1);
-      }
-      co_assert(lua_gettop(L) == 5);
-
-    }
-    else
+    if ((! lua_isstring(L, -2)) || strcmp(lua_tostring(L, -2), "loadx") || (! lua_istable(L, -1)))
     {
       co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "DON'T load caz the return indicated");
+      goto flag;
     }
+
+    p3 = ext; p5 = NULL;
+    while((p4 = strchr(p3, '/'))){p5 = p4; p3 = p4 + 1;}
+    len = p5 ? p5 - ext + 1 : 0;
+    strncpy(extpath, ext, len); extpath[len] = 0;
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "continue to load with path:%s", extpath);
+
+    lua_pushnil(L);
+    while(lua_next(L, -2))
+    {
+      co_assert(lua_gettop(L) == 7);
+      if (lua_type(L, -1) != LUA_TTABLE)
+      {
+        co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the format is invalid!");
+        lua_pop(L, 1);
+        continue;
+      }
+
+      lua_pushnumber(L, 2);
+      lua_gettable(L, -2);
+      optional = (int)lua_tonumber(L, -1);
+      lua_pop(L, 1);
+
+      lua_pushnumber(L, 1);
+      lua_gettable(L, -2);
+
+      p5 = lua_tolstring(L, -1, &len2);
+      if (len + len2 + 1 >= 256)
+      {
+        co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the length of name is so big?!");
+        lua_pop(L, 2);
+        continue;
+      }
+      sprintf(ext, "%s%s", extpath, p5);
+      z = luaL_loadfile(L, ext);
+      if (z)
+      {
+        co_assert(lua_gettop(L) == 9);
+        if (optional == 1)
+        {
+          co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "ignore [%s] ext cuz the optional flag!", ext);
+          lua_pop(L, 3);
+          continue;
+        }
+        lua_error(L);
+      }
+      co_assert(lua_gettop(L) == 9 && lua_isfunction(L, -1));
+      lua_call(L, 0, 0);
+      co_assert(lua_gettop(L) == 8);
+      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "\t%s is loaded and executed", ext);
+      lua_pop(L, 2);
+    }
+
+flag:
     co_assert(lua_gettop(L) == 5);
     lua_pop(L, 2);
 
@@ -247,7 +268,7 @@ static void co_ploadexts(co* Co, lua_State* L)
 static void co_pload(co* Co, lua_State* L)
 {
   co_ploadembe(Co, L);
-  co_ploadexts(Co, L);
+  co_ploadx(Co, L);
 }
 
 static void co_pactive(co* Co, lua_State* L)
