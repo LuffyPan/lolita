@@ -266,8 +266,7 @@ end
 local function _embe()
   local embestr = ""
   local embe = _OPTIONS["embe"]
-  if not embe then return end
-  printf("embe %s", embe)
+  printf("embe %s", embe or "none")
   if embe then
     local corext = _embecore(embe)
     embestr = embestr .. corext
