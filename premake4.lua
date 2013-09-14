@@ -202,22 +202,43 @@ local function _version()
   fo:close()
 end
 
-local function _embecore()
+local function _getpath(file)
+  local n = 1
+  local e = 0
+  while 1 do
+    n = string.find(file, "/", n)
+    if not n then break end
+    e = n
+    n = n + 1
+  end
+  return string.sub(file, 1, e)
+end
+
+local function _embecore(mfile)
   local embestr = ""
-  local func = assert(loadfile("../lolitax/src/cox.lua"))
-  local manifest = assert(func(1))
-  for i, fn in ipairs(manifest) do
-    fn = "../lolitax/src/" .. fn
+  local func = assert(loadfile(mfile))
+  local mfilepath = _getpath(mfile)
+  local _, manifest = assert(func())
+  for i, tfn in ipairs(manifest) do
+    fn = mfilepath .. tfn[1]
     printf(fn)
-    local fi = io.open(fn, "rb") if not fi then printf("Cannot open embe file:%s", fn) end
-    local text = fi:read("*a")
+    local fi = io.open(fn, "rb")
+    if fi then
+      local text = fi:read("*a")
 
-    text = text:gsub("\\", "\\\\")
-    text = text:gsub("\n", "\\n")
-    text = text:gsub("\"", "\\\"")
+      text = text:gsub("\\", "\\\\")
+      text = text:gsub("\n", "\\n")
+      text = text:gsub("\"", "\\\"")
 
-    embestr = embestr .. "\"" .. text .. "\",\n"
-    fi:close()
+      embestr = embestr .. "\"" .. text .. "\",\n"
+      fi:close()
+    else
+      if tfn[2] == 1 then
+        printf("file:%s is optional, so ignore it", fn)
+      else
+        printf("Cannot open embe file:%s", fn)
+      end
+    end
   end
   return embestr
 end
@@ -244,15 +265,12 @@ end
 
 local function _embe()
   local embestr = ""
-  local embe = _OPTIONS["embe"] or "none"
+  local embe = _OPTIONS["embe"]
+  if not embe then return end
   printf("embe %s", embe)
-  if embe ~= "none" then
-    local corext = _embecore()
+  if embe then
+    local corext = _embecore(embe)
     embestr = embestr .. corext
-    local server = _embeserver(embe)
-    if server then
-      embestr = embestr .. server
-    end
   end
   --embestr = embestr:gsub("\\", "\\\\")
   --embestr = embestr:gsub("\n", "\\n")
@@ -480,12 +498,7 @@ newoption
 {
   trigger = "embe",
   value = "embevalue",
-  description = "embe type",
-  allowed =
-  {
-    { "none", "don't embe script, use external" },
-    { "lolitax", "only embe core script" },
-  }
+  description = "embe file",
 }
 
 newoption
