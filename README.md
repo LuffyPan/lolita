@@ -36,8 +36,8 @@ used as a independent program
     $ cd _deploy
     $ export LD_LIBRARY_PATH=.
     $ export DYLD_LIBRARY_PATH=.
-    $ ./lolita x=../sample/echo bsrv=1 maxconnection=1024 &
-    $ ./lolita x=../sample/echo maxconnection=1025 &
+    $ ./lolita x=../sample/echo.lua bsrv=1 maxconnection=1024 &
+    $ ./lolita x=../sample/echo.lua maxconnection=1025 &
     
 used as a plugin for Lua
 

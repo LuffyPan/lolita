@@ -7,4 +7,25 @@ cd ${basedir}
 echo "change working dir to $(pwd)"
 
 #stop all
-kill -s INT $(cat x.pid)
+
+echo "stoping vgate....."
+kill -s INT $(cat pids/vgate.pid)
+sleep 3
+
+echo "stoping vauth....."
+kill -s INT $(cat pids/vauth.pid)
+sleep 3
+
+echo "stoping varea....."
+kill -s INT $(cat pids/varea.pid)
+sleep 3
+
+echo "stoping vsoul....."
+kill -s INT $(cat pids/vsoul.pid)
+sleep 3
+
+echo "stoping vgod....."
+kill -s INT $(cat pids/vgod.pid)
+sleep 3
+
+echo "all is stoped"
