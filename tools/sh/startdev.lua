@@ -44,8 +44,8 @@ end
 
 local function startv(v)
   print(string.format("starting v [ %s ] ......", v))
-  local cmd = "./lolita x=../../lolitax/src/x.lua,../../lolita%s/src/x.lua xlvs=[x=4] pid=pids/%s.pid birthday=pids/%s.birth >logs/%s.log 2>&1 &"
-  execmd(string.format(cmd, v, v, v, v))
+  local cmd = "./lolita x=../../lolitax/src/x.lua,../../lolita%s/src/x.lua xlvs=[x=4] pid=pids/%s.pid birthday=pids/%s.birth deathday=pids/%s.death >logs/%s.log 2>&1 &"
+  execmd(string.format(cmd, v, v, v, v, v))
 
   -- todo: calc the time used.
   -- wait birthday

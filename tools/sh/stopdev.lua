@@ -41,6 +41,20 @@ local function stopv(v)
   -- todo: calc the time used.
   -- todo: deathday for detected the correct die time.
   -- todo: wait death
+  local f = string.format("%s/pids/%s.death", pwd, v)
+
+  while 1 do
+
+    local fh = io.open(f, "rb")
+    if fh then
+      fh:close()
+      break
+    end
+
+    execmd("sleep 0.01")
+
+  end
+
   print(string.format("v [ %s ] is stoped!", v))
 end
 
