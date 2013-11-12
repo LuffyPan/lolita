@@ -26,7 +26,7 @@ solution "lolitall"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "corext=../sample/echo.lua", "bsrv=1"}
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "x=../sample/echo.lua", "bsrv=1"}
 
   configuration "debug"
     targetdir ("_bin/" .. _ACTION .. "/debug")

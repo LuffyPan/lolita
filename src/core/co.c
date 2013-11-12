@@ -704,7 +704,11 @@ void co_tracecallstack(co* Co, int mod, int lv, lua_State* L)
 
 int co_pcallmsg(lua_State* L)
 {
+#if LOLITA_CORE_LUA_514
+  /* what if lua 5.1.4 or lower ? */
+#else
   luaL_traceback(L, L, lua_tostring(L, 1), 0);
+#endif
   return 1;
 }
 

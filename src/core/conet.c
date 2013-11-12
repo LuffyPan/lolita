@@ -1419,7 +1419,7 @@ static int cosock_newfdm(co* Co, cosock* s)
 
 static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
 {
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE
   struct kevent ke;
   if (op == 0) op = EV_ADD;
   else if(op == 1) op = EV_DELETE;
@@ -1428,7 +1428,7 @@ static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
   else {co_assert(0);}
   EV_SET(&ke, s->fd, type == 0 ? EVFILT_READ : EVFILT_WRITE, op, 0, 0, s);
   if (-1 == kevent(s->fdm, &ke, 1, NULL, 0, NULL)) { cosock_logec(s); return 0; }
-#else
+#elif LOLITA_CORE_USE_EPOLL
   struct epoll_event ev;
   ev.data.ptr = s;
   ev.events = type;
@@ -1794,7 +1794,7 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
 #endif
 
 
-#ifdef LOLITA_CORE_USE_KQUEUE
+#if LOLITA_CORE_USE_KQUEUE
 
 static void cosock_evwrite_kqueue(co* Co, cosock* s, struct kevent* ke)
 {
