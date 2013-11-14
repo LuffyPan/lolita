@@ -13,7 +13,7 @@ LOLITA_CORE_EXPORT int luaopen_lolitaext(lua_State* L)
   co*Co = NULL;
   void* ud = NULL;
   lua_Alloc acfn = NULL;
-  /* Lua的版本检测好鸡肋,二进制如果不兼容，怎么检测，版本字符串更靠谱吧? */
+  /* the detect version of Lua is just a kid while in this solution, string is more kaopu. */
 #ifndef LOLITA_CORE_LUA_514
   const lua_Number* v = lua_version(L);
   printf("version:%d\n", (int)(*v));

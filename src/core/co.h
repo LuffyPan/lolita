@@ -27,7 +27,7 @@ int co_pcallmsg(lua_State* L);
 #define co_L(Co) ((Co)->L)
 /* #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L) */
 #if LOLITA_CORE_LUA_514
-  /* 用宏模拟失败会导致数据不一致 */
+  /* use macro to monitor, but maybe caz data error */
   #define lua_rawgetp(L, t, p) lua_pushlightuserdata(L, p); lua_rawget(L, t)
   #define lua_rawsetp(L, t, p) lua_pushlightuserdata(L, p); lua_insert(L, -2); lua_rawset(L, t)
   #define luaL_checkunsigned(L, idx) (unsigned int)luaL_checknumber(L, idx)

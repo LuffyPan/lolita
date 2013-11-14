@@ -1190,7 +1190,7 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
   if (cosockpool_cosockcnt(s->attapo) + 20 >= FD_SETSIZE) /* remain 20 free */
   {
     coN_tracedebug(Co, "id[%d,%d] accept failed caz select mode reach the limit of fdsetsize[%d]!", s->id, 0, FD_SETSIZE);
-    close(nfd);
+    cosockfd_close(nfd);
     return 0;
   }
 #endif
@@ -1376,7 +1376,7 @@ static int cosock_newfd(co* Co, cosock* s)
   s->fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (s->fd == COSOCKFD_NULL) { cosock_logec(s); return 0; }
   if (cosockfd_ioctl(s->fd, FIONBIO, &v)) { cosock_logec(s); return 0; }
-  if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag))) { cosock_logec(s); return 0; }
+  if (setsockopt(s->fd, SOL_SOCKET, SO_REUSEADDR, co_cast(const char*, &flag), sizeof(flag))) { cosock_logec(s); return 0; }
   return 1;
 }
 

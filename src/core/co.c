@@ -294,7 +294,7 @@ static void co_pactive(co* Co, lua_State* L)
   lua_pushvalue(L, 2); /* param */
   lua_call(L, 1, 1);
   co_assert(lua_gettop(L) == 3);
-  z = lua_tonumber(L, -1);
+  z = co_cast(int, lua_tonumber(L, -1));
   lua_pop(L, 1);
   if ( z != 1 )
   {

@@ -109,7 +109,7 @@ BOOL WINAPI coOs_signalhandler(DWORD t)
   if (!_coOs) return FALSE;
   if (_coOs->sigcnt >= COOS_SIG_MAXCNT) return FALSE;
   if (t != CTRL_C_EVENT){printf("signal:%u\n", t);return FALSE;}
-  /* 我对Windows的其他信号处理失去信心了,打算放弃支持了,能支持到什么程度算什么吧 */
+  /* F**k Windows */
   _coOs->sigs[_coOs->sigcnt++] = (int)COOS_SIG_INT;
   return TRUE;
 }
