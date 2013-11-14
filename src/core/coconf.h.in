@@ -1,6 +1,6 @@
 /*
 
-Lolita Core configuration template.
+Lolita Core Configuration.
 Chamz Lau, Copyright (C) 2013-2017
 2013/02/27 22:09:53
 
@@ -9,6 +9,10 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifndef _COCONF_H_
 #define _COCONF_H_
 
-#define LOLITA_CORE_VERSION_REPOS "@REPOS_VERSION@"
+#if LOLITA_CORE_PREMAKE
+  #define LOLITA_CORE_VERSION_REPOS "@REPOS_VERSION@"
+#else
+  #define LOLITA_CORE_VERSION_REPOS "none-premake"
+#endif
 
 #endif

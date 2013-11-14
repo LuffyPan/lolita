@@ -11,7 +11,11 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "conet.h"
 #include "coos.h"
 #include "comm.h"
-#include "coembe.h"
+#if LOLITA_CORE_PREMAKE
+  #include "coembe.h"
+#else
+  #include "coembe.h.in"
+#endif
 
 static int co_panic(lua_State* L);
 static void* co_xlloc(void* ud, void* p, size_t os, size_t ns);

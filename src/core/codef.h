@@ -20,7 +20,11 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
-#include "coconf.h"
+#if LOLITA_CORE_PREMAKE
+  #include "coconf.h"
+#else
+  #include "coconf.h.in"
+#endif
 
 #define LOLITA_CORE_PLAT_WIN32 (1)
 #define LOLITA_CORE_PLAT_UNIX (2)

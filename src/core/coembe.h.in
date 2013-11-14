@@ -1,24 +1,27 @@
 /*
 
-Lolita Core Embe String Template.
+Lolita Core Embe String.
 Chamz Lau, Copyright (C) 2013-2017
 2013/06/23 16:40:06
 
 */
 
-#ifdef _COEMBE_H_
-  #error "coembe.h don't include once more!"
-#endif
 #ifndef _COEMBE_H_
 #define _COEMBE_H_
 
 #define LOLITA_CORE_EMBE_MODE_NONE "none"
-#define LOLITA_CORE_EMBE_MODE "@TOBEEMBEMODE@"
 
-static const char* embestrs[] =
-{
-  @TOBEEMBEX@
-  NULL,
-};
+#if LOLITA_CORE_PREMAKE
+  #define LOLITA_CORE_EMBE_MODE "@TOBEEMBEMODE@"
+  static const char* embestrs[] =
+  {
+    @TOBEEMBEX@
+    NULL,
+  };
+#else
+  #define LOLITA_CORE_EMBE_MODE LOLITA_CORE_EMBE_MODE_NONE
+  static const char* embestrs[] = { NULL, };
+#endif
+
 
 #endif

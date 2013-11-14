@@ -118,6 +118,7 @@ project "lolitaext"
     "src/core/comain.c",
   }
 
+  defines {"LOLITA_CORE_PREMAKE"}
   if extlua == "5.2.2" then
     defines {"LOLITA_CORE_LUA_522"}
   elseif extlua == "5.2.1" then
@@ -154,6 +155,7 @@ project "lolita"
   {
     "src/core/coexport.c",
   }
+  defines {"LOLITA_CORE_PREMAKE"}
   if extlua == "5.2.2" then
     defines {"LOLITA_CORE_LUA_522"}
   elseif extlua == "5.2.1" then
@@ -271,6 +273,7 @@ local function _embe()
     local corext = _embecore(embe)
     embestr = embestr .. corext
   end
+  embe = embe or "none"
   --embestr = embestr:gsub("\\", "\\\\")
   --embestr = embestr:gsub("\n", "\\n")
   --embestr = embestr:gsub("\"", "\\\"")
