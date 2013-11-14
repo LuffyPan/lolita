@@ -38,6 +38,9 @@ static int co_export_getregistry(lua_State* L);
 static int co_export_attach(lua_State* L);
 static int co_export_detach(lua_State* L);
 
+/*
+  lua_State* can be non-force? and use void* instead
+*/
 co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
 {
   int z = 0;
@@ -90,20 +93,10 @@ void core_die(co* Co)
   co_free(Co);
 }
 
-void core_pushcore(co* Co)
+void core_open(co* Co)
 {
   lua_State* L = co_L(Co);
   co_pushcore(L, Co);
-}
-
-size_t core_getusedmem(co* Co)
-{
-  return Co->umem;
-}
-
-size_t core_getmaxmem(co* Co)
-{
-  return Co->maxmem;
 }
 
 const char* core_getmodname(co* Co, int mod)

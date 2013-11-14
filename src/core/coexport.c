@@ -27,6 +27,8 @@ LOLITA_CORE_EXPORT int luaopen_lolitaext(lua_State* L)
     printf("core born failed\n");
     return 0;
   }
-  core_pushcore(Co);
+  core_open(Co);
+
+  /* didn't not process die, what the fuck */
   return 1;
 }

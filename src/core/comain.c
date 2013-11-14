@@ -19,6 +19,7 @@ void* externalxlloc(void* ud, void* p, size_t os, size_t ns)
   return x;
 }
 
+/* is this need controled by outside ?? */
 void externaltracef(co*Co, int mod, int lv, const char* msg, va_list msgva)
 {
   if (lv > core_gettracelv(Co)) return;
