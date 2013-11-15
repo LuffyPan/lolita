@@ -1233,8 +1233,10 @@ static int cosock_recv(co* Co, cosock* s)
   {
     if (cosockbuf_isfull(Co, s->revbuf, 1024))
     {
+      /* maybe recved too much data in one time, so deley to next frame to recv it */
+      /* don't disconnect caz just recvbuf is full */
       coN_tracefatal(Co, "id[%d,%d] recv buf is full while recv", s->id, 0);
-      return -1;
+      return 1;
     }
     buf = cosockbuf_uudata(s->revbuf);
     buflen = (int)cosockbuf_uusize(s->revbuf);
