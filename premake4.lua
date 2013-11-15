@@ -404,6 +404,17 @@ local function _dodeploy()
   end
 end
 
+local function _doclean()
+  printf("Clean....")
+  os.rmdir("_bin")
+  os.rmdir("_build")
+  os.rmdir("_deploy")
+  --has on this api..
+  --os.rmfile("/src/core/coconf.h")
+  --os.rmfile("/src/core/coembe.h")
+  printf("Cleaned!")
+end
+
 local function _docheck()
   printf("Check code style....")
   local cfiles = os.matchfiles("src/core/**.c")
@@ -461,6 +472,13 @@ newaction
   trigger = "deploy",
   description = "Deploy",
   execute = _dodeploy,
+}
+
+newaction
+{
+  trigger = "clean",
+  description = "Clean",
+  execute = _doclean,
 }
 
 newaction
