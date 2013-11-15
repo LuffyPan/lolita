@@ -110,7 +110,7 @@ typedef socklen_t cosockfd_size;
 
 #define COSOCKBUF_INITCNT 4096
 #define COSOCKBUF_STEPCNT 4096
-#define COSOCKBUF_LIMITCNT 4096 /* develop value for test and debug */
+#define COSOCKBUF_LIMITCNT (4096 * 4096) /* develop value for test and debug */
 /* #define COSOCKBUF_LIMITCNT 40960 */
 #define COSOCKBUF_ALLCNT COSOCKBUF_INITCNT, COSOCKBUF_STEPCNT, COSOCKBUF_LIMITCNT
 
@@ -824,6 +824,7 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
   }
   if (!cosock_canpush(Co, ps, dsize + sizeof(cosockpack_hdr) + sizeof(cosockpack_tail)))
   {
+    /* should auto close this ? */
     coN_tracefatal(Co, "id[%d,%d] send buffer is full!!!!!", s->id, attas ? attas->id : 0);
     return 0;
   }
