@@ -2145,6 +2145,7 @@ static int coN_export_getinfo(lua_State* L)
   int id = 0, attaid = 0;
   char* c = NULL;
   unsigned short port = 0;
+
   Co = co_C(L);
   id = luaL_checkint(L, 1);
   attaid = luaL_checkint(L, 2);
@@ -2156,8 +2157,8 @@ static int coN_export_getinfo(lua_State* L)
   if (COSOCKFD_ERROR == z){cosock_logec(s);port = 0;}
   else if (0 == z){c = inet_ntoa(sin.sin_addr);port = ntohs(sin.sin_port);co_assert(c);}
   else {co_assert(0);}
-  lua_pushnumber(L, idx++);lua_pushstring(L, c ? c : COSOCKFD_INVALIDIP);lua_settable(L, -3);
-  lua_pushnumber(L, idx++);lua_pushnumber(L, port);lua_settable(L, -3);
+  lua_pushstring(L, c ? c : COSOCKFD_INVALIDIP);lua_setfield(L, -2, "lip");
+  lua_pushnumber(L, port);lua_setfield(L, -2, "lport");
   /* remote ip and port */
   c = NULL;
   ss = (cosockfd_size)sizeof(sin);
@@ -2165,10 +2166,20 @@ static int coN_export_getinfo(lua_State* L)
   if (COSOCKFD_ERROR == z){cosock_logec(s);port = 0;}
   else if (0 == z){c = inet_ntoa(sin.sin_addr);port = ntohs(sin.sin_port);co_assert(c);}
   else {co_assert(0);}
-  lua_pushnumber(L, idx++);lua_pushstring(L, c ? c : COSOCKFD_INVALIDIP);lua_settable(L, -3);
-  lua_pushnumber(L, idx++);lua_pushnumber(L, port);lua_settable(L, -3);
+  lua_pushstring(L, c ? c : COSOCKFD_INVALIDIP);lua_setfield(L, -2, "rip");
+  lua_pushnumber(L, port);lua_setfield(L, -2, "rport");
   /* sock type */
-  lua_pushnumber(L, idx++);lua_pushnumber(L, s->fdt);lua_settable(L, -3);
+  lua_pushnumber(L, s->fdt);lua_setfield(L, -2, "type");
+  /* buf size */
+  z = s->fdt != COSOCKFD_TACCP;
+  lua_pushnumber(L, z ? s->sndbuf->cursize : 0);lua_setfield(L, -2, "sndcursize");
+  lua_pushnumber(L, z ? s->sndbuf->maxsize : 0);lua_setfield(L, -2, "sndmaxsize");
+  lua_pushnumber(L, z ? s->sndbuf->limitsize : 0);lua_setfield(L, -2, "sndlimitsize");
+  lua_pushnumber(L, z ? s->revbuf->cursize : 0);lua_setfield(L, -2, "revcursize");
+  lua_pushnumber(L, z ? s->revbuf->maxsize : 0);lua_setfield(L, -2, "revmaxsize");
+  lua_pushnumber(L, z ? s->revbuf->limitsize : 0);lua_setfield(L, -2, "revlimitsize");
+  /* attached cosock */
+  /* todo */
   return 1;
 }
 
