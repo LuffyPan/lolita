@@ -26,6 +26,7 @@ void externaltracef(co*Co, int mod, int lv, const char* msg, va_list msgva)
   printf("<%s><%s> ", core_getmodname(Co, mod), core_getlvname(Co, lv));
   vprintf(msg, msgva);
   printf("\n");
+  fflush(stdout);fflush(stderr);
 }
 
 int main(int argc, const char** argv)

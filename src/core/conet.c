@@ -1183,14 +1183,14 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
   if (nfd == COSOCKFD_NULL)
   {
     cosock_logec(s);
-    coN_tracedebug(Co, "id[%d,%d] accept failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
+    coN_tracefatal(Co, "id[%d,%d] accept failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
     return 0;
   }
 
 #ifdef LOLITA_CORE_USE_SELECT
   if (cosockpool_cosockcnt(s->attapo) + 20 >= FD_SETSIZE) /* remain 20 free */
   {
-    coN_tracedebug(Co, "id[%d,%d] accept failed caz select mode reach the limit of fdsetsize[%d]!", s->id, 0, FD_SETSIZE);
+    coN_tracefatal(Co, "id[%d,%d] accept failed caz select mode reach the limit of fdsetsize[%d]!", s->id, 0, FD_SETSIZE);
     cosockfd_close(nfd);
     return 0;
   }
