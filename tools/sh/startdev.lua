@@ -10,6 +10,20 @@ print("Lolita For Developmenet Is Starting.")
 local path = arg[0]
 print(string.format("script: [ %s ]", path))
 
+local cmdarg = {}
+for k, v in ipairs(arg) do
+  local i = string.find(v, "=")
+  if not i then
+    cmdarg[v] = ""
+  else
+    local key = string.sub(v, 1, i - 1)
+    local value = string.sub(v, i + 1)
+    cmdarg[key] = value
+  end
+end
+
+for k, v in pairs(cmdarg) do print(k, v) end
+
 local i = 0
 local e = 0
 
@@ -42,10 +56,11 @@ local function initenv()
   execmd("mkdir logs")
 end
 
-local function startv(v)
+local function startv(v, lv)
+  lv = lv and lv or 3 -- default Errr and Warn and Important Info
   print(string.format("starting v [ %s ] ......", v))
-  local cmd = "./lolita x=../../lolitax/src/x.lua,../../lolita%s/src/x.lua xlvs=[x=4] pid=pids/%s.pid birthday=pids/%s.birth deathday=pids/%s.death >logs/%s.log 2>&1 &"
-  execmd(string.format(cmd, v, v, v, v, v))
+  local cmd = "./lolita x=../../lolitax/src/x.lua,../../lolita%s/src/x.lua xlvs=[x=%s] pid=pids/%s.pid birthday=pids/%s.birth deathday=pids/%s.death >logs/%s.log 2>&1 &"
+  execmd(string.format(cmd, v, lv, v, v, v, v))
 
   -- todo: calc the time used.
   -- wait birthday
@@ -66,12 +81,13 @@ local function startv(v)
   print(string.format("v [ %s ] is started!", v))
 end
 
+local tlv = cmdarg.lv
 initenv()
-startv("vgod")
-startv("vauth")
-startv("vsoul")
-startv("varea")
-startv("vgate")
+startv("vgod", tlv)
+startv("vauth", tlv)
+startv("vsoul", tlv)
+startv("varea", tlv)
+startv("vgate", tlv)
 
 --execmd("./lolita x=../../lolitax/src/x.lua,../../lolitavgod/src/x.lua xlvs=[x=4] pid=pids/vgod.pid birthday=pids/vgod.birth >logs/vgod.log 2>&1 &")
 --execmd("date")

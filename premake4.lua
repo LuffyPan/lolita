@@ -351,8 +351,9 @@ local _deployconf =
 
 local _deploysh =
 {
-  {"tools/sh/startdev.sh", "_deploy/startdev.sh"},
-  {"tools/sh/stopdev.sh", "_deploy/stopdev.sh"},
+  --deprecate
+  --{"tools/sh/startdev.sh", "_deploy/startdev.sh"},
+  --{"tools/sh/stopdev.sh", "_deploy/stopdev.sh"},
   {"tools/sh/startdev.lua", "_deploy/startdev.lua"},
   {"tools/sh/stopdev.lua", "_deploy/stopdev.lua"},
 }
