@@ -542,6 +542,7 @@ static void co_fatalerror(co* Co, int e)
   switch(e)
   {
   case CO_ERRMEM:
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "memory:%u/%u", Co->umem, Co->maxmem);
   case CO_ERRSCRIPTNEW:
   case CO_ERRSCRIPTCALL:
   default:
