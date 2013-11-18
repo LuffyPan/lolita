@@ -543,12 +543,18 @@ void coN_active(co* Co)
 {
   int i = 0;
   coN* N = Co->N;
-  cosock** ps = NULL;
+  cosock** ps = NULL, **nps = NULL;
   int cnt = 0;
   coN_realclose(Co);
   ps = cosockpool_cosocks(N->po);
   cnt = cosockpool_cosockcnt(N->po);
-  for (i = 1; i < cnt; ++i) {cosock_active(Co, ps[i]);}
+  /* BUG, this bug is so classical , the co_assert is never true!!!! */
+  /* for (i = 1; i < cnt; ++i) {co_assert(ps == cosockpool_cosocks(N->po)); cosock_active(Co, ps[i]);} */
+  for (i = 1; i < cnt; ++i){
+    nps = cosockpool_cosocks(N->po);
+    if (nps != ps){ /* this is happend so easy */ }
+    cosock_active(Co, nps[i]);
+  }
 }
 
 void coN_die(co* Co)
