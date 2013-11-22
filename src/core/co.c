@@ -452,6 +452,7 @@ static void co_pexportarg(co* Co, lua_State* L)
 
   lua_newtable(L);
   lua_pushvalue(L, -1); lua_setfield(L, -3, "_original"); /* core.arg._original */
+  lua_pushstring(L, argv[0]); lua_setfield(L, -3, "_path"); /* core.arg._path */
   for (i = 1; i < argc; ++i)
   {
     const char* p = strchr(argv[i], '=');

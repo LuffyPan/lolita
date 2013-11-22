@@ -1,4 +1,3 @@
-#!/usr/bin/lua
 --
 -- Lolita Development Stop Script
 -- Chamz Lau, Copyright (C) 2013-2017
@@ -7,7 +6,7 @@
 
 print("Lolita For Developmenet Is Stoping.")
 
-local path = arg[0]
+local path = assert(lolita.core.arg.x)
 print(string.format("script: [ %s ]", path))
 
 local i = 0
@@ -36,7 +35,16 @@ end
 
 local function stopv(v)
   print(string.format("stoping v [ %s ] ......", v))
-  execmd(string.format("kill -s INT $(cat pids/%s.pid)", v))
+
+  local pidfh = io.open(string.format("pids/%s.pid", v))
+  local pid = pidfh:read("*a"); pidfh:close()
+  local pidproc = string.format("/proc/%s", pid)
+  if lolita.core.os.ispath(pidproc) then
+    execmd(string.format("kill -s INT $(cat pids/%s.pid)", v))
+  else
+    print(string.format("the v [%s] is not running!", v))
+    return
+  end
 
   -- todo: calc the time used.
   -- todo: deathday for detected the correct die time.

@@ -1,4 +1,3 @@
-#!/usr/bin/lua
 --
 -- Lolita Developmenet Startup Script
 -- Chamz Lau, Copyright (C) 2013-2017
@@ -7,22 +6,11 @@
 
 print("Lolita For Developmenet Is Starting.")
 
-local path = arg[0]
+--local path = arg[0]
+local path = assert(lolita.core.arg.x)
 print(string.format("script: [ %s ]", path))
 
-local cmdarg = {}
-for k, v in ipairs(arg) do
-  local i = string.find(v, "=")
-  if not i then
-    cmdarg[v] = ""
-  else
-    local key = string.sub(v, 1, i - 1)
-    local value = string.sub(v, i + 1)
-    cmdarg[key] = value
-  end
-end
-
-for k, v in pairs(cmdarg) do print(k, v) end
+for k, v in pairs(lolita.core.arg) do print(k, v) end
 
 local i = 0
 local e = 0
@@ -81,7 +69,7 @@ local function startv(v, lv)
   print(string.format("v [ %s ] is started!", v))
 end
 
-local tlv = cmdarg.lv
+local tlv = lolita.core.arg.lv
 initenv()
 startv("vgod", tlv)
 startv("vauth", tlv)
