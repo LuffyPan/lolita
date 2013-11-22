@@ -84,6 +84,7 @@ function echo:born()
   --get ip and port from arg
   local ip = core.arg.ip or "127.0.0.1"
   local port = tonumber(core.arg.port) or 7000
+  local braw = core.arg.braw or 0
 
   --get srv or client flag
   self.bsrv = core.arg.bsrv
@@ -91,7 +92,7 @@ function echo:born()
 
   if self.bsrv then
     --listen @ ip:port
-    self.netid = core.net.listen(ip, port)
+    self.netid = core.net.listen(ip, port, braw)
     assert(self.netid, "listen failed")
     --set max connection can accept.
     core.net.setoption(self.netid, 0, tonumber(core.arg.maxconnection) or 110)
@@ -101,7 +102,7 @@ function echo:born()
     self.maxclientcnt = tonumber(core.arg.maxconnection) or 120 --128 limits a process
     self.netids = {}
     for i = 1, self.maxclientcnt do
-      local netid = core.net.connect(ip, port)
+      local netid = core.net.connect(ip, port, braw)
       assert(netid, "connect failed")
       self.netids[netid] = 1
       self.clientcnt = self.clientcnt + 1
@@ -155,6 +156,8 @@ function echo:evsrv(evid, id, attaid, extra)
     print(string.format("client[%s] request with data[%s]", attaid, extra))
     core.net.push(id, attaid, tostring(os.date()))
 
+  elseif evid == 122 then
+    print(string.format("client[%s] request with rawdata[%s]", attaid, extra))
   end
 end
 

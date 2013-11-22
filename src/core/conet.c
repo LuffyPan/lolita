@@ -201,6 +201,7 @@ struct cosock
   cosockfd fd;
   cosockfdm fdm; /* kqueue, epoll IOCP used ? */
   int fdt; /* fd type, connector, acceptor, attacher */
+  int braw; /* is raw data */
   int bactive; /* is in active */
   int bconnected; /* is connected, TCONN used */
   int bclosed; /* delay delete flag */
@@ -253,7 +254,7 @@ static void cosockid2idx_delete(co* Co, cosockid2idx* id2idx);
 static int cosockid2idx_newid(cosockid2idx* id2idx);
 static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx);
 
-static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt);
+static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt, int braw);
 static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short port);
 static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short port);
 static int cosock_accept(co* Co, cosock* s, cosock** psn);
@@ -296,8 +297,8 @@ static void coN_newcosocks(co* Co);
 static void coN_deletecosocks(co* Co);
 static cosock* coN_getcosock(co* Co, int id, int attaid);
 static void coN_register(co* Co);
-static int coN_listen(co* Co, const char* addr, unsigned short port);
-static int coN_connect(co* Co, const char* addr, unsigned short port);
+static int coN_listen(co* Co, const char* addr, unsigned short port, int braw);
+static int coN_connect(co* Co, const char* addr, unsigned short port, int braw);
 static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize);
 static int coN_close(co* Co, int id, int attaid);
 static void coN_realclose(co* Co);
@@ -765,7 +766,7 @@ static void coN_register(co* Co)
   co_assert(lua_gettop(L) == 0);
 }
 
-static int coN_listen(co* Co, const char* addr, unsigned short port)
+static int coN_listen(co* Co, const char* addr, unsigned short port, int braw)
 {
   cosock* s = NULL;
   coN* N = Co->N;
@@ -773,7 +774,7 @@ static int coN_listen(co* Co, const char* addr, unsigned short port)
   {
     return 0;
   }
-  s = cosock_new(Co, N->id2idx, N->closedpo, N->attaclosedpo, NULL, &N->eventer, COSOCKFD_TACCP);
+  s = cosock_new(Co, N->id2idx, N->closedpo, N->attaclosedpo, NULL, &N->eventer, COSOCKFD_TACCP, braw);
   if (!cosock_listen(Co, s, addr, port))
   {
     cosock_delete(Co, s);
@@ -783,7 +784,7 @@ static int coN_listen(co* Co, const char* addr, unsigned short port)
   return cosock_id(s);
 }
 
-static int coN_connect(co* Co, const char* addr, unsigned short port)
+static int coN_connect(co* Co, const char* addr, unsigned short port, int braw)
 {
   cosock* s = NULL;
   coN* N = Co->N;
@@ -791,7 +792,7 @@ static int coN_connect(co* Co, const char* addr, unsigned short port)
   {
     return 0;
   }
-  s = cosock_new(Co, N->id2idx, N->closedpo, NULL, NULL, &N->eventer, COSOCKFD_TCONN);
+  s = cosock_new(Co, N->id2idx, N->closedpo, NULL, NULL, &N->eventer, COSOCKFD_TCONN, braw);
   if (!cosock_connect(Co, s, addr, port))
   {
     cosock_delete(Co, s);
@@ -808,6 +809,7 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
   int idx = 0, attaidx = 0;
   cosockpack_hdr hdr;
   cosockpack_tail tail;
+  co_assert(data);
   co_assertex(dsize < 1024 * 1024, "package must be so large\?");
   co_assert(id > 0 && attaid >= 0);
   co_assert(!(id == 0 && attaid == 0));
@@ -834,14 +836,17 @@ static int coN_push(co* Co, int id, int attaid, const char* data, size_t dsize)
     coN_tracefatal(Co, "id[%d,%d] send buffer is full!!!!!", s->id, attas ? attas->id : 0);
     return 0;
   }
-  hdr.flag = COSOCKPACK_HDR_FLAG;
-  hdr.reserved[0] = hdr.reserved[1] = hdr.reserved[2] = 0;
-  hdr.ver = COSOCKPACK_VERSION;
-  hdr.dsize = (int32_t)dsize;
-  tail.flag = COSOCKPACK_TAIL_FLAG;
-  cosock_push(Co, ps, (const char*)&hdr, sizeof(hdr));
-  cosock_push(Co, ps, data, dsize);
-  cosock_push(Co, ps, (const char*)&tail, sizeof(tail));
+  if (ps->braw){ cosock_push(Co, ps, data, dsize);}
+  else {
+    hdr.flag = COSOCKPACK_HDR_FLAG;
+    hdr.reserved[0] = hdr.reserved[1] = hdr.reserved[2] = 0;
+    hdr.ver = COSOCKPACK_VERSION;
+    hdr.dsize = (int32_t)dsize;
+    tail.flag = COSOCKPACK_TAIL_FLAG;
+    cosock_push(Co, ps, (const char*)&hdr, sizeof(hdr));
+    cosock_push(Co, ps, data, dsize);
+    cosock_push(Co, ps, (const char*)&tail, sizeof(tail));
+  }
   coN_tracedebug(Co, "id[%d,%d] pushed data with size[%u]", s->id, attas ? attas->id : 0, dsize);
   cosock_markwrite(Co, ps);
   return 1;
@@ -966,6 +971,7 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   lua_pop(L, 1); co_assert(lua_gettop(L) == top);
 }
 
+/* the code is so fantastic, smart it later. */
 static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
 {
   cosock* ps = NULL;
@@ -987,6 +993,27 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   data = cosockbuf_data(ps->revbuf);
   datasize = cosockbuf_datasize(ps->revbuf);
   leftsize = datasize;
+
+  if (s->braw)
+  {
+    coN_tracedebug(Co, "id[%d,%d] trying process raw data, data size[%u]", s->id, as ? as->id : 0, datasize);
+    usesize = leftsize; leftsize = 0;
+    z = coN_geteventer(Co, N); if (!z) {goto clear;}
+    lua_pushnumber(L, 122);
+    lua_pushnumber(L, s->id);
+    lua_pushnumber(L, as ? as->id : 0);
+    lua_pushlstring(L, data, datasize);
+    if (LUA_OK != lua_pcall(L, 4 + z - 1, 0, 1))
+    {
+      co_tracecallstack(Co, CO_MOD_NET, CO_LVFATAL, L);
+      coN_tracefatal(Co, "id[%d,%d] failed while call onpack", s->id, as ? as->id : 0);
+      lua_pop(L, 1);
+      co_assert(lua_gettop(L) == top + 1);
+      lua_pop(L, 1); co_assert(lua_gettop(L) == top);
+      coR_throw(Co, CO_ERRSCRIPTCALL);
+    }
+    goto clear;
+  }
   while (1)
   {
     size_t dsize = 0;
@@ -1020,6 +1047,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
     data += sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + dsize;
     leftsize -= sizeof(cosockpack_hdr) + sizeof(cosockpack_tail) + dsize;
   }
+clear:
   if (usesize == datasize) { cosockbuf_clear(ps->revbuf); }
   else { co_assert(usesize < datasize); cosockbuf_lmove(ps->revbuf, usesize); }
   coN_tracedebug(Co, "id[%d,%d] finished process package, leftsize[%u]", s->id, as ? as->id : 0, co_cast(size_t, cosockbuf_datasize(ps->revbuf)));
@@ -1074,7 +1102,7 @@ static void cosock_pnew(co* Co, void* ud)
   /* cosock_newfdm(Co, s); */
 }
 
-static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt)
+static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosockpool* attaclosedpo, cosock* attached2s, cosockevent* eventer, int fdt, int braw)
 {
   int z = 0;
   cosock* s = co_cast(cosock*, coM_newobj(Co, cosock));
@@ -1083,6 +1111,7 @@ static cosock* cosock_new(co* Co, cosockid2idx* i2i, cosockpool* closedpo, cosoc
   s->fdm = COSOCKFDM_NULL;
   s->fd = COSOCKFD_NULL;
   s->fdt = fdt;
+  s->braw = braw;
   s->bactive = 0;
   s->bconnected = 0;
   s->bclosed = 0;
@@ -1202,7 +1231,7 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
   }
 #endif
 
-  sn = cosock_new(Co, s->id2idx, s->attaclosedpo, NULL, s, s->eventer, COSOCKFD_TATTA);
+  sn = cosock_new(Co, s->id2idx, s->attaclosedpo, NULL, s, s->eventer, COSOCKFD_TATTA, s->braw);
   if (!cosock_attachfd(Co, sn, nfd))
   {
     coN_tracedebug(Co, "id[%d,%d] accept failed while attachfd, [%s:%d]", s->id, sn->id, cosockfd_errstr(s->ec), s->ec);
@@ -2068,57 +2097,25 @@ static int coN_export_register(lua_State* L)
 
 static int coN_export_connect(lua_State* L)
 {
-  int id = 0;
-  co* Co = NULL;
-  const char* addr = NULL;
-  unsigned short port = 0;
-  Co = co_C(L);
-  addr = luaL_checkstring(L, 1);
-  port = (unsigned short)luaL_checkint(L, 2);
-  id = coN_connect(Co, addr, port);
-  if (!id)
-  {
-    return 0;
-  }
-  lua_pushnumber(L, id);
-  return 1;
+  int id = coN_connect(co_C(L), luaL_checkstring(L, 1), luaL_checkint(L, 2), luaL_optint(L, 3, 0));
+  if (!id) return 0;
+  lua_pushnumber(L, id); return 1;
 }
 
 static int coN_export_listen(lua_State* L)
 {
-  int id = 0;
-  co* Co = NULL;
-  const char* addr = NULL;
-  unsigned short port = 0;
-  Co = co_C(L);
-  addr = luaL_checkstring(L, 1);
-  port = (unsigned short)luaL_checkint(L, 2);
-  id = coN_listen(Co, addr[0] == 0 ? NULL : addr, port);
-  if (!id)
-  {
-    return 0;
-  }
-  lua_pushnumber(L, id);
-  return 1;
+  const char* addr = luaL_checkstring(L, 1);
+  int id = coN_listen(co_C(L), addr[0] == 0 ? NULL : addr, luaL_checkint(L, 2), luaL_optint(L, 3, 0));
+  if (!id) return 0;
+  lua_pushnumber(L, id); return 1;
 }
 
 static int coN_export_push(lua_State* L)
 {
-  co* Co = NULL;
-  int id = 0, attaid = 0;
-  const char* data = NULL;
   size_t datasize = 0;
-  Co = co_C(L);
-  id = luaL_checkint(L, 1);
-  attaid = luaL_checkint(L, 2);
-  data = luaL_checklstring(L, 3, &datasize);
-  co_assert(data);
-  if (!coN_push(Co, id, attaid, data, datasize))
-  {
-    return 0;
-  }
-  lua_pushnumber(L, 1);
-  return 1;
+  const char* data = luaL_checklstring(L, 3, &datasize);
+  if (!coN_push(co_C(L), luaL_checkint(L, 1), luaL_checkint(L, 2), data, datasize)) return 0;
+  lua_pushnumber(L, 1); return 1;
 }
 
 static int coN_export_close(lua_State* L)
