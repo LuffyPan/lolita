@@ -39,6 +39,7 @@ static int coOs_export_ispath(lua_State* L);
 static int coOs_export_mkdir(lua_State* L);
 static int coOs_export_getcwd(lua_State* L);
 static int coOs_export_getpid(lua_State* L);
+static int coOs_export_getpinfo(lua_State* L);
 static int coOs_export_active(lua_State* L);
 static int coOs_export_register(lua_State* L);
 
@@ -57,6 +58,7 @@ int coOs_pexportapi(co* Co, lua_State* L)
     {"mkdir", coOs_export_mkdir},
     {"getcwd", coOs_export_getcwd},
     {"getpid", coOs_export_getpid},
+    {"getpinfo", coOs_export_getpinfo},
     {"active", coOs_export_active},
     {"register", coOs_export_register},
     {NULL, NULL},
@@ -281,6 +283,23 @@ int coOs_getpid(co* Co)
 #endif
 }
 
+/* TODO:fill the pinfo */
+int coOs_getpinfo(co* Co, int pid)
+{
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+  HANDLE h = OpenProcess(PROCESS_VM_READ, FALSE, (DWORD)pid);
+  if (h == NULL) return (int)GetLastError();
+  CloseHandle(h); return 0;
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
+  char procpath[256];
+  sprintf(procpath, "/proc/%d", pid);
+  if (coOs_isdir(procpath)) return 0;
+  return 1;
+#else
+  return 0;
+#endif
+}
+
 static int coOs_export_sleep(lua_State* L)
 {
   int msec = 0;
@@ -362,6 +381,13 @@ static int coOs_export_getpid(lua_State* L)
   co* Co = co_C(L);
   lua_pushnumber(L, coOs_getpid(Co));
   return 1;
+}
+
+static int coOs_export_getpinfo(lua_State* L)
+{
+  int z = coOs_getpinfo(co_C(L), luaL_checkint(L, 1));
+  if (z) return 0;
+  lua_pushnumber(L, 1); return 1;
 }
 
 static int coOs_export_active(lua_State* L)

@@ -74,6 +74,9 @@ function echo:born()
   --register os signal
   assert(core.os.register(self.sig, self))
 
+  --check the proc
+  assert(core.os.getpinfo(core.os.getpid()) == 1)
+
   --initialize net environment
   --core.net.ids = {}
   --build-in initialize
