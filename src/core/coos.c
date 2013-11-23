@@ -22,6 +22,10 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <signal.h>
 #endif
 
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
+  #include <sys/sysctl.h>
+#endif
+
 #define COOS_SIG_INT 0
 #define COOS_SIG_MAXCNT 32
 
@@ -295,6 +299,17 @@ int coOs_getpinfo(co* Co, int pid)
   sprintf(procpath, "/proc/%d", pid);
   if (coOs_isdir(procpath)) return 0;
   return 1;
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
+  int i, mib[4];
+  size_t len = 4;
+  struct kinfo_proc kp;
+  sysctlnametomib("kern.proc.pid", mib, &len);
+  mib[3] = pid;
+  len = sizeof(kp);
+  kp.kp_eproc.e_ppid = 0;
+  if (sysctl(mib, 4, &kp, &len, NULL, 0) == -1) return 1;
+  if (kp.kp_eproc.e_ppid == 0) return 1; /* i don't know the e_ppid is mean, but if is 0, maybe a not exist proc */
+  return 0;
 #else
   return 0;
 #endif
