@@ -38,25 +38,50 @@ end
 
 local function initenv()
   print("init enviroment.....")
-  execmd("rm -rf pids")
-  execmd("rm -rf logs")
-  execmd("mkdir pids")
-  execmd("mkdir logs")
+  --execmd("rm -rf pids")
+  --execmd("rm -rf logs")
+  local ppids = string.format("%s/pids", pwd)
+  if not lolita.core.os.isdir(ppids) then
+    print(string.format("init %s", ppids))
+    execmd("mkdir pids")
+  end
+  local plogs = string.format("%s/logs", pwd)
+  if not lolita.core.os.isdir(plogs) then
+    print(string.format("init %s", plogs))
+    execmd("mkdir logs")
+  end
 end
 
 local function startv(v, lv)
   lv = lv and lv or 3 -- default Errr and Warn and Important Info
   print(string.format("starting v [ %s ] ......", v))
+
+  local f = string.format("%s/pids/%s.pid", pwd, v)
+  local fh = io.open(f, "rb")
+  if fh then
+    local pid = tonumber(fh:read("*a"))
+    fh:close()
+    if lolita.core.os.getpinfo(pid) then
+      print("v [%s] is already running", v)
+      return
+    end
+  end
+
+  --lolita.core.os.rmfile
+  f = string.format("%s/pids/%s.birth", pwd, v)
+  if lolita.core.os.ispath(f) then
+    print(string.format("remove the old birth %s", f))
+    execmd(string.format("rm %s", f))
+  end
+
   local cmd = "./lolita x=../../lolitax/src/x.lua,../../lolita%s/src/x.lua xlvs=[x=%s] pid=pids/%s.pid birthday=pids/%s.birth deathday=pids/%s.death >logs/%s.log 2>&1 &"
   execmd(string.format(cmd, v, lv, v, v, v, v))
 
   -- todo: calc the time used.
   -- wait birthday
-  local f = string.format("%s/pids/%s.birth", pwd, v)
-
   while 1 do
 
-    local fh = io.open(f, "rb")
+    fh = io.open(f, "rb")
     if fh then
       fh:close()
       break
