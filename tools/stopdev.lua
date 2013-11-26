@@ -36,7 +36,13 @@ end
 local function stopv(v)
   print(string.format("stoping v [ %s ] ......", v))
 
-  local pidfh = io.open(string.format("pids/%s.pid", v))
+  local pidf = string.format("pids/%s.pid", v)
+  if not lolita.core.os.isfile(pidf) then
+    print(string.format("the v [%s] is not running!", v))
+    return
+  end
+
+  local pidfh = io.open(pidf)
   local pid = pidfh:read("*a"); pidfh:close()
   if lolita.core.os.getpinfo(pid) then
     execmd(string.format("kill -s INT $(cat pids/%s.pid)", v))

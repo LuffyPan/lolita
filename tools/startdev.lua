@@ -62,7 +62,7 @@ local function startv(v, lv)
     local pid = tonumber(fh:read("*a"))
     fh:close()
     if lolita.core.os.getpinfo(pid) then
-      print("v [%s] is already running", v)
+      print(string.format("v [%s] is already running", v))
       return
     end
   end
