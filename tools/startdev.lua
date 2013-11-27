@@ -77,20 +77,6 @@ local function startv(v, lv)
   local cmd = "./lolita x=../../lolitax/src/x.lua,../../lolita%s/src/x.lua xlvs=[x=%s] pid=pids/%s.pid birthday=pids/%s.birth deathday=pids/%s.death >logs/%s.log 2>&1 &"
   execmd(string.format(cmd, v, lv, v, v, v, v))
 
-  -- todo: calc the time used.
-  -- wait birthday
-  while 1 do
-
-    fh = io.open(f, "rb")
-    if fh then
-      fh:close()
-      break
-    end
-
-    execmd("sleep 0.01")
-
-  end
-
   print(string.format("v [ %s ] is started!", v))
 end
 

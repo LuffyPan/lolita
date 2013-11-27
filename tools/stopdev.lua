@@ -56,18 +56,6 @@ local function stopv(v)
   -- todo: wait death
   local f = string.format("%s/pids/%s.death", pwd, v)
 
-  while 1 do
-
-    local fh = io.open(f, "rb")
-    if fh then
-      fh:close()
-      break
-    end
-
-    execmd("sleep 0.01")
-
-  end
-
   print(string.format("v [ %s ] is stoped!", v))
 end
 
