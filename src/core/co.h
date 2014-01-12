@@ -14,7 +14,7 @@ Chamz Lau, Copyright (C) 2013-2017
 co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L);
 void core_alive(co* Co);
 void core_die(co* Co);
-void core_open(co* Co);
+void core_open(co* Co, int x);
 
 /* maybe deprecate */
 int core_gettracelv(co* Co);

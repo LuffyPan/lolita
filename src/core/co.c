@@ -93,10 +93,12 @@ void core_die(co* Co)
   co_free(Co);
 }
 
-void core_open(co* Co)
+void core_open(co* Co, int x)
 {
   lua_State* L = co_L(Co);
+  if (x) lua_newtable(L);
   co_pushcore(L, Co);
+  if (x){lua_setfield(L, -2, "core"); lua_setglobal(L, "lolita");}
 }
 
 const char* core_getmodname(co* Co, int mod)
