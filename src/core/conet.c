@@ -11,9 +11,9 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "cort.h"
 #include "comm.h"
 
-#if LOLITA_CORE_USE_EPOLL
+#if defined(LOLITA_CORE_USE_EPOLL)
   #define LOLITA_CORE_NET_MODE "epoll"
-#elif LOLITA_CORE_USE_KQUEUE
+#elif defined(LOLITA_CORE_USE_KQUEUE)
   #define LOLITA_CORE_NET_MODE "kqueue"
 #else
   #define LOLITA_CORE_USE_SELECT
@@ -55,9 +55,9 @@ typedef int cosockfd_size;
 #include <arpa/inet.h>
 #include <errno.h>
 
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
 #include <sys/event.h>
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
 #include <sys/epoll.h>
 #endif
 
@@ -77,10 +77,10 @@ typedef socklen_t cosockfd_size;
 #define cosockfd_ioctl ioctl
 #define cosockfd_errno errno
 #define cosockfd_errstr(ec) strerror((ec))
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
   #define cosock_activeconn cosock_active_kqueue
   #define cosock_activeaccp cosock_active_kqueue
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
   #define cosock_activeconn cosock_active_epoll
   #define cosock_activeaccp cosock_active_epoll
 #else
@@ -135,9 +135,9 @@ static void cosock_activeconn_win32(co* Co, cosock* s);
 static void cosock_activeconn_ux(co* Co, cosock* s);
 #endif
 
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
   static void cosock_active_kqueue(co* Co, cosock* s);
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
   static void cosock_active_epoll(co* Co, cosock* s);
 #endif
 
@@ -1422,12 +1422,12 @@ static int cosock_newfdm(co* Co, cosock* s)
 {
 
 /* new kqueue only on platform that support it */
-#if LOLITA_CORE_USE_KQUEUE || LOLITA_CORE_USE_EPOLL
+#if defined(LOLITA_CORE_USE_KQUEUE) || defined(LOLITA_CORE_USE_EPOLL)
 
   co_assert(s->fdm == COSOCKFDM_NULL);
   if (s->fdt != COSOCKFD_TATTA)
   {
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
     s->fdm = kqueue();
 #else
     s->fdm = epoll_create(1);
@@ -1440,7 +1440,7 @@ static int cosock_newfdm(co* Co, cosock* s)
     s->fdm = s->attaed2s->fdm;
   }
 
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
   if (!cosock_ctlfdm(Co, s, 0, 0)) return 0;
   if (!cosock_ctlfdm(Co, s, 1, 0)) return 0;
   if (s->fdt == COSOCKFD_TCONN) { if (!cosock_ctlfdm(Co, s, 0, 3)) return 0;} /* connector disable read while not connected */
@@ -1457,7 +1457,7 @@ static int cosock_newfdm(co* Co, cosock* s)
 
 static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
 {
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
   struct kevent ke;
   if (op == 0) op = EV_ADD;
   else if(op == 1) op = EV_DELETE;
@@ -1466,7 +1466,7 @@ static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
   else {co_assert(0);}
   EV_SET(&ke, s->fd, type == 0 ? EVFILT_READ : EVFILT_WRITE, op, 0, 0, s);
   if (-1 == kevent(s->fdm, &ke, 1, NULL, 0, NULL)) { cosock_logec(s); return 0; }
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
   struct epoll_event ev;
   ev.data.ptr = s;
   ev.events = type;
@@ -1479,9 +1479,9 @@ static int cosock_markwrite(co* Co, cosock* s)
 {
   size_t datasize = cosockbuf_datasize(s->sndbuf);
   coN_tracedebug(Co, "id[%d,%d] datasize:%u, mark write %s", s->id, 0, datasize, datasize ? "enable" : "disable");
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
   if (!cosock_ctlfdm(Co, s, 1, datasize ? 2 : 3))
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
   if (!cosock_ctlfdm(Co, s, datasize ? EPOLLIN | EPOLLOUT : EPOLLIN, EPOLL_CTL_MOD))
 #endif
   {
@@ -1550,7 +1550,7 @@ static void cosock_deletefdt(co* Co, cosock* s)
 
 static void cosock_deletefdm(co* Co, cosock* s)
 {
-#if LOLITA_CORE_USE_KQUEUE || LOLITA_CORE_USE_EPOLL
+#if defined(LOLITA_CORE_USE_KQUEUE) || defined(LOLITA_CORE_USE_EPOLL)
   /* TATTA's fdm is use attaed2s's */
   if (COSOCKFD_TATTA == s->fdt) return;
   if (COSOCKFDM_NULL == s->fdm) return;
@@ -1832,7 +1832,7 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
 #endif
 
 
-#if LOLITA_CORE_USE_KQUEUE
+#if defined(LOLITA_CORE_USE_KQUEUE)
 
 static void cosock_evwrite_kqueue(co* Co, cosock* s, struct kevent* ke)
 {

@@ -38,7 +38,7 @@ int main(int argc, const char** argv)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-#if LOLITA_CORE_USE_EXTERNALXLLOC
+#ifdef LOLITA_CORE_USE_EXTERNALXLLOC
   x = externalxlloc;
 #endif
   Co = core_born(argc, argv, x, NULL, externaltracef, NULL);if (!Co){return 1;}

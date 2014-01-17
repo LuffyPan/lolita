@@ -11,7 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "conet.h"
 #include "coos.h"
 #include "comm.h"
-#if LOLITA_CORE_PREMAKE
+#ifdef LOLITA_CORE_PREMAKE
   #include "coembe.h"
 #else
   #include "coembe.h.in"
@@ -705,7 +705,7 @@ void co_tracecallstack(co* Co, int mod, int lv, lua_State* L)
 
 int co_pcallmsg(lua_State* L)
 {
-#if LOLITA_CORE_LUA_514
+#if defined(LOLITA_CORE_LUA_514)
   /* what if lua 5.1.4 or lower ? */
 #else
   luaL_traceback(L, L, lua_tostring(L, 1), 0);

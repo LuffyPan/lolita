@@ -20,7 +20,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
-#if LOLITA_CORE_PREMAKE
+#ifdef LOLITA_CORE_PREMAKE
   #include "coconf.h"
 #else
   #include "coconf.h.in"
@@ -30,6 +30,16 @@ Chamz Lau, Copyright (C) 2013-2017
 #define LOLITA_CORE_PLAT_UNIX (2)
 #define LOLITA_CORE_PLAT_LINUX (3)
 #define LOLITA_CORE_PLAT_MACOSX (4)
+
+#if defined(__APPLE__)
+  #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_MACOSX
+#elif defined(__unix__)
+  #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_UNIX
+#elif defined(__linux__) || defined(__linux)
+  #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_LINUX
+#elif defined(WIN32) && defined(_WINDOWS)
+  #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_WIN32
+#endif
 
 #ifndef LOLITA_CORE_PLAT
   #error No definition of LOLITA_CORE_PLAT!
@@ -41,12 +51,21 @@ Chamz Lau, Copyright (C) 2013-2017
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_UNIX
   #define LOLITA_CORE_PLATSTR "unix"
   #define LOLITA_CORE_EXPORT
+  #define LOLITA_CORE_USE_KQUEUE
+  #define LUA_USE_DLOPEN
+  #define LUA_USE_POSIX
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
   #define LOLITA_CORE_PLATSTR "linux"
   #define LOLITA_CORE_EXPORT
+  #define LOLITA_CORE_USE_EPOLL
+  #define LUA_USE_LINUX
+  #define LUA_USE_DLOPEN
+  #define LUA_USE_POSIX
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
   #define LOLITA_CORE_PLATSTR "macosx"
   #define LOLITA_CORE_EXPORT
+  #define LOLITA_CORE_USE_KQUEUE
+  #define LUA_USE_MACOSX
 #else
   #error Unknown LOLITA_CORE_PLAT!
 #endif
@@ -58,7 +77,9 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifndef LOLITA_CORE_LUA
   #define LOLITA_CORE_LUA LUA_VERSION
 #endif
-#if LOLITA_CORE_LUA_514
+
+#if LUA_VERSION_NUM == 501
+  #define LOLITA_CORE_LUA_514
   #define LUA_OK 0
 #endif
 
@@ -130,7 +151,7 @@ int co_pcallmsg(lua_State* L);
 
 #define co_L(Co) ((Co)->L)
 /* #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L) */
-#if LOLITA_CORE_LUA_514
+#if defined(LOLITA_CORE_LUA_514)
   /* use macro to monitor, but maybe caz data error */
   #define lua_rawgetp(L, t, p) lua_pushlightuserdata(L, p); lua_rawget(L, t)
   #define lua_rawsetp(L, t, p) lua_pushlightuserdata(L, p); lua_insert(L, -2); lua_rawset(L, t)

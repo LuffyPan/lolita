@@ -9,7 +9,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #ifndef _COCONF_H_
 #define _COCONF_H_
 
-#if LOLITA_CORE_PREMAKE
+#ifdef LOLITA_CORE_PREMAKE
   #define LOLITA_CORE_VERSION_REPOS "@REPOS_VERSION@"
 #else
   #define LOLITA_CORE_VERSION_REPOS "none-premake"

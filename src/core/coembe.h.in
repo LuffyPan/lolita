@@ -11,7 +11,7 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #define LOLITA_CORE_EMBE_MODE_NONE "none"
 
-#if LOLITA_CORE_PREMAKE
+#ifdef LOLITA_CORE_PREMAKE
   #define LOLITA_CORE_EMBE_MODE "@TOBEEMBEMODE@"
   static const char* embestrs[] =
   {
