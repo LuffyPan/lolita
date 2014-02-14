@@ -41,26 +41,26 @@ solution "lolitall"
   --Platform macro configuration, much more thing to do..
   --macro is useful, simple, so keep this way, just rename to LOLITA_CORE_PLAT_XXX
   configuration "windows"
-    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_WIN32"}
+    --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_WIN32"}
   configuration {"windows", "gmake"}
     --cygwin or mingw
-    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
-    defines {"LUA_USE_LINUX"}
+    --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
+    --defines {"LUA_USE_LINUX"}
   configuration "linux"
-    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
-    defines {"LOLITA_CORE_USE_EPOLL"}
+    --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
+    --defines {"LOLITA_CORE_USE_EPOLL"}
     links { "dl" }
   configuration "bsd"
-    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_UNIX"}
-    defines {"LOLITA_CORE_USE_KQUEUE"}
+    --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_UNIX"}
+    --defines {"LOLITA_CORE_USE_KQUEUE"}
   configuration "macosx"
-    defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_MACOSX"}
-    defines {"LOLITA_CORE_USE_KQUEUE"}
-    defines {"LUA_USE_MACOSX"}
+    --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_MACOSX"}
+    --defines {"LOLITA_CORE_USE_KQUEUE"}
+    --defines {"LUA_USE_MACOSX"}
     links {"CoreServices.framework"} -- is this need?
 
   configuration "linux or bsd"
-    defines { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
+    --defines { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
     links { "m" }
     linkoptions { "-rdynamic" }
 

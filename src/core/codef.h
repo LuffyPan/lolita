@@ -33,10 +33,10 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #if defined(__APPLE__)
   #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_MACOSX
-#elif defined(__unix__)
-  #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_UNIX
 #elif defined(__linux__) || defined(__linux)
   #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_LINUX
+#elif defined(__unix__)
+  #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_UNIX
 #elif defined(WIN32) && defined(_WINDOWS)
   #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_WIN32
 #endif

@@ -1445,7 +1445,7 @@ static int cosock_newfdm(co* Co, cosock* s)
   if (!cosock_ctlfdm(Co, s, 1, 0)) return 0;
   if (s->fdt == COSOCKFD_TCONN) { if (!cosock_ctlfdm(Co, s, 0, 3)) return 0;} /* connector disable read while not connected */
   else if (s->fdt == COSOCKFD_TACCP) { if (!cosock_ctlfdm(Co, s, 1, 3)) return 0;} /* acceptor disable write forever */
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
   if (!cosock_ctlfdm(Co, s, EPOLLIN | EPOLLOUT, EPOLL_CTL_ADD)) return 0;
 #endif
 
@@ -1954,7 +1954,7 @@ static void cosock_active_kqueue(co* Co, cosock* s)
 
 }
 
-#elif LOLITA_CORE_USE_EPOLL
+#elif defined(LOLITA_CORE_USE_EPOLL)
 
 static void cosock_evaccp_epoll(co* Co, cosock* s, struct epoll_event* ev)
 {
