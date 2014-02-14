@@ -32,6 +32,7 @@ static int co_export_settracelv(lua_State* L);
 static int co_export_getregistry(lua_State* L);
 static int co_export_attach(lua_State* L);
 static int co_export_detach(lua_State* L);
+static int co_export_addpath(lua_State* L);
 
 /*
   lua_State* can be non-force? and use void* instead
@@ -119,108 +120,68 @@ static void co_born(co* Co, void* ud)
   coN_born(Co);
 }
 
-/* TODO:Simple the implelemt, suck as dir operation */
-/* more option to control the load process, don't error spread and so on. DONE */
-static void co_ploadx(co* Co, lua_State* L)
+static void co_addpath(co* Co, lua_State* L, const char* path)
 {
-  int z = 0, top = 0, optional = 0;
-  size_t len = 0, len2 = 0;
-  const char* exts = NULL;
-  const char* p1 = NULL;
-  const char* p2 = NULL;
-  const char *p3 = NULL, *p4 = NULL, *p5 = NULL;
-  char ext[256];
-  char extpath[256];
+  int top = lua_gettop(L);
+  lua_getglobal(L, "package");
+  co_assert(lua_istable(L, -1));
 
-  top = lua_gettop(L); co_assert(top == 1); /* caz the core is on the stack */
+  lua_getfield(L, -1, "path");
+  co_assert(lua_isstring(L, -1));
+  lua_pushfstring(L, ";%s?.lua", path);
+  lua_concat(L, 2);
+  lua_setfield(L, -2, "path");
+
+  co_assert(lua_gettop(L) == top + 1);
+  lua_getfield(L, -1, "cpath");
+  co_assert(lua_isstring(L, -1));
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+  lua_pushfstring(L, ";%s?.dll", path);
+#else
+  lua_pushfstring(L, ";%s?.so", path);
+#endif
+  lua_concat(L, 2);
+  lua_setfield(L, -2, "cpath");
+
+  lua_pop(L, 1);
+  co_assert(lua_gettop(L) == top);
+}
+
+static void co_ppath(co* Co, lua_State* L)
+{
+  /* arg.p to add all path */
+  int z = 0, top = 0;
+  size_t len = 0;
+  const char* paths = NULL, *p1 = NULL, *p2 = NULL;
+  char path[256] = { 0 };
+
+  top = lua_gettop(L); co_assert(top == 1); /* core is on the top */
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "x"); co_assert(lua_gettop(L) == 3);
-  if (lua_isstring(L, -1)) {exts = lua_tostring(L, -1);}
+  lua_getfield(L, -1, "p"); co_assert(lua_gettop(L) == 3);
+  if (lua_isstring(L, -1)) {paths = lua_tostring(L, -1);}
 
-  if (!exts) 
+  if (!paths)
   {
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty exts script. didn't load anything!");
-    lua_pop(L, 2); /* pop the arg.exts */
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty paths. didn't add anything!");
+    lua_pop(L, 2);
     return;
   }
 
-  p1 = exts;
+  p1 = paths;
   while(1)
   {
     p2 = strchr(p1, ',');
     len = p2 ? p2 - p1 : strlen(p1);
-    len2 = len >= 256 ? 32 : len;
-    strncpy(ext, p1, len2); ext[len2] = 0;
-    if (len >= 256) luaL_error(L, "%s... is too long.. paused!", ext);
-
-    z = luaL_loadfile(L, ext); if (z) lua_error(L);
-    co_assert(lua_gettop(L) == 4 && lua_isfunction(L, -1));
-    lua_call(L, 0, 2); /* with 2 result */
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s is loaded and executed!", ext);
-    co_assert(lua_gettop(L) == 5);
-
-    if ((! lua_isstring(L, -2)) || strcmp(lua_tostring(L, -2), "loadx") || (! lua_istable(L, -1)))
+    if (len >= 256 || len == 0)
     {
-      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "DON'T load caz the return indicated");
-      goto flag;
+      goto _continue;
     }
 
-    p3 = ext; p5 = NULL;
-    while((p4 = strchr(p3, '/'))){p5 = p4; p3 = p4 + 1;}
-    len = p5 ? p5 - ext + 1 : 0;
-    strncpy(extpath, ext, len); extpath[len] = 0;
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "continue to load with path:%s", extpath);
+    strncpy(path, p1, len);path[len] = 0;
+    co_addpath(Co, L, path);
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "add path[%s]", path);
 
-    lua_pushnil(L);
-    while(lua_next(L, -2))
-    {
-      co_assert(lua_gettop(L) == 7);
-      if (lua_type(L, -1) != LUA_TTABLE)
-      {
-        co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the format is invalid!");
-        lua_pop(L, 1);
-        continue;
-      }
-
-      lua_pushnumber(L, 2);
-      lua_gettable(L, -2);
-      optional = (int)lua_tonumber(L, -1);
-      lua_pop(L, 1);
-
-      lua_pushnumber(L, 1);
-      lua_gettable(L, -2);
-
-      p5 = lua_tolstring(L, -1, &len2);
-      if (len + len2 + 1 >= 256)
-      {
-        co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "ignore one ext cuz the length of name is so big?!");
-        lua_pop(L, 2);
-        continue;
-      }
-      sprintf(ext, "%s%s", extpath, p5);
-      z = luaL_loadfile(L, ext);
-      if (z)
-      {
-        co_assert(lua_gettop(L) == 9);
-        if (optional == 1)
-        {
-          co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "ignore [%s] ext cuz the optional flag!", ext);
-          lua_pop(L, 3);
-          continue;
-        }
-        lua_error(L);
-      }
-      co_assert(lua_gettop(L) == 9 && lua_isfunction(L, -1));
-      lua_call(L, 0, 0);
-      co_assert(lua_gettop(L) == 8);
-      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "\t%s is loaded and executed", ext);
-      lua_pop(L, 2);
-    }
-
-flag:
-    co_assert(lua_gettop(L) == 5);
-    lua_pop(L, 2);
-
+    _continue:
     if (!p2) break;
     p1 = p2 + 1;
     p2 = NULL;
@@ -229,12 +190,61 @@ flag:
   co_assert(3 == lua_gettop(L));
   lua_pop(L, 2);
   co_assert(top == lua_gettop(L));
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed exts script");
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "add all paths x[%s]", paths);
+}
+
+/* TODO:Simple the implelemt, suck as dir operation */
+static void co_ploadx(co* Co, lua_State* L)
+{
+  int z = 0, top = 0;
+  const char* exts = NULL;
+  const char* p3 = NULL, *p4 = NULL, *p5 = NULL;
+  size_t len = 0;
+  char extspath[256] = { 0 };
+
+  top = lua_gettop(L); co_assert(top == 1); /* caz the core is on the stack */
+  lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "x"); co_assert(lua_gettop(L) == 3);
+  if (lua_isstring(L, -1)) {exts = lua_tostring(L, -1);}
+
+  if (!exts) 
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty x script. didn't load and execute anything!");
+    lua_pop(L, 2); /* pop the arg.x */
+    return;
+  }
+  len = strlen(exts);
+  if (len >= 256)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exts is too long, len[%d]", (int)len);
+    lua_pop(L, 2);
+    return;
+  }
+
+  /* parse the path */
+  p3 = exts; p5 = NULL;
+  while((p4 = strchr(p3, '/'))){p5 = p4; p3 = p4 + 1;}
+  len = p5 ? p5 - exts + 1 : 0; co_assert(len < 256);
+  strncpy(extspath, exts, len); extspath[len] = 0;
+
+  /* add path */
+  co_addpath(Co, L, extspath);
+
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exts path is [%s]", extspath);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "loading and executing x[%s]", exts);
+  z = luaL_loadfile(L, exts); if (z) lua_error(L);
+  lua_call(L, 0, 0);
+
+  co_assert(3 == lua_gettop(L));
+  lua_pop(L, 2);
+  co_assert(top == lua_gettop(L));
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed x[%s]", exts);
 }
 
 /* core is on the top of stack */
 static void co_pload(co* Co, lua_State* L)
 {
+  co_ppath(Co, L);
   co_ploadx(Co, L);
 }
 
@@ -463,6 +473,7 @@ static void co_pexportapi(co* Co, lua_State* L)
     {"getregistry", co_export_getregistry},
     {"attach", co_export_attach},
     {"detach", co_export_detach},
+    {"addpath", co_export_addpath},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -653,6 +664,13 @@ static int co_export_detach(lua_State* L)
   lua_pushnil(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   return 1;
+}
+
+static int co_export_addpath(lua_State* L)
+{
+  co* Co = co_C(L);
+  co_addpath(Co, L, luaL_checkstring(L, 1));
+  return 0;
 }
 
 void co_trace(co* Co, int mod, int lv, const char* msg, ...)
