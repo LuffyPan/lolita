@@ -129,7 +129,8 @@ static void co_addpath(co* Co, lua_State* L, const char* path)
   lua_getfield(L, -1, "path");
   co_assert(lua_isstring(L, -1));
   lua_pushfstring(L, ";%s?.lua", path);
-  lua_concat(L, 2);
+  lua_pushfstring(L, ";%s?/init.lua", path);
+  lua_concat(L, 3);
   lua_setfield(L, -2, "path");
 
   co_assert(lua_gettop(L) == top + 1);
