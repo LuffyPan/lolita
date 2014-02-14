@@ -11,11 +11,6 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "conet.h"
 #include "coos.h"
 #include "comm.h"
-#ifdef LOLITA_CORE_PREMAKE
-  #include "coembe.h"
-#else
-  #include "coembe.h.in"
-#endif
 
 static int co_panic(lua_State* L);
 static void* co_xlloc(void* ud, void* p, size_t os, size_t ns);
@@ -122,32 +117,6 @@ static void co_born(co* Co, void* ud)
   co_export(Co);
   coOs_born(Co);
   coN_born(Co);
-}
-
-static void co_ploadembe(co* Co, lua_State* L)
-{
-  int z = 0, top = 0;
-  const char** embestr = embestrs;
-
-  /* if have embe, load and execute it first */
-  if(strcmp(LOLITA_CORE_EMBE_MODE, LOLITA_CORE_EMBE_MODE_NONE) == 0)
-  {
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty embe script. didn't load anything!");
-    return;
-  }
-
-  top = lua_gettop(L); co_assert(top == 1); /* only the core is on the stack */
-  while(*embestr)
-  {
-    z = luaL_loadstring(L, *embestr);
-    if (z) lua_error(L);
-    co_assert(lua_gettop(L) == 2 && lua_isfunction(L, -1));
-    lua_call(L, 0, 0);
-    ++embestr;
-  }
-  co_assert(top == lua_gettop(L));
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed embe script.");
-
 }
 
 /* TODO:Simple the implelemt, suck as dir operation */
@@ -266,7 +235,6 @@ flag:
 /* core is on the top of stack */
 static void co_pload(co* Co, lua_State* L)
 {
-  co_ploadembe(Co, L);
   co_ploadx(Co, L);
 }
 
@@ -436,7 +404,6 @@ static void co_pexportinfo(co* Co, lua_State* L)
   lua_pushnumber(L, LOLITA_CORE_VERSION); lua_setfield(L, -2, "version");
   lua_pushstring(L, LOLITA_CORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
   lua_pushstring(L, LOLITA_CORE_PLATSTR); lua_setfield(L, -2, "platform");
-  lua_pushstring(L, LOLITA_CORE_EMBE_MODE); lua_setfield(L, -2, "embemode");
   lua_pop(L, 2); /* core.info */
   co_assert(lua_gettop(L) == 0);
 }
