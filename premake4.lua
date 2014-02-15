@@ -57,6 +57,7 @@ solution "lolitall"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_MACOSX"}
     --defines {"LOLITA_CORE_USE_KQUEUE"}
     --defines {"LUA_USE_MACOSX"}
+    buildoptions { "-Wno-deprecated" }
     links {"CoreServices.framework"} -- is this need?
 
   configuration "linux or bsd"
@@ -78,7 +79,7 @@ solution "lolitall"
     buildoptions { "-mmacosx-version-min=10.4" }
     linkoptions { "-mmacosx-version-min=10.4" }
 
-local extlua = _OPTIONS["luaver"] or "5.2.2"
+local extlua = _OPTIONS["luaver"] or "5.2.3"
 print(string.format("lolitaext's Lua version is %s", extlua))
 local extluapath = string.format("deps/lua-%s/src", extlua)
 local lualibname = _OPTIONS["lualibname"]
@@ -119,13 +120,6 @@ project "lolitaext"
   }
 
   defines {"LOLITA_CORE_PREMAKE"}
-  if extlua == "5.2.2" then
-    defines {"LOLITA_CORE_LUA_522"}
-  elseif extlua == "5.2.1" then
-    defines {"LOLITA_CORE_LUA_521"}
-  elseif extlua == "5.1.4" then
-    defines {"LOLITA_CORE_LUA_514"}
-  end
 
   if lualibpath then
     print(string.format("specify lualibpath %s", lualibpath))
@@ -156,13 +150,6 @@ project "lolita"
     "src/core/coexport.c",
   }
   defines {"LOLITA_CORE_PREMAKE"}
-  if extlua == "5.2.2" then
-    defines {"LOLITA_CORE_LUA_522"}
-  elseif extlua == "5.2.1" then
-    defines {"LOLITA_CORE_LUA_521"}
-  elseif extlua == "5.1.4" then
-    defines {"LOLITA_CORE_LUA_514"}
-  end
   links { "lua" }
 
 if _ACTION == "clean" then
@@ -317,7 +304,7 @@ end
 
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
-  local luaver = _OPTIONS["luaver"] or "5.2.2"
+  local luaver = _OPTIONS["luaver"] or "5.2.3"
   local lualibname = _OPTIONS["lualibname"]
   local lualibpath = _OPTIONS["lualibpath"]
   local lualib = ""
@@ -519,21 +506,12 @@ newoption
 
 newoption
 {
-  trigger = "embe",
-  value = "embevalue",
-  description = "embe file",
-}
-
-newoption
-{
   trigger = "luaver",
   value = "luaversion",
   description = "lua version",
   allowed =
   {
-    {"5.2.2", "version 5.2.2"},
-    {"5.2.1", "version 5.2.1"},
-    {"5.1.4", "version 5.1.4"},
+    {"5.2.3", "version 5.2.3"},
   },
 }
 
