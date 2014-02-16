@@ -58,7 +58,7 @@ solution "lolitall"
     --defines {"LOLITA_CORE_USE_KQUEUE"}
     defines {"LUA_USE_MACOSX"}
     buildoptions { "-Wno-deprecated" }
-    links {"CoreServices.framework"} -- is this need?
+    --links {"CoreServices.framework"} -- is this need?
 
   configuration "linux or bsd"
     defines {"LUA_USE_LINUX"}
