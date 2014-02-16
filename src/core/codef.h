@@ -52,20 +52,14 @@ Chamz Lau, Copyright (C) 2013-2017
   #define LOLITA_CORE_PLATSTR "unix"
   #define LOLITA_CORE_EXPORT
   #define LOLITA_CORE_USE_KQUEUE
-  #define LUA_USE_DLOPEN
-  #define LUA_USE_POSIX
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
   #define LOLITA_CORE_PLATSTR "linux"
   #define LOLITA_CORE_EXPORT
   #define LOLITA_CORE_USE_EPOLL
-  #define LUA_USE_LINUX
-  #define LUA_USE_DLOPEN
-  #define LUA_USE_POSIX
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
   #define LOLITA_CORE_PLATSTR "macosx"
   #define LOLITA_CORE_EXPORT
   #define LOLITA_CORE_USE_KQUEUE
-  #define LUA_USE_MACOSX
 #else
   #error Unknown LOLITA_CORE_PLAT!
 #endif

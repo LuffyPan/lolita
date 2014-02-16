@@ -45,7 +45,7 @@ solution "lolitall"
   configuration {"windows", "gmake"}
     --cygwin or mingw
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
-    --defines {"LUA_USE_LINUX"}
+    defines {"LUA_USE_LINUX"}
   configuration "linux"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
     --defines {"LOLITA_CORE_USE_EPOLL"}
@@ -56,11 +56,12 @@ solution "lolitall"
   configuration "macosx"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_MACOSX"}
     --defines {"LOLITA_CORE_USE_KQUEUE"}
-    --defines {"LUA_USE_MACOSX"}
+    defines {"LUA_USE_MACOSX"}
     buildoptions { "-Wno-deprecated" }
     links {"CoreServices.framework"} -- is this need?
 
   configuration "linux or bsd"
+    defines {"LUA_USE_LINUX"}
     --defines { "LUA_USE_POSIX", "LUA_USE_DLOPEN" }
     links { "m" }
     linkoptions { "-rdynamic" }
