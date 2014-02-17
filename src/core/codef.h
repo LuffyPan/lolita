@@ -37,7 +37,7 @@ Chamz Lau, Copyright (C) 2013-2017
   #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_LINUX
 #elif defined(__unix__)
   #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_UNIX
-#elif defined(WIN32) && defined(_WINDOWS)
+#elif defined(_WIN32)
   #define LOLITA_CORE_PLAT LOLITA_CORE_PLAT_WIN32
 #endif
 
