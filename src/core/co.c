@@ -43,6 +43,16 @@ static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
   fflush(stdout);fflush(stderr);
 }
 
+static int co_export_conf_add(lua_State* L)
+{
+  return 0;
+}
+
+static int co_export_conf_set(lua_State* L)
+{
+  return 0;
+}
+
 /*
   lua_State* can be non-force? and use void* instead
 */
@@ -160,12 +170,13 @@ static void co_addpath(co* Co, lua_State* L, const char* path)
 static void co_ppath(co* Co, lua_State* L)
 {
   /* arg.p to add all path */
-  int z = 0, top = 0;
+  int z = 0;
   size_t len = 0;
   const char* paths = NULL, *p1 = NULL, *p2 = NULL;
   char path[256] = { 0 };
 
-  top = lua_gettop(L); co_assert(top == 1); /* core is on the top */
+  co_assert(lua_gettop(L) == 0);
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "p"); co_assert(lua_gettop(L) == 3);
   if (lua_isstring(L, -1)) {paths = lua_tostring(L, -1);}
@@ -173,7 +184,7 @@ static void co_ppath(co* Co, lua_State* L)
   if (!paths)
   {
     co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty paths. didn't add anything!");
-    lua_pop(L, 2);
+    lua_pop(L, 3);
     return;
   }
 
@@ -198,36 +209,37 @@ static void co_ppath(co* Co, lua_State* L)
   }
 
   co_assert(3 == lua_gettop(L));
-  lua_pop(L, 2);
-  co_assert(top == lua_gettop(L));
+  lua_pop(L, 3);
+  co_assert(lua_gettop(L) == 0);
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "add all paths x[%s]", paths);
 }
 
 /* TODO:Simple the implelemt, suck as dir operation */
 static void co_ploadx(co* Co, lua_State* L)
 {
-  int z = 0, top = 0;
+  int z = 0;
   const char* exts = NULL;
   const char* p3 = NULL, *p4 = NULL, *p5 = NULL;
   size_t len = 0;
   char extspath[256] = { 0 };
 
-  top = lua_gettop(L); co_assert(top == 1); /* caz the core is on the stack */
+  co_assert(lua_gettop(L) == 0);
+  co_pushcore(L, Co);
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "x"); co_assert(lua_gettop(L) == 3);
   if (lua_isstring(L, -1)) {exts = lua_tostring(L, -1);}
 
-  if (!exts) 
+  if (!exts)
   {
     co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "empty x script. didn't load and execute anything!");
-    lua_pop(L, 2); /* pop the arg.x */
+    lua_pop(L, 3); /* pop the core.arg.x */
     return;
   }
   len = strlen(exts);
   if (len >= 256)
   {
     co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exts is too long, len[%d]", (int)len);
-    lua_pop(L, 2);
+    lua_pop(L, 3);
     return;
   }
 
@@ -245,10 +257,28 @@ static void co_ploadx(co* Co, lua_State* L)
   z = luaL_loadfile(L, exts); if (z) lua_error(L);
   lua_call(L, 0, 0);
 
-  co_assert(3 == lua_gettop(L));
-  lua_pop(L, 2);
-  co_assert(top == lua_gettop(L));
+  co_assert(3 == lua_gettop(L)); lua_pop(L, 3);
+  co_assert(0 == lua_gettop(L));
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed x[%s]", exts);
+}
+
+static void co_ploadX(co* Co, lua_State* L)
+{
+  const char* X = NULL;
+  size_t Xlen = 0;
+
+  co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
+
+  lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "X"); co_assert(3 == lua_gettop(L));
+  if (!lua_isstring(L, -1)) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "no X file ignored!"); lua_pop(L, 3); return;}
+  X = lua_tolstring(L, -1, &Xlen);
+  if (Xlen >= 256) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "X file name too long[%d] ignored", (int)Xlen); lua_pop(L, 3); return;}
+  if (luaL_loadfile(L, X)) lua_error(L);
+  lua_call(L, 0, 0);
+
+  co_assert(3 == lua_gettop(L)); lua_pop(L, 3);
+  co_assert(0 == lua_gettop(L));
 }
 
 /* core is on the top of stack */
@@ -256,18 +286,20 @@ static void co_pload(co* Co, lua_State* L)
 {
   co_ppath(Co, L);
   co_ploadx(Co, L);
+  co_ploadX(Co, L);
 }
 
 static void co_pactive(co* Co, lua_State* L)
 {
-  int top = 0, z = 0;
-  top = lua_gettop(L); co_assert(top == 1);
+  int z = 0;
+
+  co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
   lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach"); /* idx = 2 */
   if (!lua_istable(L, -1))
   {
     co_assert(lua_isnil(L, -1));
     co_trace(Co, CO_MOD_CORE, CO_LVINFO, "have not register active func");
-    lua_pop(L, 1);
+    lua_pop(L, 2);
     return;
   }
 
@@ -312,21 +344,16 @@ die:
   co_assert(lua_isfunction(L, -1));
   lua_pushvalue(L, 2);
   lua_call(L, 1, 0);
-  co_assert(lua_gettop(L) == 2);
-  lua_pop(L, 1);
+  co_assert(lua_gettop(L) == 2); lua_pop(L, 2);
 }
 
 static int co_palive(lua_State* L)
 {
-  co* Co = NULL;
-  Co = co_C(L);
-
+  co* Co = co_C(L);
   co_assert(lua_gettop(L) == 0);
-  co_pushcore(L, Co);
   co_pload(Co, L);
   co_pactive(Co, L);
-  co_assert(lua_gettop(L) == 1);
-  lua_pop(L, 1);
+  co_assert(lua_gettop(L) == 0);
   return 0;
 }
 
@@ -473,7 +500,30 @@ static void co_pexportarg(co* Co, lua_State* L)
   co_assert(lua_gettop(L) == 0);
 }
 
-static void co_pexportapi(co* Co, lua_State* L)
+static void co_pexportconf(co* Co, lua_State* L)
+{
+  const luaL_Reg co_funcs[] =
+  {
+    {"add", co_export_conf_add},
+    {"set", co_export_conf_set},
+    {NULL, NULL},
+  };
+
+  co_assert(lua_gettop(L) == 0);
+  co_pushcore(L, Co);
+  lua_newtable(L);
+  luaL_setfuncs(L, co_funcs, 0);
+  lua_pushvalue(L, -1); /* a copy to setfield */
+  lua_setfield(L, -3, "conf"); /* set core.conf */
+  co_assert(lua_gettop(L) == 2); /* left core.conf */
+
+  lua_newtable(L);
+  lua_setfield(L, -2, "_conf"); /* set core.conf._conf */
+  lua_pop(L, 2);
+  co_assert(lua_gettop(L) == 0);
+}
+
+static void co_pexportbase(co* Co, lua_State* L)
 {
   static const luaL_Reg co_funcs[] =
   {
@@ -502,7 +552,8 @@ static int co_pexport(lua_State* L)
   co_pexportcore(Co, L);
   co_pexportinfo(Co, L);
   co_pexportarg(Co, L);
-  co_pexportapi(Co, L);
+  co_pexportconf(Co, L);
+  co_pexportbase(Co, L);
   co_assert(lua_gettop(L) == 0);
   return 0;
 }
