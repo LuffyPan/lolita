@@ -8,10 +8,8 @@ Lolita can be used as a independent host program OR a plugin for Lua enviroment.
 Dependency
 ==========================================
 
-* premake4.4
-* lua5.1.4(included)
-* lua5.2.1(included)
-* lua5.2.2(included,default)
+* Premake4.4
+* Lua5.2.3(included)
 
 Modules Exported
 ================
