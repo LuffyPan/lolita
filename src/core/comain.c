@@ -20,7 +20,7 @@ void* externalxlloc(void* ud, void* p, size_t os, size_t ns)
 }
 
 /* is this need controled by outside ?? */
-void externaltracef(co*Co, int mod, int lv, const char* msg, va_list msgva)
+void externaltrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
 {
   if (lv > core_gettracelv(Co)) return;
   printf("<%s><%s> ", core_getmodname(Co, mod), core_getlvname(Co, lv));
@@ -33,6 +33,7 @@ int main(int argc, const char** argv)
 {
   co*Co;
   co_xllocf x = NULL;
+  co_tracef t = NULL;
   /* Todo: hide plat */
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -41,7 +42,10 @@ int main(int argc, const char** argv)
 #ifdef LOLITA_CORE_USE_EXTERNALXLLOC
   x = externalxlloc;
 #endif
-  Co = core_born(argc, argv, x, NULL, externaltracef, NULL);if (!Co){return 1;}
+#ifdef LOLITA_CORE_USE_EXTERNALTRACE
+  t = externaltrace
+#endif
+  Co = core_born(argc, argv, x, NULL, t, NULL);if (!Co){return 1;}
   core_alive(Co);
   core_die(Co);
   return 0;

@@ -26,7 +26,7 @@ solution "lolitall"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "x=../sample/echo.lua", "bsrv=1"}
+  debugargs { "arg1key=arg1val", "arg2key=arg2val", "tracelv=5" }
 
   configuration "debug"
     targetdir ("_bin/" .. _ACTION .. "/debug")
@@ -83,8 +83,6 @@ solution "lolitall"
 local extlua = _OPTIONS["luaver"] or "5.2.3"
 print(string.format("lolitaext's Lua version is %s", extlua))
 local extluapath = string.format("deps/lua-%s/src", extlua)
-local lualibname = _OPTIONS["lualibname"]
-local lualibpath = _OPTIONS["lualibpath"]
 
 project "lua"
   targetname "lua"
@@ -120,19 +118,15 @@ project "lolitaext"
     "src/core/comain.c",
   }
 
-  defines {"LOLITA_CORE_PREMAKE"}
-
-  if lualibpath then
-    print(string.format("specify lualibpath %s", lualibpath))
-    libdirs {lualibpath}
-  end
-  if lualibname then
-    print(string.format("specify lualibname %s", lualibname))
-    links {lualibname}
-  else
+  configuration "macosx"
+    --linkoptions { "-rdynamic" }
+    linkoptions { "-fPIC -dynamiclib -Wl,-undefined,dynamic_lookup" }
+  configuration "linux"
+    linkoptions { "-fPIC --shared" }
+  configuration "windows"
     links {"lua"}
-  end
 
+  defines {"LOLITA_CORE_PREMAKE"}
 
 project "lolita"
   targetname "lolita"
@@ -143,15 +137,19 @@ project "lolita"
   files
   {
     extluapath .. "/**.h",
+    extluapath .. "/**.c",
     "src/core/**.h", "src/core/**.c",
   }
 
   excludes
   {
     "src/core/coexport.c",
+    extluapath .. "/lua.c",
+    extluapath .. "/luac.c",
+    extluapath .. "/print.c",
   }
   defines {"LOLITA_CORE_PREMAKE"}
-  links { "lua" }
+  --links { "lua" }
 
 if _ACTION == "clean" then
   os.rmdir("_bin")
@@ -192,100 +190,6 @@ local function _version()
   fo:close()
 end
 
-local function _getpath(file)
-  local n = 1
-  local e = 0
-  while 1 do
-    n = string.find(file, "/", n)
-    if not n then break end
-    e = n
-    n = n + 1
-  end
-  return string.sub(file, 1, e)
-end
-
-local function _embecore(mfile)
-  local embestr = ""
-  local func = assert(loadfile(mfile))
-  local mfilepath = _getpath(mfile)
-  local _, manifest = assert(func())
-  for i, tfn in ipairs(manifest) do
-    fn = mfilepath .. tfn[1]
-    printf(fn)
-    local fi = io.open(fn, "rb")
-    if fi then
-      local text = fi:read("*a")
-
-      text = text:gsub("\\", "\\\\")
-      text = text:gsub("\n", "\\n")
-      text = text:gsub("\"", "\\\"")
-
-      embestr = embestr .. "\"" .. text .. "\",\n"
-      fi:close()
-    else
-      if tfn[2] == 1 then
-        printf("file:%s is optional, so ignore it", fn)
-      else
-        printf("Cannot open embe file:%s", fn)
-      end
-    end
-  end
-  return embestr
-end
-
-local _embeserveropt =
-{
-  god = 1, mind = 1, login = 1, area = 1,
-}
-local function _embeserver(t)
-  if not _embeserveropt[t] then return end
-  local embestr = ""
-  local func = assert(loadfile(string.format("src/avatar/srv_%s/av.lua", t)))
-  local manifest = assert(func(1))
-  for i, fn in ipairs(manifest) do
-    fn = string.format("src/avatar/srv_%s/%s", t, fn)
-    printf(fn)
-    local fi = io.open(fn, "rb") if not fi then printf("Cannot open embe file:%s", fn) end
-    local text = fi:read("*a")
-    embestr = embestr .. text
-    fi:close()
-  end
-  return embestr
-end
-
-local function _embe()
-  local embestr = ""
-  local embe = _OPTIONS["embe"]
-  printf("embe %s", embe or "none")
-  if embe then
-    local corext = _embecore(embe)
-    embestr = embestr .. corext
-  end
-  embe = embe or "none"
-  --embestr = embestr:gsub("\\", "\\\\")
-  --embestr = embestr:gsub("\n", "\\n")
-  --embestr = embestr:gsub("\"", "\\\"")
-
-  local fni = "src/core/coembe.h.in"
-  local fi = io.open(fni, "rb")
-  if not fi then
-    printf("Cannot open embe template file:%s", fni)
-    return
-  end
-  local text = fi:read("*a")
-  fi:close()
-  text = text:gsub("@TOBEEMBEX@", function(s) return embestr end)
-  text = text:gsub("@TOBEEMBEMODE@", function(s) return embe end)
-  local fno = "src/core/coembe.h"
-  local fo = io.open(fno, "wb")
-  if not fo then
-    printf("Cannot open embe file:%s", fno)
-    return
-  end
-  fo:write(text)
-  fo:close()
-end
-
 local function _exec(cmd, ...)
   cmd = string.format(cmd, unpack(arg))
   --local z = os.execute(cmd .. " > output.log 2> error.log")
@@ -306,16 +210,11 @@ end
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
   local luaver = _OPTIONS["luaver"] or "5.2.3"
-  local lualibname = _OPTIONS["lualibname"]
-  local lualibpath = _OPTIONS["lualibpath"]
   local lualib = ""
-  if lualibname then lualib = lualib .. " --lualibname=" .. lualibname end
-  if lualibpath then lualib = lualib .. " --lualibpath=" .. lualibpath end
   lualib = lualib:gsub("\\", "\\\\")
   printf("Premaking %s...", action)
   os.mkdir("_deploy")
   _version()
-  _embe()
   _exec("premake4 --%s=%s %s %s", "luaver", luaver, lualib, action)
 end
 
@@ -332,20 +231,6 @@ local function _domake()
   end
 end
 
-local _deployconf =
-{
-  --{"src/avatar/srv_god/conf.lua", "_deploy/conf/srv_god.conf"},
-}
-
-local _deploysh =
-{
-  --deprecate
-  --{"tools/sh/startdev.sh", "_deploy/startdev.sh"},
-  --{"tools/sh/stopdev.sh", "_deploy/stopdev.sh"},
-  {"tools/startdev.lua", "_deploy/startdev.lua"},
-  {"tools/stopdev.lua", "_deploy/stopdev.lua"},
-}
-
 local function _dodeploy()
   local action = _OPTIONS["action"] or "gmake"
   local config = _OPTIONS["config"] or "debug"
@@ -359,16 +244,6 @@ local function _dodeploy()
 
   os.rmdir("_deploy")
   os.mkdir("_deploy")
-  os.mkdir("_deploy/conf")
-
-  for _, v in ipairs(_deployconf) do
-    os.copyfile(v[1], v[2])
-  end
-
-  for _, v in ipairs(_deploysh) do
-    os.copyfile(v[1], v[2])
-    os.execute(string.format("chmod 755 %s", v[2]))
-  end
 
   local _deployexe =
   {
@@ -514,18 +389,4 @@ newoption
   {
     {"5.2.3", "version 5.2.3"},
   },
-}
-
-newoption
-{
-  trigger = "lualibname",
-  value = "lua lib's name",
-  description = "specify lua lib's name for lolitaext",
-}
-
-newoption
-{
-  trigger = "lualibpath",
-  value = "lua lib's path",
-  description = "specify lua lib's path for lolitaext",
 }

@@ -34,6 +34,15 @@ static int co_export_attach(lua_State* L);
 static int co_export_detach(lua_State* L);
 static int co_export_addpath(lua_State* L);
 
+static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
+{
+  if (lv > core_gettracelv(Co)) return;
+  printf("[%s] [%s] ", core_getmodname(Co, mod), core_getlvname(Co, lv));
+  vprintf(msg, msgva);
+  printf("\n");
+  fflush(stdout);fflush(stderr);
+}
+
 /*
   lua_State* can be non-force? and use void* instead
 */
@@ -46,7 +55,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, 
   if (NULL == Co) return NULL;
   Co->xlloc = x;
   Co->ud = ud;
-  Co->tf = tf;
+  Co->tf = tf ? tf : defaulttrace;
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
@@ -360,7 +369,7 @@ static void co_newlua(co* Co)
     lua_getfield(L, LUA_REGISTRYINDEX, "lolita");
     if (!lua_isnil(L, -1))
     {
-      printf("lolita is loaded\n");
+      co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "lolita is loaded!");
       coR_throw(Co, 1);
     }
     lua_pop(L, 1);
