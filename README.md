@@ -23,8 +23,6 @@ Modules Exported
 Building - Using Premake4.4
 ===========================
 
-    $ git submodule init
-    $ git submodule update
     $ premake4 premake
     $ premake4 make
     $ premake4 deploy
