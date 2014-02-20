@@ -1,0 +1,14 @@
+--
+-- Echo Client
+-- Chamz Lau, Copyright (C) 2013-2017
+-- 2014/02/20 21:44:02
+--
+
+local set = lolita.core.conf.set
+local add = lolita.core.conf.add
+
+set { "tracelv", 0 }
+add { "search", {} }
+add { "manifest", {"../test/echo/"} }
+
+set { "maxconnection", "10" }
