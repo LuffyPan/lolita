@@ -9,6 +9,6 @@ local add = lolita.core.conf.add
 
 set { "tracelv", 0 }
 add { "search", {} }
-add { "manifest", {"../test/echo/"} }
+add { "manifest", {"echo/"} }
 
 set { "maxconnection", "10" }

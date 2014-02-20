@@ -132,7 +132,7 @@ static int co_export_conf_add(lua_State* L)
   int n = lua_gettop(L);
   const char* k = NULL, *v = NULL;
   int srclen = 0, destlen = 0, i = 0;
-  int bconf = 0;
+  int bconf = 0, bmanif = 0, bsearcher = 0;
 
   luaL_checktype(L, 1, LUA_TTABLE);
   co_pushcore(L, Co); co_assert(n + 1 == lua_gettop(L));
@@ -144,6 +144,8 @@ static int co_export_conf_add(lua_State* L)
   lua_gettable(L, 1); co_assert(n + 4 == lua_gettop(L));
   if (lua_type(L, -1) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
   if (0 == strcmp("conf", lua_tostring(L, -1))) bconf = 1;
+  if (0 == strcmp("manifest", lua_tostring(L, -1))) bmanif = 1;
+  if (0 == strcmp("search", lua_tostring(L, -1))) bsearcher = 1;
 
   /* v */
   lua_pushnumber(L, 2);
@@ -172,30 +174,30 @@ static int co_export_conf_add(lua_State* L)
   for (i = 1; i <= srclen; ++i)
   {
     co_assert(n + 6 == lua_gettop(L));
-    lua_pushnumber(L, i); lua_gettable(L, n + 5); co_assert(n + 7 == lua_gettop(L)); /* push the src v */
+    if (bmanif || bsearcher) {co_curconfpath(Co, L);}
+    lua_pushnumber(L, i); lua_gettable(L, n + 5);
+    if (bmanif || bsearcher) {lua_concat(L, 2);}
+    co_assert(n + 7 == lua_gettop(L)); /* push the src v */
     lua_pushnumber(L, destlen + i); /* push the dest k */
     lua_pushvalue(L, n + 7); co_assert(n + 9 == lua_gettop(L)); /* copy of src v */
     lua_settable(L, n + 6);
 
     /* left src v */
     co_assert(n + 7 == lua_gettop(L));
-    if (!bconf){lua_pop(L, 1); continue;}
 
-    co_curconfpath(Co, L); co_assert(lua_isstring(L, -1)); co_assert(n + 8 == lua_gettop(L));
-    lua_insert(L, -2);
-    if (lua_type(L, -1) != LUA_TSTRING)
+    if (bconf)
     {
-      co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "conf with invalid value type[%s]", lua_typename(L, lua_type(L, -1)));
-      lua_pop(L, 2);
-      continue;
+      co_curconfpath(Co, L); co_assert(lua_isstring(L, -1)); co_assert(n + 8 == lua_gettop(L));
+      lua_insert(L, -2);
+      if (lua_type(L, -1) != LUA_TSTRING)
+      {
+        co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "conf with invalid value type[%s]", lua_typename(L, lua_type(L, -1)));
+        lua_pop(L, 2);
+        continue;
+      }
+      lua_concat(L, 2); co_assert(n + 7 == lua_gettop(L));
+      co_loadX(Co, L, lua_tostring(L, -1));
     }
-    lua_concat(L, 2); co_assert(n + 7 == lua_gettop(L));
-    /* load conf */
-    co_loadX(Co, L, lua_tostring(L, -1));
-    /*
-    if (luaL_loadfile(L, lua_tostring(L, -1))) lua_error(L);
-    lua_call(L, 0, 0);
-    */
 
     lua_pop(L, 1);
   }
