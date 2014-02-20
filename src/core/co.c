@@ -43,6 +43,89 @@ static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
   fflush(stdout);fflush(stderr);
 }
 
+static void co_pushconfpath(co* Co, lua_State* L, const char* file)
+{
+  const char* path = NULL;
+  size_t pathlen = 0;
+  int n = lua_gettop(L);
+
+  co_pushcore(L, Co);
+  lua_getfield(L, -1, "conf");
+  lua_getfield(L, -1, "_confpaths");
+  lua_pushnumber(L, luaL_len(L, -1) + 1);
+
+  path = file;
+  while((path = strchr(path, '/'))) { pathlen = path - file + 1; path += 1; }
+  lua_pushlstring(L, file, pathlen);
+  lua_settable(L, -3);
+
+  lua_pop(L, 3);
+  co_assert(n == lua_gettop(L));
+}
+
+static void co_popconfpath(co* Co, lua_State* L)
+{
+  int n = lua_gettop(L);
+
+  co_pushcore(L, Co);
+  lua_getfield(L, -1, "conf");
+  lua_getfield(L, -1, "_confpaths");
+  lua_len(L, -1);
+  lua_pushnil(L);
+  lua_settable(L, -3);
+
+  lua_pop(L, 3);
+  co_assert(n == lua_gettop(L));
+}
+
+static void co_curconfpath(co* Co, lua_State* L)
+{
+  int n = lua_gettop(L);
+
+  co_pushcore(L, Co);
+  lua_getfield(L, -1, "conf");
+  lua_getfield(L, -1, "_confpaths");
+  lua_len(L, -1);
+  lua_gettable(L, -2);
+
+  lua_remove(L, -2);
+  lua_remove(L, -2);
+  lua_remove(L, -2);
+  co_assert(n + 1 == lua_gettop(L));
+}
+
+static int co_getconfpathlevel(co* Co, lua_State* L)
+{
+  int n = lua_gettop(L);
+  int lv = 0;
+
+  co_pushcore(L, Co);
+  lua_getfield(L, -1, "conf");
+  lua_getfield(L, -1, "_confpaths");
+  lv = luaL_len(L, -1);
+
+  lua_pop(L, 3);
+  co_assert(n == lua_gettop(L));
+  return lv;
+}
+
+static void co_loadX(co* Co, lua_State* L, const char* file)
+{
+  int n = lua_gettop(L);
+  int lv = co_getconfpathlevel(Co, L);
+  if (lv >= 5)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "config load level is too deep, %d", lv);
+    return;
+  }
+  co_pushconfpath(Co, L, file);
+  if (luaL_loadfile(L, file)) lua_error(L);
+  lua_call(L, 0, 0);
+  co_popconfpath(Co, L);
+  co_assert(n == lua_gettop(L));
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "config %s loaded", file);
+}
+
 static int co_export_conf_add(lua_State* L)
 {
   co* Co = co_C(L);
@@ -98,7 +181,7 @@ static int co_export_conf_add(lua_State* L)
     co_assert(n + 7 == lua_gettop(L));
     if (!bconf){lua_pop(L, 1); continue;}
 
-    lua_getfield(L, n + 2, "_confroot"); co_assert(lua_isstring(L, -1)); co_assert(n + 8 == lua_gettop(L));
+    co_curconfpath(Co, L); co_assert(lua_isstring(L, -1)); co_assert(n + 8 == lua_gettop(L));
     lua_insert(L, -2);
     if (lua_type(L, -1) != LUA_TSTRING)
     {
@@ -108,8 +191,12 @@ static int co_export_conf_add(lua_State* L)
     }
     lua_concat(L, 2); co_assert(n + 7 == lua_gettop(L));
     /* load conf */
+    co_loadX(Co, L, lua_tostring(L, -1));
+    /*
     if (luaL_loadfile(L, lua_tostring(L, -1))) lua_error(L);
     lua_call(L, 0, 0);
+    */
+
     lua_pop(L, 1);
   }
   co_assert(n + 6 == lua_gettop(L));
@@ -434,30 +521,15 @@ static void co_pexeX(co* Co, lua_State* L)
 
 static void co_ploadX(co* Co, lua_State* L)
 {
-  const char* X = NULL, *Xx = NULL;
-  size_t Xlen = 0;
-  size_t Xrootlen = 0;
-
   co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
 
   lua_getfield(L, -1, "arg"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "X"); co_assert(3 == lua_gettop(L));
   if (!lua_isstring(L, -1)) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "no X file ignored!"); lua_pop(L, 3); return;}
-  X = lua_tolstring(L, -1, &Xlen);
-  if (Xlen >= 256) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "X file name too long[%d] ignored", (int)Xlen); lua_pop(L, 3); return;}
 
-  /* set core.conf._confroot */
-  Xx = X;
-  while((Xx = (const char*)strchr(Xx, '/'))) { Xrootlen = Xx - X + 1; Xx += 1; }
-  lua_getfield(L, 1, "conf"); co_assert(4 == lua_gettop(L)); co_assert(lua_istable(L, -1));
-  lua_pushlstring(L, X, Xrootlen);
-  lua_setfield(L, -2, "_confroot"); co_assert(4 == lua_gettop(L));
+  co_loadX(Co, L, lua_tostring(L, -1));
 
-  /* load conf */
-  if (luaL_loadfile(L, X)) lua_error(L);
-  lua_call(L, 0, 0);
-
-  co_assert(4 == lua_gettop(L)); lua_pop(L, 4);
+  co_assert(3 == lua_gettop(L)); lua_pop(L, 3);
   co_assert(0 == lua_gettop(L));
 }
 
@@ -700,8 +772,8 @@ static void co_pexportconf(co* Co, lua_State* L)
 
   lua_newtable(L);
   lua_setfield(L, -2, "_conf"); /* set core.conf._conf */
-  lua_pushstring(L, "");
-  lua_setfield(L, -2, "_confroot");
+  lua_newtable(L);
+  lua_setfield(L, -2, "_confpaths");
   lua_pop(L, 2);
   co_assert(lua_gettop(L) == 0);
 }
