@@ -45,11 +45,108 @@ static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
 
 static int co_export_conf_add(lua_State* L)
 {
+  co* Co = co_C(L);
+  int n = lua_gettop(L);
+  const char* k = NULL, *v = NULL;
+  int srclen = 0, destlen = 0, i = 0;
+  int bconf = 0;
+
+  luaL_checktype(L, 1, LUA_TTABLE);
+  co_pushcore(L, Co); co_assert(n + 1 == lua_gettop(L));
+  lua_getfield(L, -1, "conf"); co_assert(lua_istable(L, -1)); co_assert(n + 2 == lua_gettop(L));
+  lua_getfield(L, -1, "_conf"); co_assert(lua_istable(L, -1)); co_assert(n + 3 == lua_gettop(L));
+
+  /* k */
+  lua_pushnumber(L, 1);
+  lua_gettable(L, 1); co_assert(n + 4 == lua_gettop(L));
+  if (lua_type(L, -1) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
+  if (0 == strcmp("conf", lua_tostring(L, -1))) bconf = 1;
+
+  /* v */
+  lua_pushnumber(L, 2);
+  lua_gettable(L, 1); co_assert(n + 5 == lua_gettop(L));
+  if (lua_type(L, -1) != LUA_TTABLE) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid value type"); return 0;}
+
+  /* _conf[k] */
+  lua_pushvalue(L, n + 4);
+  lua_gettable(L, n + 3); co_assert(n + 6 == lua_gettop(L));
+  if (lua_type(L, -1) != LUA_TTABLE)
+  {
+    co_assert(lua_type(L, -1) == LUA_TNIL);
+    lua_pop(L, 1);
+
+    /* init a empty table */
+    lua_newtable(L);
+    lua_pushvalue(L, n + 4);
+    lua_pushvalue(L, -2);
+    lua_settable(L, n + 3); co_assert(n + 6 == lua_gettop(L));
+  }
+
+  /* concat the v into _conf[k] */
+  co_assert(n + 6 == lua_gettop(L));
+  lua_len(L, n + 5); srclen = (int)lua_tonumber(L, -1); lua_pop(L, 1); /* len of src */
+  lua_len(L, n + 6); destlen = (int)lua_tonumber(L, -1); lua_pop(L, 1); /* len of dest */
+  for (i = 1; i <= srclen; ++i)
+  {
+    co_assert(n + 6 == lua_gettop(L));
+    lua_pushnumber(L, i); lua_gettable(L, n + 5); co_assert(n + 7 == lua_gettop(L)); /* push the src v */
+    lua_pushnumber(L, destlen + i); /* push the dest k */
+    lua_pushvalue(L, n + 7); co_assert(n + 9 == lua_gettop(L)); /* copy of src v */
+    lua_settable(L, n + 6);
+
+    /* left src v */
+    co_assert(n + 7 == lua_gettop(L));
+    if (!bconf){lua_pop(L, 1); continue;}
+
+    lua_getfield(L, n + 2, "_confroot"); co_assert(lua_isstring(L, -1)); co_assert(n + 8 == lua_gettop(L));
+    lua_insert(L, -2);
+    if (lua_type(L, -1) != LUA_TSTRING)
+    {
+      co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "conf with invalid value type[%s]", lua_typename(L, lua_type(L, -1)));
+      lua_pop(L, 2);
+      continue;
+    }
+    lua_concat(L, 2); co_assert(n + 7 == lua_gettop(L));
+    /* load conf */
+    if (luaL_loadfile(L, lua_tostring(L, -1))) lua_error(L);
+    lua_call(L, 0, 0);
+    lua_pop(L, 1);
+  }
+  co_assert(n + 6 == lua_gettop(L));
+
+  k = luaL_tolstring(L, n + 4, NULL);
+  v = luaL_tolstring(L, n + 5, NULL);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is add", k, v);
+  lua_pop(L, 2);
+
+  lua_pop(L, 6);
+  co_assert(n == lua_gettop(L));
   return 0;
 }
 
 static int co_export_conf_set(lua_State* L)
 {
+  co* Co = co_C(L);
+  const char* k = NULL, *v = NULL;
+
+  luaL_checktype(L, 1, LUA_TTABLE);
+  co_pushcore(L, Co);
+  lua_getfield(L, -1, "conf"); co_assert(lua_istable(L, -1));
+  lua_getfield(L, -1, "_conf"); co_assert(lua_istable(L, -1));
+
+  lua_pushnumber(L, 1);
+  lua_gettable(L, 1);
+  if (lua_type(L, -1) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
+
+  lua_pushnumber(L, 2);
+  lua_gettable(L, 1);
+
+  k = luaL_tolstring(L, -2, NULL);
+  v = luaL_tolstring(L, -2, NULL);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is set", k, v);
+  lua_pop(L, 2);
+
+  lua_settable(L, -3);
   return 0;
 }
 
@@ -264,8 +361,9 @@ static void co_ploadx(co* Co, lua_State* L)
 
 static void co_ploadX(co* Co, lua_State* L)
 {
-  const char* X = NULL;
+  const char* X = NULL, *Xx = NULL;
   size_t Xlen = 0;
+  size_t Xrootlen = 0;
 
   co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
 
@@ -274,10 +372,19 @@ static void co_ploadX(co* Co, lua_State* L)
   if (!lua_isstring(L, -1)) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "no X file ignored!"); lua_pop(L, 3); return;}
   X = lua_tolstring(L, -1, &Xlen);
   if (Xlen >= 256) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "X file name too long[%d] ignored", (int)Xlen); lua_pop(L, 3); return;}
+
+  /* set core.conf._confroot */
+  Xx = X;
+  while((Xx = (const char*)strchr(Xx, '/'))) { Xrootlen = Xx - X + 1; Xx += 1; }
+  lua_getfield(L, 1, "conf"); co_assert(4 == lua_gettop(L)); co_assert(lua_istable(L, -1));
+  lua_pushlstring(L, X, Xrootlen);
+  lua_setfield(L, -2, "_confroot"); co_assert(4 == lua_gettop(L));
+
+  /* load conf */
   if (luaL_loadfile(L, X)) lua_error(L);
   lua_call(L, 0, 0);
 
-  co_assert(3 == lua_gettop(L)); lua_pop(L, 3);
+  co_assert(4 == lua_gettop(L)); lua_pop(L, 4);
   co_assert(0 == lua_gettop(L));
 }
 
@@ -519,6 +626,10 @@ static void co_pexportconf(co* Co, lua_State* L)
 
   lua_newtable(L);
   lua_setfield(L, -2, "_conf"); /* set core.conf._conf */
+  lua_newtable(L);
+  lua_setfield(L, -2, "_conflist");
+  lua_pushstring(L, "");
+  lua_setfield(L, -2, "_confroot");
   lua_pop(L, 2);
   co_assert(lua_gettop(L) == 0);
 }
