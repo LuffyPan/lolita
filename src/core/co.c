@@ -262,6 +262,7 @@ static void co_addpath(co* Co, lua_State* L, const char* path)
 
   lua_pop(L, 1);
   co_assert(lua_gettop(L) == top);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "add search path: %s", path);
 }
 
 static void co_ppath(co* Co, lua_State* L)
@@ -359,6 +360,78 @@ static void co_ploadx(co* Co, lua_State* L)
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "load and executed x[%s]", exts);
 }
 
+static void co_pexeX(co* Co, lua_State* L)
+{
+  co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
+  lua_getfield(L, -1, "conf"); co_assert(2 == lua_gettop(L));
+  lua_getfield(L, 2, "_conf"); co_assert(3 == lua_gettop(L));
+
+  /* exeX tracelv */
+  lua_getfield(L, 3, "tracelv"); co_assert(4 == lua_gettop(L));
+  if (lua_isnumber(L, -1))
+  {
+    int lv = (int)lua_tonumber(L, -1);
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exeX tracelv %d -> %d", Co->tracelv, lv);
+    Co->tracelv = lv;
+  }
+  lua_pop(L, 1);
+
+  /* exeX search */
+  lua_getfield(L, 3, "search"); co_assert(4 == lua_gettop(L));
+  if (lua_istable(L, -1))
+  {
+    int len = 0, i = 0;
+    lua_len(L, -1); len = (int)lua_tonumber(L, -1); lua_pop(L, 1);
+    for (i = 1; i <= len; ++i)
+    {
+      lua_pushnumber(L, i);
+      lua_gettable(L, 4);
+      co_assert(5 == lua_gettop(L));
+      co_addpath(Co, L, lua_tostring(L, -1));
+      lua_pop(L, 1); co_assert(4 == lua_gettop(L));
+    }
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exeX search");
+  }
+  lua_pop(L, 1);
+
+  /* exeX manifest */
+  lua_getfield(L, 3, "manifest"); co_assert(4 == lua_gettop(L));
+  if (lua_istable(L, -1))
+  {
+    int len = 0, i = 0, len2 = 0, i2 = 0;
+    lua_len(L, -1); len = (int)lua_tonumber(L, -1); lua_pop(L, 1);
+    for (i = 1; i <= len; ++i)
+    {
+      lua_pushnumber(L, i); lua_gettable(L, 4); co_assert(5 == lua_gettop(L));
+      lua_pushvalue(L, 5); co_assert(6 == lua_gettop(L));
+      lua_pushstring(L, "manifest.lua");
+      lua_concat(L, 2); co_assert(6 == lua_gettop(L));
+      if (luaL_loadfile(L, lua_tostring(L, -1))) lua_error(L);
+      lua_call(L, 0, 1); co_assert(7 == lua_gettop(L));
+
+      lua_len(L, 7); len2 = (int)lua_tonumber(L, -1); lua_pop(L, 1);
+      for (i2 = 1; i2 <= len2; ++i2)
+      {
+        co_assert(7 == lua_gettop(L));
+        lua_pushvalue(L, 5); /* manifest path */
+        lua_pushnumber(L, i2); lua_gettable(L, 7); co_assert(9 == lua_gettop(L));
+        lua_concat(L, 2); co_assert(8 == lua_gettop(L));
+        if (luaL_loadfile(L, lua_tostring(L, 8))) lua_error(L);
+        lua_call(L, 0, 0); co_assert(8 == lua_gettop(L));
+        lua_pop(L, 1);
+      }
+
+      lua_pop(L, 3);
+      co_assert(4 == lua_gettop(L));
+    }
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exeX manifest");
+  }
+  lua_pop(L, 1);
+
+  co_assert(3 == lua_gettop(L)); lua_pop(L, 3);
+  co_assert(0 == lua_gettop(L));
+}
+
 static void co_ploadX(co* Co, lua_State* L)
 {
   const char* X = NULL, *Xx = NULL;
@@ -394,6 +467,7 @@ static void co_pload(co* Co, lua_State* L)
   co_ppath(Co, L);
   co_ploadx(Co, L);
   co_ploadX(Co, L);
+  co_pexeX(Co, L);
 }
 
 static void co_pactive(co* Co, lua_State* L)
@@ -626,8 +700,6 @@ static void co_pexportconf(co* Co, lua_State* L)
 
   lua_newtable(L);
   lua_setfield(L, -2, "_conf"); /* set core.conf._conf */
-  lua_newtable(L);
-  lua_setfield(L, -2, "_conflist");
   lua_pushstring(L, "");
   lua_setfield(L, -2, "_confroot");
   lua_pop(L, 2);
