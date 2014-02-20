@@ -490,6 +490,7 @@ static void co_pexeX(co* Co, lua_State* L)
     for (i = 1; i <= len; ++i)
     {
       lua_pushnumber(L, i); lua_gettable(L, 4); co_assert(5 == lua_gettop(L));
+      co_addpath(Co, L, lua_tostring(L, 5));
       lua_pushvalue(L, 5); co_assert(6 == lua_gettop(L));
       lua_pushstring(L, "manifest.lua");
       lua_concat(L, 2); co_assert(6 == lua_gettop(L));
