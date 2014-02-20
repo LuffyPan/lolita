@@ -9,7 +9,7 @@ Dependency
 ==========================================
 
 * Premake4.4
-* Lua5.2.3(included)
+* Lua5.2.3(included as submodule)
 
 Modules Exported
 ================
@@ -23,6 +23,8 @@ Modules Exported
 Building - Using Premake4.4
 ===========================
 
+    $ git submodule init
+    $ git submodule update
     $ premake4 premake
     $ premake4 make
     $ premake4 deploy
@@ -32,10 +34,8 @@ Usage
 used as a independent program
 
     $ cd _deploy
-    $ export LD_LIBRARY_PATH=.
-    $ export DYLD_LIBRARY_PATH=.
-    $ ./lolita x=../sample/echo.lua bsrv=1 maxconnection=1024 &
-    $ ./lolita x=../sample/echo.lua maxconnection=1025 &
+    $ ./lolita X=../test/config_server
+    $ ./lolita X=../test/config_client
     
 used as a plugin for Lua
 

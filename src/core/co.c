@@ -453,6 +453,19 @@ static void co_pexeX(co* Co, lua_State* L)
   lua_getfield(L, -1, "conf"); co_assert(2 == lua_gettop(L));
   lua_getfield(L, 2, "_conf"); co_assert(3 == lua_gettop(L));
 
+  /* exeX args */
+  lua_getfield(L, 1, "arg"); co_assert(4 == lua_gettop(L));
+  lua_pushnil(L);
+  while(lua_next(L, 3))
+  {
+    co_assert(6 == lua_gettop(L));
+    lua_pushvalue(L, -2);
+    lua_insert(L, -2);
+    lua_settable(L, 4);
+    co_assert(5 == lua_gettop(L));
+  }
+  lua_pop(L, 1);
+
   /* exeX tracelv */
   lua_getfield(L, 3, "tracelv"); co_assert(4 == lua_gettop(L));
   if (lua_isnumber(L, -1))
