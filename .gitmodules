@@ -1,6 +1,0 @@
-[submodule "deps/lua-5.2.3"]
-	path = deps/lua-5.2.3
-	url = ssh://git@thzznd.com:2222/mirror/lua/lua-5.2.3
-[submodule "test"]
-	path = test
-	url = ssh://git@thzznd.com:2222/codelolita/lolita_test.git
