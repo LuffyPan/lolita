@@ -26,7 +26,7 @@ solution "lolitall"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "arg1key=arg1val", "arg2key=arg2val", "tracelv=5" }
+  debugargs { "tracelv=0", "X=../test/config_server" }
 
   configuration "debug"
     targetdir ("_bin/" .. _ACTION .. "/debug")
