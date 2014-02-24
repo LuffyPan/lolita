@@ -186,10 +186,14 @@ void coOs_sleep(int msec)
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   Sleep((DWORD)msec);
 #else
+  /* under macosx, it's seems 1 msec = 10 msec ?, so use usleep instead */
+  /*
   struct timeval delay;
   delay.tv_sec = (msec * 1000) / (1000 * 1000);
   delay.tv_usec = (msec * 1000) % (1000 * 1000); // 20 ms
   select(0, NULL, NULL, NULL, &delay);
+  */
+  usleep(msec * 1000);
 #endif
 }
 
