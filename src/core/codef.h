@@ -151,6 +151,9 @@ int co_pcallmsg(lua_State* L);
   #define lua_rawsetp(L, t, p) lua_pushlightuserdata(L, p); lua_insert(L, -2); lua_rawset(L, t)
   #define luaL_checkunsigned(L, idx) (unsigned int)luaL_checknumber(L, idx)
   #define luaL_setfuncs(L, l, nups) co_assert(nups == 0); luaL_register(L, NULL, l)
+  #define lua_len(L, i) lua_pushnumber(L, (lua_Number)lua_objlen(L, i))
+  #define luaL_len(L, i) lua_objlen(L, i)
+  #define luaL_tolstring(L, i, pl) lua_tolstring(L, i, pl) /* todo */
 #endif
 #define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1));
 

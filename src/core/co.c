@@ -205,7 +205,7 @@ static int co_export_conf_add(lua_State* L)
 
   k = luaL_tolstring(L, n + 4, NULL);
   v = luaL_tolstring(L, n + 5, NULL);
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is add", k, v);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is add", k ? k : "none", v ? v : "none");
   lua_pop(L, 2);
 
   lua_pop(L, 6);
@@ -232,7 +232,7 @@ static int co_export_conf_set(lua_State* L)
 
   k = luaL_tolstring(L, -2, NULL);
   v = luaL_tolstring(L, -2, NULL);
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is set", k, v);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is set", k ? k : "none", v ? v : "none"); /* compact with 5.1 */
   lua_pop(L, 2);
 
   lua_settable(L, -3);
