@@ -49,7 +49,7 @@ solution "lolitall"
   configuration "linux"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
     --defines {"LOLITA_CORE_USE_EPOLL"}
-    links { "dl" }
+    links { "dl", "uuid" }
   configuration "bsd"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_UNIX"}
     --defines {"LOLITA_CORE_USE_KQUEUE"}

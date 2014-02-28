@@ -14,6 +14,7 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   #include <Windows.h>
+  #include <objbase.h>
 #else
   #include <unistd.h>
   #include <sys/types.h>
@@ -22,6 +23,9 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <signal.h>
 #endif
 
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX || LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
+  #include <uuid/uuid.h>
+#endif
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
   #include <sys/sysctl.h>
 #endif
@@ -35,15 +39,17 @@ struct coOs
   int sigcnt;
 };
 
-static int coOs_export_sleep(lua_State* L);
-static int coOs_export_gettime(lua_State* L);
 static int coOs_export_isdir(lua_State* L);
 static int coOs_export_isfile(lua_State* L);
 static int coOs_export_ispath(lua_State* L);
 static int coOs_export_mkdir(lua_State* L);
+static int coOs_export_getdir(lua_State* L);
 static int coOs_export_getcwd(lua_State* L);
 static int coOs_export_getpid(lua_State* L);
 static int coOs_export_getpinfo(lua_State* L);
+static int coOs_export_gettime(lua_State* L);
+static int coOs_export_sleep(lua_State* L);
+static int coOs_export_uuid(lua_State* L);
 static int coOs_export_active(lua_State* L);
 static int coOs_export_register(lua_State* L);
 
@@ -54,15 +60,17 @@ int coOs_pexportapi(co* Co, lua_State* L)
 {
   static const luaL_Reg coOs_funcs[] =
   {
-    {"sleep", coOs_export_sleep},
-    {"gettime", coOs_export_gettime},
     {"isdir", coOs_export_isdir},
     {"isfile", coOs_export_isfile},
     {"ispath", coOs_export_ispath},
     {"mkdir", coOs_export_mkdir},
+    {"getdir", coOs_export_getdir},
     {"getcwd", coOs_export_getcwd},
     {"getpid", coOs_export_getpid},
     {"getpinfo", coOs_export_getpinfo},
+    {"gettime", coOs_export_gettime},
+    {"sleep", coOs_export_sleep},
+    {"uuid", coOs_export_uuid},
     {"active", coOs_export_active},
     {"register", coOs_export_register},
     {NULL, NULL},
@@ -197,7 +205,7 @@ void coOs_sleep(int msec)
 #endif
 }
 
-double coOs_gettime()
+double coOs_time()
 {
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   LARGE_INTEGER frequency;
@@ -329,7 +337,7 @@ static int coOs_export_sleep(lua_State* L)
 
 static int coOs_export_gettime(lua_State* L)
 {
-  lua_pushnumber(L, coOs_gettime());
+  lua_pushnumber(L, coOs_time());
   return 1;
 }
 
@@ -372,13 +380,31 @@ static int coOs_export_ispath(lua_State* L)
 static int coOs_export_mkdir(lua_State* L)
 {
   co* Co = co_C(L);
+  int z = 1;
+  size_t len = 0;
+  char pathx[256] = { 0 };
+  char* p = NULL;
   const char* path = NULL;
-  path = luaL_checkstring(L, 1);
-  if (coOs_mkdir(Co, path))
+  path = luaL_checklstring(L, 1, &len);
+  if (len == 0 || len >= 256) return 0;
+
+  strcpy(pathx, path);
+  p = pathx;
+  while ((p = strchr(p, '/')))
   {
-    lua_pushstring(L, path);
+    *p = '\0';
+    z = coOs_mkdir(Co, pathx);
+    if (!z) break;
+    *p = '/';
+    p = p + 1;
+  }
+  z = coOs_mkdir(Co, pathx);
+  if (z)
+  {
+    lua_pushvalue(L, 1);
     return 1;
   }
+
   return 0;
 }
 
@@ -393,6 +419,21 @@ static int coOs_export_getcwd(lua_State* L)
     return 1;
   }
   return 0;
+}
+
+static int coOs_export_getdir(lua_State* L)
+{
+  size_t len = 0;
+  const char* f = NULL;
+  const char* file = luaL_checklstring(L, 1, &len);
+  if (len == 0) { lua_pushstring(L, "./"); }
+  else if (file[len - 1] == '/' ) { lua_pushvalue(L, 1); return 1; }
+
+  f = file; len = 0;
+  while((f = strchr(f, '/'))) { len = f - file + 1; f = f + 1; }
+  if (len > 0) { lua_pushlstring(L, file, len); }
+  else { lua_pushstring(L, "./"); }
+  return 1;
 }
 
 static int coOs_export_getpid(lua_State* L)
@@ -432,6 +473,35 @@ static int coOs_export_register(lua_State* L)
   coOs_setsighandler(Co, Os);
   co_assert(lua_gettop(L) == 0);
   lua_pushnumber(L, 1);
+  return 1;
+}
+
+static int coOs_export_uuid(lua_State* L)
+{
+  int i = 0;
+  char uuid[64];
+  unsigned char* p = NULL;
+
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX || LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX 
+  uuid_t u;
+  uuid_generate(u);
+  p = u;
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+  unsigned char u[16];
+  CoCreateGuid((GUID*)u);
+  p = u;
+#endif
+
+  if (!p) return 0;
+
+  sprintf(uuid, "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+    p[0], p[1], p[2], p[3],
+    p[4], p[5],
+    p[6], p[7],
+    p[8], p[9],
+    p[10], p[11], p[12], p[13], p[14], p[15]);
+
+  lua_pushstring(L, uuid);
   return 1;
 }
 
