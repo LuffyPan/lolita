@@ -1479,6 +1479,7 @@ static int cosock_markwrite(co* Co, cosock* s)
 {
   size_t datasize = cosockbuf_datasize(s->sndbuf);
   coN_tracedebug(Co, "id[%d,%d] datasize:%u, mark write %s", s->id, 0, datasize, datasize ? "enable" : "disable");
+#ifndef LOLITA_CORE_USE_SELECT
 #if defined(LOLITA_CORE_USE_KQUEUE)
   if (!cosock_ctlfdm(Co, s, 1, datasize ? 2 : 3))
 #elif defined(LOLITA_CORE_USE_EPOLL)
@@ -1487,6 +1488,7 @@ static int cosock_markwrite(co* Co, cosock* s)
   {
     coN_tracefatal(Co, "id[%d,%d] markwrite failed! [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec); return 0;
   }
+#endif
   return 1;
 }
 
