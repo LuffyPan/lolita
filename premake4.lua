@@ -49,7 +49,7 @@ solution "lolitall"
   configuration "linux"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_LINUX"}
     --defines {"LOLITA_CORE_USE_EPOLL"}
-    links { "dl", "uuid" }
+    links { "dl" }
   configuration "bsd"
     --defines {"LOLITA_CORE_PLAT=LOLITA_CORE_PLAT_UNIX"}
     --defines {"LOLITA_CORE_USE_KQUEUE"}
@@ -83,6 +83,13 @@ solution "lolitall"
 local extlua = _OPTIONS["luaver"] or "5.2.3"
 print(string.format("lolitaext's Lua version is %s", extlua))
 local extluapath = string.format("deps/lua-%s/src", extlua)
+
+if os.is("linux") then
+  if not os.pathsearch("uuid/uuid.h", "/usr/include") then
+    print("can not find lib[uuid], please install uuid-dev first")
+    return
+  end
+end
 
 project "lua"
   targetname "lua"
@@ -122,6 +129,7 @@ project "lolitaext"
     --linkoptions { "-rdynamic" }
     linkoptions { "-fPIC -dynamiclib -Wl,-undefined,dynamic_lookup" }
   configuration "linux"
+    links { "uuid" }
     linkoptions { "-fPIC --shared" }
   configuration "windows"
     links {"lua"}
@@ -149,7 +157,9 @@ project "lolita"
     extluapath .. "/print.c",
   }
   defines {"LOLITA_CORE_PREMAKE"}
-  --links { "lua" }
+
+  configuration "linux"
+    links { "uuid" }
 
 if _ACTION == "clean" then
   os.rmdir("_bin")
