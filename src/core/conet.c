@@ -214,6 +214,7 @@ struct cosock
   cosockbuf* sndbuf; /* send buf TCONN, ATTA used */
   cosockid2idx* id2idx; /* pointer 2 outside */
   cosockevent* eventer; /* pointer 2 outside */
+  struct sockaddr_in sin; /* cosock addr in */
   int ec; /* errorcode */
 };
 
@@ -1161,6 +1162,7 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
     coN_tracedebug(Co, "id[%d,%d] listen failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
+  s->sin = sin;
   coN_tracedebug(Co, "id[%d,%d] listen succeed", s->id, 0);
   return 1;
 }
@@ -1189,6 +1191,7 @@ static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short po
   if (connect(s->fd, (const struct sockaddr*)&sin, sizeof(sin)))
   {
     cosock_logec(s);
+    s->sin = sin;
     if (COSOCKFD_EWOULDBLOCK == cosock_ec(s) ||
       COSOCKFD_EAGAIN == cosock_ec(s) ||
       COSOCKFD_EINPROGRESS == cosock_ec(s))
@@ -1214,7 +1217,9 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
 {
   cosock* sn = NULL;
   cosockfd nfd;
-  nfd = accept(s->fd, NULL, NULL);
+  struct sockaddr_in sin = { 0 };
+  cosockfd_size sinlen = (cosockfd_size)sizeof(sin);
+  nfd = accept(s->fd, (struct sockaddr*)&sin, &sinlen);
   if (nfd == COSOCKFD_NULL)
   {
     cosock_logec(s);
@@ -1253,8 +1258,8 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
     return 0;
   }
   cosockpool_add(Co, s->attapo, sn);
-  if (psn) { *psn = sn; }
-  coN_tracedebug(Co, "id[%d,%d] accept succeed", s->id, sn->id);
+  if (psn) { sn->sin = sin; *psn = sn; }
+  coN_tracedebug(Co, "id[%d,%d] accept from[%s:%d] succeed", s->id, sn->id, inet_ntoa(sin.sin_addr), (int)ntohs(sin.sin_port));
   return 1;
 }
 
@@ -2187,6 +2192,10 @@ static int coN_export_getinfo(lua_State* L)
   lua_pushnumber(L, z ? s->revbuf->cursize : 0);lua_setfield(L, -2, "revcursize");
   lua_pushnumber(L, z ? s->revbuf->maxsize : 0);lua_setfield(L, -2, "revmaxsize");
   lua_pushnumber(L, z ? s->revbuf->limitsize : 0);lua_setfield(L, -2, "revlimitsize");
+
+  /* real ip */
+  lua_pushstring(L, inet_ntoa(s->sin.sin_addr));lua_setfield(L, -2, "ip");
+  lua_pushnumber(L, ntohs(s->sin.sin_port));lua_setfield(L, -2, "port");
   /* attached cosock */
   /* todo */
   return 1;
