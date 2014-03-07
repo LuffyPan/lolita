@@ -9,7 +9,7 @@ Dependency
 ==========================================
 
 * Premake4.4
-* Lua5.2.3(included as submodule)
+* Lua5.2.3(included)
 
 Modules Exported
 ================
