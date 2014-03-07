@@ -77,10 +77,6 @@ solution "lolitall"
   configuration "vs2005"
     defines "_CRT_SECURE_NO_DEPRECATE"
 
-  configuration { "macosx", "gmake" }
-    buildoptions { "-mmacosx-version-min=10.4" }
-    linkoptions { "-mmacosx-version-min=10.4" }
-
 local extlua = _OPTIONS["luaver"] or "5.2.3"
 print(string.format("lolitaext's Lua version is %s", extlua))
 local extluapath = string.format("deps/lua-%s/src", extlua)
@@ -387,6 +383,7 @@ newoption
     { "vs2005", "Visual Studio 2005" },
     { "vs2008", "Visual Studio 2008" },
     { "vs2010", "Visual Studio 2010" },
+    { "xcode4", "xcode4" },
   }
 }
 

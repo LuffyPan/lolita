@@ -312,7 +312,7 @@ int coOs_getpinfo(co* Co, int pid)
   if (coOs_isdir(procpath)) return 0;
   return 1;
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
-  int i, mib[4];
+  int mib[4];
   size_t len = 4;
   struct kinfo_proc kp;
   sysctlnametomib("kern.proc.pid", mib, &len);
@@ -478,7 +478,6 @@ static int coOs_export_register(lua_State* L)
 
 static int coOs_export_uuid(lua_State* L)
 {
-  int i = 0;
   char uuid[64];
   unsigned char* p = NULL;
 

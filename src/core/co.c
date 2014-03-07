@@ -357,7 +357,6 @@ static void co_addpath(co* Co, lua_State* L, const char* path)
 static void co_ppath(co* Co, lua_State* L)
 {
   /* arg.p to add all path */
-  int z = 0;
   size_t len = 0;
   const char* paths = NULL, *p1 = NULL, *p2 = NULL;
   char path[256] = { 0 };
@@ -656,7 +655,7 @@ static void co_free(co* Co)
 
 static void co_newlua(co* Co)
 {
-  int top = 0, z = 0;
+  int top = 0;
   lua_State* L = co_L(Co);
   if (L)
   {

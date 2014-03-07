@@ -1358,6 +1358,7 @@ static void cosock_push(co* Co, cosock* s, const char* data, size_t datasize)
   cosockbuf_use(Co, s->sndbuf, datasize);
 }
 
+/* this is not used?
 static int cosock_pop(co* Co, cosock* s, const char** pdata, size_t* pdatasize)
 {
   const char* data;
@@ -1370,6 +1371,7 @@ static int cosock_pop(co* Co, cosock* s, const char** pdata, size_t* pdatasize)
   if (datasize < extrasize) return 1;
   return 1;
 }
+*/
 
 static void cosock_active(co* Co, cosock* s)
 {
@@ -1526,7 +1528,7 @@ static void cosock_deletefdt(co* Co, cosock* s)
   if (COSOCKFD_TACCP == s->fdt)
   {
     cosock** ps = NULL;
-    int cnt = 0, i = 1;
+    int cnt = 0;
     co_assert(!s->revbuf);
     co_assert(!s->sndbuf);
     if (!s->attapo) return;
@@ -2144,7 +2146,7 @@ static int coN_export_active(lua_State* L)
 
 static int coN_export_getinfo(lua_State* L)
 {
-  int z = 0, idx = 1;
+  int z = 0;
   cosockfd_size ss;
   struct sockaddr_in sin;
   co* Co = NULL;
