@@ -6,6 +6,8 @@ if not string.find(_PREMAKE_VERSION, "4.4") then
   return
 end
 
+printf(_PREMAKE_VERSION)
+
 if not _ACTION then
   printf("_ACTION is nil!")
   return
@@ -214,6 +216,22 @@ local function _execex(cmd, ch2dir)
   return z
 end
 
+local function _dopublish()
+  _exec("premake4 --action=%s premake", "gmake")
+  _exec("premake4 --action=%s premake", "vs2005")
+  _exec("premake4 --action=%s premake", "vs2008")
+  _exec("premake4 --action=%s premake", "vs2010")
+
+  if _PREMAKE_VERSION == "4.4-beta5" then
+    _exec("premake4 --action=%s premake", "vs2012")
+  end
+  --_exec("premake4 --action=%s premake", "vs2013")
+  _exec("premake4 --action=%s premake", "xcode3")
+  _exec("premake4 --action=%s premake", "xcode4")
+
+  -- TODO:zip
+end
+
 local function _dopremake()
   local action = _OPTIONS["action"] or "gmake"
   local luaver = _OPTIONS["luaver"] or "5.2.3"
@@ -324,6 +342,13 @@ end
 
 newaction
 {
+  trigger = "publish",
+  description = "Publish, Pre Generate all support platform make",
+  execute = _dopublish,
+}
+
+newaction
+{
   trigger = "premake",
   description = "Premake, Generate native make",
   execute = _dopremake,
@@ -383,6 +408,9 @@ newoption
     { "vs2005", "Visual Studio 2005" },
     { "vs2008", "Visual Studio 2008" },
     { "vs2010", "Visual Studio 2010" },
+    { "vs2012", "Visual Studio 2012" },
+    -- { "vs2013", "Visual Studio 2013" }, has some bug..
+    { "xcode3", "xcode3" },
     { "xcode4", "xcode4" },
   }
 }
