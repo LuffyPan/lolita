@@ -44,6 +44,21 @@ for k, v in pairs(core.arg) do
   print(k, v)
 end
 
+print("conf")
+for k, v in pairs(core.conf) do
+  print(k, v)
+end
+
+print("conf._conf:")
+for k, v in pairs(core.conf._conf) do
+  print(k, v, type(v))
+end
+
+-- TODO: metatable to disable direct write
+-- core.conf.bsrv = 100
+print(core.conf.bsrv)
+print(core.conf.maxconnection)
+
 assert(core.net.info)
 print("--------------------------------------------------------------------")
 print(string.format("platform:%s", core.info.platform))
@@ -65,8 +80,8 @@ local echo = {}
 
 function echo:born()
   --set trace level
-  local tracelv = tonumber(core.arg.tracelv) or 0
-  core.base.settracelv(tracelv)
+  --local tracelv = tonumber(core.arg.tracelv) or 0
+  --core.base.settracelv(tracelv)
 
   --set max mem can be alloc to 100M
   core.base.setmaxmem(1024 * 1024 * 100)
@@ -84,13 +99,13 @@ function echo:born()
   --register net event
   assert(core.net.register(self.ev, self))
 
-  --get ip and port from arg
-  local ip = core.arg.ip or "127.0.0.1"
-  local port = tonumber(core.arg.port) or 7000
-  local braw = core.arg.braw or 0
+  --get ip and port from conf
+  local ip = core.conf.ip or "127.0.0.1"
+  local port = tonumber(core.conf.port) or 7000
+  local braw = core.conf.braw or 0
 
   --get srv or client flag
-  self.bsrv = core.arg.bsrv
+  self.bsrv = core.conf.bsrv
   self.clientcnt = 0
 
   if self.bsrv then
@@ -98,11 +113,11 @@ function echo:born()
     self.netid = core.net.listen(ip, port, braw)
     assert(self.netid, "listen failed")
     --set max connection can accept.
-    core.net.setoption(self.netid, 0, tonumber(core.arg.maxconnection) or 110)
+    core.net.setoption(self.netid, 0, tonumber(core.conf.maxconnection) or 110)
     print(string.format("listening @ %s:%s", ip, port))
   else
     --connect to ip:port
-    self.maxclientcnt = tonumber(core.arg.maxconnection) or 120 --128 limits a process
+    self.maxclientcnt = tonumber(core.conf.maxconnection) or 120 --128 limits a process
     self.netids = {}
     for i = 1, self.maxclientcnt do
       local netid = core.net.connect(ip, port, braw)

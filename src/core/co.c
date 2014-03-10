@@ -454,15 +454,16 @@ static void co_pexeX(co* Co, lua_State* L)
   lua_getfield(L, -1, "conf"); co_assert(2 == lua_gettop(L));
   lua_getfield(L, 2, "_conf"); co_assert(3 == lua_gettop(L));
 
+  /* set all arg to _conf */
   /* exeX args */
   lua_getfield(L, 1, "arg"); co_assert(4 == lua_gettop(L));
   lua_pushnil(L);
-  while(lua_next(L, 3))
+  while(lua_next(L, 4))
   {
     co_assert(6 == lua_gettop(L));
     lua_pushvalue(L, -2);
     lua_insert(L, -2);
-    lua_settable(L, 4);
+    lua_settable(L, 3);
     co_assert(5 == lua_gettop(L));
   }
   lua_pop(L, 1);
@@ -783,9 +784,13 @@ static void co_pexportconf(co* Co, lua_State* L)
   luaL_setfuncs(L, co_funcs, 0);
   lua_pushvalue(L, -1); /* a copy to setfield */
   lua_setfield(L, -3, "conf"); /* set core.conf */
+  lua_pushvalue(L, -1);
+  lua_setmetatable(L, -2); /* set self as metatable */
   co_assert(lua_gettop(L) == 2); /* left core.conf */
 
   lua_newtable(L);
+  lua_pushvalue(L, -1);
+  lua_setfield(L, -3, "__index"); /* set core.conf._conf as __index */
   lua_setfield(L, -2, "_conf"); /* set core.conf._conf */
   lua_newtable(L);
   lua_setfield(L, -2, "_confpaths");
