@@ -1321,6 +1321,7 @@ static int cosock_send(co* Co, cosock* s)
     if (cosock_ec(s) == COSOCKFD_EWOULDBLOCK)
     {
       coN_tracedebug(Co, "id[%d,%d] send failed while blocked", s->id, 0);
+      return 1;
     }
     else
     {
