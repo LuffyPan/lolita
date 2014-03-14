@@ -365,20 +365,6 @@ static void co_pexex(co* Co, lua_State* L)
   lua_getfield(L, -1, "conf"); co_assert(2 == lua_gettop(L));
   lua_getfield(L, 2, "all"); co_assert(3 == lua_gettop(L));
 
-  /* set all conf.arg to conf.all */
-  /* exeX args */
-  lua_getfield(L, 2, "arg"); co_assert(4 == lua_gettop(L));
-  lua_pushnil(L);
-  while(lua_next(L, 4))
-  {
-    co_assert(6 == lua_gettop(L));
-    lua_pushvalue(L, -2);
-    lua_insert(L, -2);
-    lua_settable(L, 3);
-    co_assert(5 == lua_gettop(L));
-  }
-  lua_pop(L, 1);
-
   /* exeX tracelv */
   lua_getfield(L, 3, "tracelv"); co_assert(4 == lua_gettop(L));
   if (lua_isnumber(L, -1))
@@ -633,10 +619,64 @@ static void co_pexportinfo(co* Co, lua_State* L)
   co_assert(lua_gettop(L) == 0);
 }
 
+static void co_pexportonearg2conf(co* Co, lua_State* L, const char* k, const char* v)
+{
+    co_assert(7 == lua_gettop(L));
+    if (strncmp(v, "t::", 3) == 0)
+    {
+        /* table */
+        size_t len = 0, i;
+        char* t = coM_newstr(Co, NULL, strlen(v + 3) + 12, &len);
+        strcat(strcat(t, "return "), v + 3);
+        for (i = 0; i < len; ++i)
+        {
+            if (t[i] == '[') t[i] = '{';
+            else if (t[i] == ']') t[i] = '}';
+        }
+        
+        lua_pushstring(L, k); co_assert(8 == lua_gettop(L));
+        if (LUA_OK != luaL_loadstring(L, t)) {coM_deletestr(Co, t);lua_error(L);}
+        coM_deletestr(Co, t); t = NULL;
+        co_assert(9 == lua_gettop(L));
+        if (LUA_OK != lua_pcall(L, 0, 1, 0)) lua_error(L);
+        co_assert(9 == lua_gettop(L));
+        if (!lua_istable(L, 9)) luaL_error(L, "%s is not table!! fucker?", k);
+        lua_pushvalue(L, 8);
+        lua_pushvalue(L, 9);
+        lua_settable(L, 4); /* conf.arg[k] = v */
+        lua_settable(L, 3); /* conf.all[k] = v */
+    }
+    else if (strncmp(v, "n::", 3) == 0)
+    {
+        /* number */
+        double dv = atof(v + 3);
+        lua_pushstring(L, k);
+        lua_pushnumber(L, (lua_Number)dv);
+        lua_pushvalue(L, 8);
+        lua_pushvalue(L, 9);
+        lua_settable(L, 4); /* conf.arg[k] = v */
+        lua_settable(L, 3); /* conf.all[k] = v */
+    }
+    else
+    {
+        /* set string conf.arg[k] = v and conf.all[k] = v */
+        lua_pushstring(L, k);
+        lua_pushstring(L, v);
+        lua_pushvalue(L, 8);
+        lua_pushvalue(L, 9);
+        lua_settable(L, 4); /* conf.arg[k] = v */
+        lua_settable(L, 3); /* conf.all[k] = v */
+    }
+
+    co_assert(7 == lua_gettop(L));
+}
+
 static void co_pexportarg2conf(co* Co, lua_State* L)
 {
   const char** argv = NULL;
+  const char* p = NULL;
   int argc = 0, i = 0;
+  size_t len = 0;
   argv = Co->argv;
   argc = Co->argc;
   co_assert(lua_gettop(L) == 0);
@@ -644,27 +684,22 @@ static void co_pexportarg2conf(co* Co, lua_State* L)
   lua_getfield(L, 1, "conf"); co_assert(2 == lua_gettop(L));
   lua_getfield(L, 2, "all"); co_assert(3 == lua_gettop(L));
   lua_getfield(L, 2, "arg"); co_assert(4 == lua_gettop(L));
-  lua_newtable(L); lua_pushvalue(L, -1); lua_setfield(L, 4, "_original"); co_assert(5 == lua_gettop(L)); /* conf._arg._original */
-  lua_pushstring(L, argc > 0 ? argv[0] : ""); lua_setfield(L, 4, "_path"); co_assert(5 == lua_gettop(L)); /* conf._arg._path */
+  lua_newtable(L); lua_pushvalue(L, -1); lua_setfield(L, 4, "_original"); co_assert(5 == lua_gettop(L)); /* conf.arg._original */
+  lua_pushvalue(L, 5); lua_setfield(L, 3, "_original"); co_assert(5 == lua_gettop(L)); /* copy to conf.all._orginal */
+  lua_pushstring(L, argc > 0 ? argv[0] : ""); lua_pushvalue(L, 6); lua_setfield(L, 4, "_path"); co_assert(6 == lua_gettop(L)); /* conf.arg._path */
+  lua_setfield(L, 3, "_path"); co_assert(5 == lua_gettop(L)); /* copy to conf.all._path */
 
   for (i = 1; i < argc; ++i)
   {
-    const char* p = strchr(argv[i], '=');
-    if (p)
-    {
-      size_t len = p - argv[i];
-      if (!len) continue;
-      lua_pushlstring(L, argv[i], (int)len);
-      lua_pushstring(L, p + 1);
-    }
-    else
-    {
-      lua_pushstring(L, argv[i]);
-      lua_pushstring(L, "");
-    }
-    lua_settable(L, 4);
+    lua_pushnumber(L, i); lua_pushstring(L, argv[i]); lua_settable(L, 5); /* set to conf.arg._original */
+    p = strchr(argv[i], '=');
+    if (!p) {lua_pushstring(L, argv[i]); lua_pushstring(L, ""); lua_settable(L, 4); continue; } /* have no =, just empty string */
+    len = p - argv[i]; if (!len) continue; /* = at first, have no key, so ignore this */
 
-    lua_pushnumber(L, i); lua_pushstring(L, argv[i]); lua_settable(L, 5); /* set to conf._arg._original */
+    lua_pushlstring(L, argv[i], (int)len); co_assert(6 == lua_gettop(L));
+    lua_pushstring(L, p + 1); co_assert(7 == lua_gettop(L));
+    co_pexportonearg2conf(Co, L, lua_tostring(L, 6), lua_tostring(L, 7));
+    lua_pop(L, 2);
   }
 
   lua_getfield(L, 4, "tracelv");

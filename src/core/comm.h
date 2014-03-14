@@ -14,6 +14,9 @@ Chamz Lau, Copyright (C) 2013-2017
 
 void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns, int bthrow);
 
+char* coM_newstr(co* Co, const char* str, size_t len, size_t* newlen);
+void coM_deletestr(co* Co, char* str);
+
 #define coM_newmem(Co, s) coM_xllocmem(Co, NULL, 0, (s), 1)
 #define coM_deletemem(Co, p, s) coM_xllocmem(Co, (p), (s), 0, 1)
 #define coM_newobj(Co, t) co_cast(t*, coM_xllocmem(Co, NULL, 0, sizeof(t), 1))

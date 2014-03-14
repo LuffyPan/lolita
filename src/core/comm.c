@@ -21,3 +21,24 @@ void* coM_xllocmem(co* Co, void* p, size_t os, size_t ns, int bthrow)
   co_assert((ns == 0) == (np == NULL));
   return np;
 }
+
+char* coM_newstr(co* Co, const char* str, size_t len, size_t* newlen)
+{
+    char* ns = NULL;
+    len = str ? strlen(str) + 1 : len ? len : 1;
+    ns = co_cast(char*, coM_xllocmem(Co, NULL, 0, len + sizeof(size_t), 1));
+    *((size_t*)ns) = len + sizeof(size_t);
+    ns = (char*)(((size_t*)ns) + 1);
+    if (str) strcpy(ns, str);
+    else memset(ns, 0, len);
+    if (newlen) *newlen = len;
+    return ns;
+}
+
+void coM_deletestr(co* Co, char* str)
+{
+    size_t* p = NULL;
+    if (!str) return;
+    p = ((size_t*)str) - 1;
+    coM_xllocmem(Co, (void*)p, *p, 0, 1);
+}
