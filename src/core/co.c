@@ -19,12 +19,16 @@ static void co_newlua(co* Co);
 static void co_deletelua(co* Co);
 static void co_export(co* Co);
 static void co_born(co* Co, void* ud);
+static void co_load(co* Co);
+static void co_execute(co* Co);
+static void co_active(co* Co);
 static void co_alive(co* Co, void* ud);
 static void co_free(co* Co);
 static void co_fatalerror(co* Co, int e);
 static const char* co_modname(co* Co, int mod);
 static const char* co_lvname(co* Co, int lv);
 static const char* co_errorstr(co* Co, int e);
+static int co_attachfun(lua_State* L, const char* fun);
 
 static int co_export_setmaxmem(lua_State* L);
 static int co_export_getmem(lua_State* L);
@@ -114,7 +118,7 @@ static int co_getconfpathlevel(co* Co, lua_State* L)
   return lv;
 }
 
-static void co_loadX(co* Co, lua_State* L, const char* file)
+static void co_loadx(co* Co, lua_State* L, const char* file)
 {
   int n = lua_gettop(L);
   int lv = co_getconfpathlevel(Co, L);
@@ -208,7 +212,7 @@ static int co_export_conf_add(lua_State* L)
         continue;
       }
       lua_concat(L, 2); co_assert(n + 7 == lua_gettop(L));
-      co_loadX(Co, L, lua_tostring(L, -1));
+      co_loadx(Co, L, lua_tostring(L, -1));
     }
 
     lua_pop(L, 1);
@@ -335,12 +339,66 @@ int core_gettracelv(co* Co)
   return Co->tracelv;
 }
 
+static void co_doborn(co* Co)
+{
+  int z = 0;
+  lua_State* L = co_L(Co);
+  co_assert(0 == lua_gettop(L));
+  if (!co_attachfun(L, "born")) {co_assert(0 == lua_gettop(L)); return;}
+  co_assert(lua_isfunction(L, 1));
+  co_assert(lua_istable(L, 2));
+  lua_call(L, 1, 1); co_assert(lua_gettop(L) == 1);
+  z = co_cast(int, lua_tonumber(L, 1));
+  lua_pop(L, 1);
+  co_trace(Co, CO_MOD_CORE, CO_LVINFO, "attach's born is called with return %d", z);
+  /* set born's return value */
+  Co->bactive = z;
+  co_assert(0 == lua_gettop(L));
+}
+
+static void co_dodie(co* Co)
+{
+  int n = 0;
+  lua_State* L = co_L(Co);
+  n = lua_gettop(L);
+  co_assert(n == lua_gettop(L));
+  if (!co_attachfun(L, "die")) {co_assert(n == lua_gettop(L)); return;}
+  co_assert(lua_isfunction(L, n + 1));
+  co_assert(lua_istable(L, n + 2));
+  lua_call(L, 1, 0);
+  co_trace(Co, CO_MOD_CORE, CO_LVINFO, "attach's die is called");
+  co_assert(n == lua_gettop(L));
+}
+
+static int co_doactive(co* Co)
+{
+  int n = 0, z = 0;
+  lua_State* L = co_L(Co);
+  if (!Co->bactive) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "attach's bactive flag is %d, stop!", Co->bactive); return Co->bactive;}
+  n = lua_gettop(L);
+  co_assert(n == lua_gettop(L));
+  if (!co_attachfun(L, "active")) {co_assert(n == lua_gettop(L)); Co->bactive = 0; return Co->bactive;}
+  co_assert(lua_isfunction(L, n + 1));
+  co_assert(lua_istable(L, n + 2));
+  lua_call(L, 1, 1);co_assert(n + 1 == lua_gettop(L));
+  z = co_cast(int, lua_tonumber(L, n + 1)); lua_pop(L, 1);
+  if (!z) co_trace(Co, CO_MOD_CORE, CO_LVINFO, "attach's active is called with return %d", z);
+  co_assert(n == lua_gettop(L));
+  if (Co->bactive) Co->bactive = z;
+  else co_trace(Co, CO_MOD_CORE, CO_LVINFO, "is detached!");
+  return Co->bactive;
+}
+
 static void co_born(co* Co, void* ud)
 {
   co_newlua(Co);
   co_export(Co);
   coOs_born(Co);
   coN_born(Co);
+
+  co_load(Co);
+  co_execute(Co);
+  co_doborn(Co);
 }
 
 static void co_addpath(co* Co, lua_State* L, const char* path)
@@ -372,8 +430,9 @@ static void co_addpath(co* Co, lua_State* L, const char* path)
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "add search path: %s", path);
 }
 
-static void co_pexex(co* Co, lua_State* L)
+static void co_execute(co* Co)
 {
+  lua_State* L = co_L(Co);
   co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
   lua_getfield(L, -1, "conf"); co_assert(2 == lua_gettop(L));
   lua_getfield(L, 2, "all"); co_assert(3 == lua_gettop(L));
@@ -445,8 +504,9 @@ static void co_pexex(co* Co, lua_State* L)
   co_assert(0 == lua_gettop(L));
 }
 
-static void co_ploadx(co* Co, lua_State* L)
+static void co_load(co* Co)
 {
+  lua_State* L = co_L(Co);
   co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
 
   lua_getfield(L, 1, "conf"); co_assert(2 == lua_gettop(L));
@@ -454,83 +514,16 @@ static void co_ploadx(co* Co, lua_State* L)
   lua_getfield(L, 3, "x"); co_assert(4 == lua_gettop(L));
   if (!lua_isstring(L, 4)) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "no x file, ignored!"); lua_pop(L, 4); return;}
 
-  co_loadX(Co, L, lua_tostring(L, 4));
+  co_loadx(Co, L, lua_tostring(L, 4));
 
   co_assert(4 == lua_gettop(L)); lua_pop(L, 4);
   co_assert(0 == lua_gettop(L));
 }
 
-static void co_pload(co* Co, lua_State* L)
-{
-  co_ploadx(Co, L);
-  co_pexex(Co, L);
-}
-
-static void co_pactive(co* Co, lua_State* L)
-{
-  int z = 0;
-
-  co_assert(0 == lua_gettop(L)); co_pushcore(L, Co);
-  lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach"); /* idx = 2 */
-  if (!lua_istable(L, -1))
-  {
-    co_assert(lua_isnil(L, -1));
-    co_trace(Co, CO_MOD_CORE, CO_LVINFO, "have not register active func");
-    lua_pop(L, 2);
-    return;
-  }
-
-  /* born */
-  lua_getfield(L, -1, "born");
-  co_assert(lua_isfunction(L, -1));
-  lua_pushvalue(L, 2); /* param */
-  lua_call(L, 1, 1);
-  co_assert(lua_gettop(L) == 3);
-  z = co_cast(int, lua_tonumber(L, -1));
-  lua_pop(L, 1);
-  if ( z != 1 )
-  {
-    co_trace(Co, CO_MOD_CORE, CO_LVINFO, "born's return value is %d, stop active, direct to die", z);
-    goto die;
-  }
-
-  /* active */
-  lua_getfield(L, -1, "active"); /* idx = 3 */
-  co_assert(lua_isfunction(L, -1));
-  Co->bactive = 1;
-  while(Co->bactive)
-  {
-    co_assert(3 == lua_gettop(L));
-    lua_pushvalue(L, -1); /* function top = 4 */
-    lua_pushvalue(L, 2); /* param top = 5 */
-    lua_call(L, 1, 1);
-    co_assert(lua_gettop(L) == 4);
-    if (lua_tointeger(L, -1) != 1)
-    {
-      Co->bactive = 0;
-      co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "active is stoped!");
-    }
-    lua_pop(L, 1);
-  }
-  co_assert(3 == lua_gettop(L));
-  lua_pop(L, 1);
-
-die:
-  /* die */
-  lua_getfield(L, -1, "die");
-  co_assert(lua_isfunction(L, -1));
-  lua_pushvalue(L, 2);
-  lua_call(L, 1, 0);
-  co_assert(lua_gettop(L) == 2); lua_pop(L, 2);
-}
-
 static int co_palive(lua_State* L)
 {
   co* Co = co_C(L);
-  co_assert(lua_gettop(L) == 0);
-  co_pload(Co, L);
-  co_pactive(Co, L);
-  co_assert(lua_gettop(L) == 0);
+  while(co_doactive(Co)){}
   return 0;
 }
 
@@ -555,6 +548,7 @@ static void co_alive(co* Co, void* ud)
 
 static void co_free(co* Co)
 {
+  co_dodie(Co);
   coN_die(Co);
   coOs_die(Co);
   co_deletelua(Co);
@@ -955,8 +949,10 @@ static int co_export_detach(lua_State* L)
 {
   co* Co = co_C(L);
   Co->bactive = 0;
+  /* don't erase the old, erase it while attach
   lua_pushnil(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
+  */
   return 1;
 }
 
@@ -1003,4 +999,18 @@ co* co_C(lua_State* L)
   lua_pop(L, 1);
   co_assert(top == lua_gettop(L));
   return Co;
+}
+
+int co_attachfun(lua_State* L, const char* fun)
+{
+  int n = 0;
+  n = lua_gettop(L);
+  lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach");
+  if (!lua_istable(L, n + 1)) {lua_pop(L, 1); co_assert(n == lua_gettop(L)); return 0;}
+  co_assert(n + 1 == lua_gettop(L));
+
+  lua_getfield(L, n + 1, fun); co_assert(n + 2 == lua_gettop(L)); co_assert(lua_isfunction(L, n + 2));
+  lua_insert(L, n + 1);
+  co_assert(n + 2 == lua_gettop(L));
+  return 1;
 }
