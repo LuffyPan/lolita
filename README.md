@@ -14,8 +14,8 @@ Dependency
 Modules Exported
 ================
 
+* core.conf
 * core.base
-* core.arg
 * core.info
 * core.os
 * core.net
@@ -32,8 +32,8 @@ Usage
 used as a independent program
 
     $ cd _deploy
-    $ ./lolita X=../test/config_server
-    $ ./lolita X=../test/config_client
+    $ ./lolita x=../test/config_server
+    $ ./lolita x=../test/config_client
     
 used as a plugin for Lua
 

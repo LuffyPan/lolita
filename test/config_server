@@ -11,5 +11,5 @@ set { "tracelv", 0 }
 add { "search", {} }
 add { "manifest", {"echo/"} }
 
-set { "bsrv", "1" }
-set { "maxconnection", "11" }
+set { "bsrv", true }
+set { "maxconnection", 11 }

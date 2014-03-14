@@ -34,23 +34,23 @@ end
 
 local core = lolita.core
 
-print("original arg:")
-for k, v in ipairs(core.arg._original) do
-  print(k, v)
-end
+print("")
+assert(not core.arg)
 
-print("arg:")
-for k, v in pairs(core.arg) do
-  print(k, v)
-end
-
-print("conf")
+print("conf:")
 for k, v in pairs(core.conf) do
   print(k, v)
 end
+print("")
 
-print("conf._conf:")
-for k, v in pairs(core.conf._conf) do
+print("conf.arg:")
+for k, v in pairs(core.conf.arg) do
+  print(k, v, type(v))
+end
+print("")
+
+print("conf.all:")
+for k, v in pairs(core.conf.all) do
   print(k, v, type(v))
 end
 

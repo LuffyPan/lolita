@@ -28,7 +28,7 @@ solution "lolitall"
 
   --IS this vs used only?
   debugdir ("_deploy")
-  debugargs { "tracelv=0", "X=../test/config_server" }
+  debugargs { "tracelv=0", "x=../test/config_server" }
   --defines { "LUA_COMPAT_ALL" }
 
   configuration "debug"
