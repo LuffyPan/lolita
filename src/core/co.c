@@ -147,10 +147,17 @@ static int co_export_conf_add(lua_State* L)
   /* k */
   lua_pushnumber(L, 1);
   lua_gettable(L, 1); co_assert(n + 4 == lua_gettop(L));
-  if (lua_type(L, -1) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
-  if (0 == strcmp("conf", lua_tostring(L, -1))) bconf = 1;
-  if (0 == strcmp("manifest", lua_tostring(L, -1))) bmanif = 1;
-  if (0 == strcmp("search", lua_tostring(L, -1))) bsearcher = 1;
+  if (lua_type(L, n + 4) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
+  if (0 == strcmp("conf", lua_tostring(L, n + 4))) bconf = 1;
+  else if (0 == strcmp("manifest", lua_tostring(L, n + 4))) bmanif = 1;
+  else if (0 == strcmp("search", lua_tostring(L, n + 4))) bsearcher = 1;
+
+  /* check conf.arg */
+  lua_getfield(L, n + 2, "arg"); co_assert(n + 5 == lua_gettop(L));
+  lua_pushvalue(L, n + 4); co_assert(n + 6 == lua_gettop(L));
+  lua_gettable(L, n + 5); co_assert(n + 6 == lua_gettop(L));
+  if (lua_type(L, n + 6) != LUA_TNIL){co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "conf.arg[%s] first, ignore this", lua_tostring(L, n + 4)); return 0;}
+  lua_pop(L, 2);
 
   /* v */
   lua_pushnumber(L, 2);
@@ -222,25 +229,31 @@ static int co_export_conf_set(lua_State* L)
 {
   co* Co = co_C(L);
   const char* k = NULL, *v = NULL;
+  int n = 0;
 
+  n = lua_gettop(L);
   luaL_checktype(L, 1, LUA_TTABLE);
-  co_pushcore(L, Co);
-  lua_getfield(L, -1, "conf"); co_assert(lua_istable(L, -1));
-  lua_getfield(L, -1, "all"); co_assert(lua_istable(L, -1));
+  co_pushcore(L, Co); co_assert(n + 1 == lua_gettop(L));
+  lua_getfield(L, n + 1, "conf"); co_assert(n + 2 == lua_gettop(L)); co_assert(lua_istable(L, n + 2));
+  lua_getfield(L, n + 2, "all"); co_assert(n + 3 == lua_gettop(L)); co_assert(lua_istable(L, n + 3));
+  lua_getfield(L, n + 2, "arg"); co_assert(n + 4 == lua_gettop(L)); co_assert(lua_istable(L, n + 4));
 
   lua_pushnumber(L, 1);
-  lua_gettable(L, 1);
-  if (lua_type(L, -1) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
+  lua_gettable(L, 1); co_assert(n + 5 == lua_gettop(L)); /* the key */
+  if (lua_type(L, n + 5) != LUA_TSTRING) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "invalid key type!"); return 0;}
+  lua_pushvalue(L, n + 5); co_assert(n + 6 == lua_gettop(L));
+  lua_gettable(L, n + 4); co_assert(n + 6 == lua_gettop(L)); /* the key in conf.arg */
+  if (lua_type(L, n + 6) != LUA_TNIL){co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "conf.arg[%s] is first, ignore this", lua_tostring(L, n + 5)); return 0;}
+  lua_pop(L, 1); co_assert(n + 5 == lua_gettop(L));
 
   lua_pushnumber(L, 2);
-  lua_gettable(L, 1);
-
-  k = luaL_tolstring(L, -2, NULL);
-  v = luaL_tolstring(L, -2, NULL);
+  lua_gettable(L, 1); co_assert(n + 6 == lua_gettop(L)); /* the value */
+  k = luaL_tolstring(L, n + 5, NULL);
+  v = luaL_tolstring(L, n + 6, NULL);
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "%s = %s is set", k ? k : "none", v ? v : "none"); /* compact with 5.1 */
   lua_pop(L, 2);
 
-  lua_settable(L, -3);
+  lua_settable(L, n + 3);
   return 0;
 }
 
