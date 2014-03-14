@@ -169,16 +169,18 @@ end
 local function _version()
   print("Updating version number...")
   local z = os.execute("git describe --dirty >output.log 2>&1")
+  local version = "git-error"
   if z ~= 0 then
     printf("Get repos version failed:%d", z)
-    return
+  else
+    local fvi = io.open("output.log", "rb")
+    version = fvi:read("*a")
+    fvi:close()
+    os.remove("output.log")
+    version = version:gsub("\n", "")
+    version = version:gsub("\r", "")
   end
-  local fvi = io.open("output.log", "rb")
-  local version = fvi:read("*a")
-  fvi:close()
-  os.remove("output.log")
-  version = version:gsub("\n", "")
-  version = version:gsub("\r", "")
+
   printf("Repos version is %s", version)
   local fni = "src/core/coconf.h.in"
   local fi = io.open(fni, "rb")
