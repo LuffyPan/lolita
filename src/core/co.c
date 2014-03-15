@@ -650,8 +650,8 @@ static void co_pexportcore(co* Co, lua_State* L)
   lua_setfield(L, -3, "core");
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.core");
 
-  if (!Co->battachL) {lua_setglobal(L, "lolita");}
-  else {lua_pop(L, 1);}
+  /* TODO: need a flag to control should export the lolita, caz attach mode should need export at this time */
+  lua_setglobal(L, "lolita");
   co_assert(lua_gettop(L) == 0);
 }
 
