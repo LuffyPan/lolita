@@ -924,7 +924,7 @@ static void coN_eventconnect(co* Co, cosock* s, cosock* as, int extra)
   int top = 0, z = 0;
   co_assert(!as);
   coN_tracedebug(Co, "id[%d,%d] connect event result[%d]", s->id, 0, extra);
-  top = lua_gettop(L); co_assert(top == 0); /* is this really can promise is zero ?? , yeah, it is.., if not, active is pushed some param */
+  top = lua_gettop(L);/* is this really can promise is zero ?? , yeah, it is.. not, if not, active is pushed some param, but this is allow */
   lua_pushcfunction(L, co_pcallmsg);
   z = coN_geteventer(Co, N);if (!z) return;
   co_assert(z > 0);
@@ -951,7 +951,7 @@ static void coN_eventaccept(co* Co, cosock* s, cosock* as, int extra)
   lua_State* L = co_L(Co);
   coN* N = Co->N;
   co_assert(as);
-  top = lua_gettop(L); co_assert(top == 0);
+  top = lua_gettop(L);
   lua_pushcfunction(L, co_pcallmsg);
   coN_tracedebug(Co, "id[%d,%d] accept event", s->id, as->id);
   z = coN_geteventer(Co, N); if (!z) return;
@@ -984,7 +984,7 @@ static void coN_eventprocesspack(co* Co, cosock* s, cosock* as, int extra)
   cosockpack_tail* tail = NULL;
   int bclose = 0;
   int top = 0, z = 0;
-  top = lua_gettop(L); co_assert(0 == top);
+  top = lua_gettop(L);
   lua_pushcfunction(L, co_pcallmsg);
   coN_tracedebug(Co, "id[%d,%d] package event", s->id, as ? as->id : 0);
   coN_tracedebug(Co, "id[%d,%d] trying process package", s->id, as ? as->id : 0);
@@ -1067,7 +1067,7 @@ static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
   cosock* ps = NULL;
   coN* N = Co->N;
   lua_State* L = co_L(Co);
-  top = lua_gettop(L); co_assert(top == 0);
+  top = lua_gettop(L);
   lua_pushcfunction(L, co_pcallmsg);
   coN_tracedebug(Co,"id[%d,%d] close event", s->id, as ? as->id : 0);
   if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP); ps = s; }

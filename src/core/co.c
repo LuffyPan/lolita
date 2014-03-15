@@ -374,7 +374,7 @@ static void co_dodie(co* Co)
 
 static int co_doactive(co* Co)
 {
-  int n = 0, z = 0;
+  int n = 0, z = 0, i = 0;
   lua_State* L = co_L(Co);
   if (!Co->bactive) {co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "attach's bactive flag is %d, stop!", Co->bactive); return Co->bactive;}
   n = lua_gettop(L);
@@ -382,7 +382,8 @@ static int co_doactive(co* Co)
   if (!co_attachfun(L, "active")) {co_assert(n == lua_gettop(L)); Co->bactive = 0; return Co->bactive;}
   co_assert(lua_isfunction(L, n + 1));
   co_assert(lua_istable(L, n + 2));
-  lua_call(L, 1, 1);co_assert(n + 1 == lua_gettop(L));
+  if (n > 0 ) {for(i = 1; i <= n; ++i) lua_pushvalue(L, i);}
+  lua_call(L, n + 1, 1);co_assert(n + 1 == lua_gettop(L));
   z = co_cast(int, lua_tonumber(L, n + 1)); lua_pop(L, 1);
   if (!z) co_trace(Co, CO_MOD_CORE, CO_LVINFO, "attach's active is called with return %d", z);
   co_assert(n == lua_gettop(L));
@@ -547,8 +548,10 @@ static void co_load(co* Co)
 static int co_palive(lua_State* L)
 {
   co* Co = co_C(L);
+  co_assert(0 == lua_gettop(L));
   Co->inneractive = 1; /* inner drive active */
   while(co_doactive(Co)){}
+  co_assert(0 == lua_gettop(L));
   return 0;
 }
 
