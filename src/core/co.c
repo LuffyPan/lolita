@@ -37,6 +37,7 @@ static int co_export_getregistry(lua_State* L);
 static int co_export_attach(lua_State* L);
 static int co_export_detach(lua_State* L);
 static int co_export_addpath(lua_State* L);
+static int co_export_active(lua_State* L);
 
 static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
 {
@@ -284,6 +285,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, 
     Co->umem = sizeof(*Co);
     co_assertex(Co->umem <= Co->maxmem, "maxmem is set to small!");
   }
+  Co->inneractive = 0;
   Co->bactive = 0;
   Co->tracelv = CO_LVFATAL;
   Co->errjmp = NULL;
@@ -386,19 +388,41 @@ static int co_doactive(co* Co)
   co_assert(n == lua_gettop(L));
   if (Co->bactive) Co->bactive = z;
   else co_trace(Co, CO_MOD_CORE, CO_LVINFO, "is detached!");
+  if (Co->bactive)
+  {
+    coOs_active(Co, 1);
+    coN_active(Co);
+  }
   return Co->bactive;
+}
+
+static int co_pborn(lua_State* L)
+{
+  co* Co = co_C(L);
+  co_export(Co);
+  coOs_born(Co);
+  coN_born(Co);
+  co_load(Co);
+  co_execute(Co);
+  co_doborn(Co);
+  return 0;
 }
 
 static void co_born(co* Co, void* ud)
 {
-  co_newlua(Co);
-  co_export(Co);
-  coOs_born(Co);
-  coN_born(Co);
+  int n = 0;
+  lua_State* L = NULL;
 
-  co_load(Co);
-  co_execute(Co);
-  co_doborn(Co);
+  co_newlua(Co);
+
+  /* pborn */
+  L = co_L(Co); n = lua_gettop(L);
+  lua_pushcfunction(L, co_pcallmsg);
+  lua_pushcfunction(L, co_pborn);
+  if (lua_pcall(L, 0, 0, 1)) {co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L); coR_throw(Co, CO_ERRSCRIPTCALL);}
+  co_assert(lua_gettop(L) == n + 1);
+  lua_pop(L, 1);
+  co_assert(n == lua_gettop(L));
 }
 
 static void co_addpath(co* Co, lua_State* L, const char* path)
@@ -523,6 +547,7 @@ static void co_load(co* Co)
 static int co_palive(lua_State* L)
 {
   co* Co = co_C(L);
+  Co->inneractive = 1; /* inner drive active */
   while(co_doactive(Co)){}
   return 0;
 }
@@ -546,9 +571,30 @@ static void co_alive(co* Co, void* ud)
   co_assert(lua_gettop(L) == 0);
 }
 
+static int co_pfree(lua_State* L)
+{
+  co* Co = co_C(L);
+  co_assert(0 == lua_gettop(L));
+  co_dodie(Co);
+  co_assert(0 == lua_gettop(L));
+  return 0;
+}
+
 static void co_free(co* Co)
 {
-  co_dodie(Co);
+  int n = 0;
+  lua_State* L = co_L(Co);
+  if (L)
+  {
+    n = lua_gettop(L);
+    lua_pushcfunction(L, co_pcallmsg);
+    lua_pushcfunction(L, co_pfree);
+    if (lua_pcall(L, 0, 0, 1)) {co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L); coR_throw(Co, CO_ERRSCRIPTCALL);}
+    co_assert(lua_gettop(L) == n + 1);
+    lua_pop(L, 1);
+    co_assert(n == lua_gettop(L));
+  }
+
   coN_die(Co);
   coOs_die(Co);
   co_deletelua(Co);
@@ -558,12 +604,12 @@ static void co_free(co* Co)
 
 static void co_newlua(co* Co)
 {
-  int top = 0;
+  int n = 0;
   lua_State* L = co_L(Co);
   if (L)
   {
     Co->battachL = 1; /* set first so that co know don't close this L */
-    top = lua_gettop(L);
+    n = lua_gettop(L);
     lua_getfield(L, LUA_REGISTRYINDEX, "lolita");
     if (!lua_isnil(L, -1))
     {
@@ -577,14 +623,14 @@ static void co_newlua(co* Co)
   else
   {
     L = lua_newstate(co_lualloc, Co);
-    top = lua_gettop(L); co_assert(top == 0);
-    co_L(Co) = L;
     if (!L) coR_throw(Co, CO_ERRSCRIPTNEW);
+    n = lua_gettop(L); co_assert(n == 0);
+    co_L(Co) = L;
     lua_atpanic(L, co_panic);
   }
   lua_pushlightuserdata(L, Co);
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita");
-  co_assert(top == lua_gettop(L));
+  co_assert(n == lua_gettop(L));
 }
 
 static void co_deletelua(co* Co)
@@ -762,6 +808,7 @@ static void co_pexportbase(co* Co, lua_State* L)
     {"attach", co_export_attach},
     {"detach", co_export_detach},
     {"addpath", co_export_addpath},
+    {"active", co_export_active},
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
@@ -773,37 +820,15 @@ static void co_pexportbase(co* Co, lua_State* L)
   co_assert(lua_gettop(L) == 0);
 }
 
-static int co_pexport(lua_State* L)
+static void co_export(co* Co)
 {
-  co* Co = co_C(L);
+  lua_State* L = co_L(Co);
   co_assert(lua_gettop(L) == 0);
   co_pexportcore(Co, L);
   co_pexportconf(Co, L);
   co_pexportinfo(Co, L);
   co_pexportbase(Co, L);
   co_assert(lua_gettop(L) == 0);
-  return 0;
-}
-
-static void co_export(co* Co)
-{
-  int z, top;
-  lua_State* L = co_L(Co);
-  top = lua_gettop(L);
-  if (!Co->battachL) {co_assert(top == 0);}
-  lua_pushcfunction(L, co_pcallmsg);
-  lua_pushcfunction(L, co_pexport);
-  z = lua_pcall(L, 0, 0, top + 1);
-  if (z)
-  {
-    co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L);
-    /* when the failed, you never know the stack would be, so, cancel this assert */
-    /* lua_pop(L,1); co_assert(lua_gettop(L) == 0); */
-    coR_throw(Co, CO_ERRSCRIPTCALL);
-  }
-  co_assert(top + 1 == lua_gettop(L)); /* caz co_pcallmsg is not poped */
-  lua_pop(L, 1); co_assert(top == lua_gettop(L));
-  if (!Co->battachL) {co_assert(top == 0);}
 }
 
 static void co_fatalerror(co* Co, int e)
@@ -961,6 +986,16 @@ static int co_export_addpath(lua_State* L)
   co* Co = co_C(L);
   co_addpath(Co, L, luaL_checkstring(L, 1));
   return 0;
+}
+
+static int co_export_active(lua_State* L)
+{
+  int z = 0;
+  co* Co = co_C(L);
+  if (Co->inneractive) {co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "active is drived by inner!"); lua_error(L); return 0;}
+  z = co_doactive(Co);
+  if (z) lua_pushnumber(L, 1);
+  return z;
 }
 
 void co_trace(co* Co, int mod, int lv, const char* msg, ...)

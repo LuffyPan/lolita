@@ -86,8 +86,9 @@ function echo:born()
   --set max mem can be alloc to 100M
   core.base.setmaxmem(1024 * 1024 * 100)
 
-  --register os signal
-  assert(core.os.register(self.sig, self))
+  --register os signal process
+  --TODO:the second param can be ignore
+  assert(core.os.register(function() core.base.detach() end, nil))
 
   --check the proc
   assert(core.os.getpinfo(core.os.getpid()) == 1)
@@ -133,18 +134,11 @@ function echo:born()
 end
 
 function echo:active()
-  core.net.active()
-  core.os.active(1)
   return 1;
 end
 
 function echo:die()
   print("yeah, i'm die")
-end
-
---signal process
-function echo:sig()
-  lolita.core.base.detach()
 end
 
 function echo:ev(evid, id, attaid, extra)

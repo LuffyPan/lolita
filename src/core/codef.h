@@ -94,6 +94,7 @@ struct co_longjmp
 
 struct co
 {
+  int inneractive;
   int bactive;
   int tracelv;
   co_xllocf xlloc;

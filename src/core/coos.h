@@ -12,6 +12,7 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "codef.h"
 
 void coOs_born(co* Co);
+void coOs_active(co* Co, int msec);
 void coOs_die(co* Co);
 
 #endif

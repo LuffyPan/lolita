@@ -53,6 +53,7 @@ static int coOs_export_uuid(lua_State* L);
 static int coOs_export_active(lua_State* L);
 static int coOs_export_register(lua_State* L);
 
+static void coOs_sleep(int msec);
 static void coOs_setsighandler(co* Co, coOs* Os);
 static int coOs_getsighandler(co* Co, coOs* Os);
 
@@ -182,13 +183,19 @@ void coOs_born(co* Co)
   coOs_export(Co);
 }
 
+void coOs_active(co* Co, int msec)
+{
+  coOs_activesig(Co);
+  if (msec > 0) coOs_sleep(msec);
+}
+
 void coOs_die(co* Co)
 {
   if (!Co->Os) return;
   coM_deleteobj(Co, Co->Os);
 }
 
-void coOs_sleep(int msec)
+static void coOs_sleep(int msec)
 {
   co_assertex(msec >= 0 && msec < 1000 * 60, "fuck, need so long..\?");
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
@@ -205,7 +212,7 @@ void coOs_sleep(int msec)
 #endif
 }
 
-double coOs_time()
+static double coOs_time()
 {
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   LARGE_INTEGER frequency;
@@ -227,7 +234,7 @@ double coOs_time()
 }
 
 /* reference premake4, th3x */
-int coOs_isfile(const char* path)
+static int coOs_isfile(const char* path)
 {
   struct stat st;
   co_assert(path);
@@ -238,7 +245,7 @@ int coOs_isfile(const char* path)
   return 0;
 }
 
-int coOs_isdir(const char* path)
+static int coOs_isdir(const char* path)
 {
   struct stat st;
   co_assert(path);
@@ -249,7 +256,7 @@ int coOs_isdir(const char* path)
   return 0;
 }
 
-int coOs_ispath(const char* path)
+static int coOs_ispath(const char* path)
 {
   struct stat st;
   co_assert(path);
@@ -260,7 +267,7 @@ int coOs_ispath(const char* path)
   return 0;
 }
 
-int coOs_mkdir(co* Co, const char* path)
+static int coOs_mkdir(co* Co, const char* path)
 {
   int z = 0;
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
@@ -271,7 +278,7 @@ int coOs_mkdir(co* Co, const char* path)
   return z > 0 ? 1:0;
 }
 
-int coOs_getcwd(co* Co, char* buf, size_t bufs)
+static int coOs_getcwd(co* Co, char* buf, size_t bufs)
 {
   int z = 0;
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
@@ -288,7 +295,7 @@ int coOs_getcwd(co* Co, char* buf, size_t bufs)
   return z;
 }
 
-int coOs_getpid(co* Co)
+static int coOs_getpid(co* Co)
 {
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   return (int)GetCurrentProcessId();
@@ -300,7 +307,7 @@ int coOs_getpid(co* Co)
 }
 
 /* TODO:fill the pinfo */
-int coOs_getpinfo(co* Co, int pid)
+static int coOs_getpinfo(co* Co, int pid)
 {
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   HANDLE h = OpenProcess(PROCESS_VM_READ, FALSE, (DWORD)pid);
@@ -453,10 +460,7 @@ static int coOs_export_getpinfo(lua_State* L)
 static int coOs_export_active(lua_State* L)
 {
   co* Co = co_C(L);
-  int msec = 0;
-  msec = luaL_optint(L, 1, 0);
-  coOs_activesig(Co);
-  if (msec > 0) coOs_sleep(msec);
+  coOs_active(Co, luaL_optint(L, 1, 0));
   return 0;
 }
 
