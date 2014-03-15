@@ -154,7 +154,8 @@ int co_pcallmsg(lua_State* L);
   #define luaL_setfuncs(L, l, nups) co_assert(nups == 0); luaL_register(L, NULL, l)
   #define lua_len(L, i) lua_pushnumber(L, (lua_Number)lua_objlen(L, i))
   #define luaL_len(L, i) lua_objlen(L, i)
-  #define luaL_tolstring(L, i, pl) lua_tolstring(L, i, pl) /* todo */
+  /* #define luaL_tolstring(L, i, pl) lua_tolstring(L, i, pl)    big bug */
+  const char *(luaL_tolstring) (lua_State *L, int idx, size_t *len);
 #endif
 #define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1));
 
