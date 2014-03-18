@@ -1018,42 +1018,13 @@ void co_tracecallstack(co* Co, int mod, int lv, lua_State* L)
 
 int co_pcallmsg(lua_State* L)
 {
-#if defined(LOLITA_CORE_LUA_514)
+#if LUA_VERSION_NUM == 501
   /* what if lua 5.1.4 or lower ? */
 #else
   luaL_traceback(L, L, lua_tostring(L, 1), 0);
 #endif
   return 1;
 }
-
-/* TODO: a independent file to process the compact */
-#if defined(LOLITA_CORE_LUA_514)
-/* copyed from offical */
-const char *(luaL_tolstring) (lua_State *L, int idx, size_t *len)
-{
-  if (!luaL_callmeta(L, idx, "__tostring"))
-  {
-    /* no metafield? */
-    switch (lua_type(L, idx))
-    {
-      case LUA_TNUMBER:
-      case LUA_TSTRING:
-        lua_pushvalue(L, idx);
-        break;
-      case LUA_TBOOLEAN:
-        lua_pushstring(L, (lua_toboolean(L, idx) ? "true" : "false"));
-        break;
-      case LUA_TNIL:
-        lua_pushliteral(L, "nil");
-        break;
-      default:
-        lua_pushfstring(L, "%s: %p", luaL_typename(L, idx),lua_topointer(L, idx));
-        break;
-    }
-  }
-  return lua_tolstring(L, -1, len);
-}
-#endif
 
 co* co_C(lua_State* L)
 {

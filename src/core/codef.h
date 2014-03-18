@@ -20,6 +20,8 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+
+#include "compat.h"
 #ifdef LOLITA_CORE_PREMAKE
   #include "coconf.h"
 #else
@@ -70,11 +72,6 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #ifndef LOLITA_CORE_LUA
   #define LOLITA_CORE_LUA LUA_VERSION
-#endif
-
-#if LUA_VERSION_NUM == 501
-  #define LOLITA_CORE_LUA_514
-  #define LUA_OK 0
 #endif
 
 typedef struct coN coN;
@@ -145,18 +142,6 @@ co* co_C(lua_State* L);
 int co_pcallmsg(lua_State* L);
 
 #define co_L(Co) ((Co)->L)
-/* #define co_C(L, Co) lua_getallocf((L), (void**)&Co); co_assert(Co && co_L(Co) == L) */
-#if defined(LOLITA_CORE_LUA_514)
-  /* use macro to monitor, but maybe caz data error */
-  #define lua_rawgetp(L, t, p) lua_pushlightuserdata(L, p); lua_rawget(L, t)
-  #define lua_rawsetp(L, t, p) lua_pushlightuserdata(L, p); lua_insert(L, -2); lua_rawset(L, t)
-  #define luaL_checkunsigned(L, idx) (unsigned int)luaL_checknumber(L, idx)
-  #define luaL_setfuncs(L, l, nups) co_assert(nups == 0); luaL_register(L, NULL, l)
-  #define lua_len(L, i) lua_pushnumber(L, (lua_Number)lua_objlen(L, i))
-  #define luaL_len(L, i) lua_objlen(L, i)
-  /* #define luaL_tolstring(L, i, pl) lua_tolstring(L, i, pl)    big bug */
-  const char *(luaL_tolstring) (lua_State *L, int idx, size_t *len);
-#endif
 #define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1));
 
 #endif

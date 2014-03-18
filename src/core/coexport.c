@@ -14,10 +14,8 @@ LOLITA_CORE_EXPORT int luaopen_lolitaext(lua_State* L)
   void* ud = NULL;
   lua_Alloc acfn = NULL;
   /* the detect version of Lua is just a kid while in this solution, string is more kaopu. */
-#ifndef LOLITA_CORE_LUA_514
   const lua_Number* v = lua_version(L);
   printf("version:%d\n", (int)(*v));
-#endif
 
   acfn = lua_getallocf(L, (void**)&ud);
   printf("AllocFunc:%p, UserData:%p\n", acfn, ud);
