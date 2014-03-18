@@ -6,9 +6,9 @@ Chamz Lau, Copyright (C) 2013-2017
 
 */
 
-#if LUA_VERSION_NUM == 501
-
 #include "compat.h"
+
+#if LUA_VERSION_NUM == 501
 
 LUA_API const lua_Number* lua_version(lua_State *L)
 {
@@ -84,7 +84,7 @@ LUA_API lua_Integer lua_tointegerx(lua_State *L, int idx, int *isnum)
     return (lua_Integer)n;
 }
 
-LUALIB_API lua_Unsigned luaL_checkunsigned(lua_State* L, int numArg)
+LUALIB_API lua_Unsigned luaL_checkunsigned(lua_State* L, int narg)
 {
     int isnum;
     lua_Unsigned d = lua_tounsignedx(L, narg, &isnum);
