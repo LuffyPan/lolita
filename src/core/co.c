@@ -495,13 +495,30 @@ static void co_execute(co* Co)
       lua_len(L, 7); len2 = (int)lua_tonumber(L, -1); lua_pop(L, 1);
       for (i2 = 1; i2 <= len2; ++i2)
       {
+        int boption = 0, r = 0;
         co_assert(7 == lua_gettop(L));
         lua_pushvalue(L, 5); /* manifest path */
         lua_pushnumber(L, i2); lua_gettable(L, 7); co_assert(9 == lua_gettop(L));
+        if (lua_istable(L, 9)) /* check optional flag */
+        {
+            lua_pushnumber(L, 2); lua_gettable(L, 9); co_assert(10 == lua_gettop(L));
+            boption = (int)lua_tonumber(L, 10); lua_pop(L, 1);
+            lua_pushnumber(L, 1); lua_gettable(L, 9); co_assert(10 == lua_gettop(L));
+            if (!lua_isstring(L, 10)) luaL_error(L, "invalid manifest value");
+            lua_remove(L, 9); co_assert(9 == lua_gettop(L));
+        }
         lua_concat(L, 2); co_assert(8 == lua_gettop(L));
-        if (luaL_loadfile(L, lua_tostring(L, 8))) lua_error(L);
-        lua_call(L, 0, 0); co_assert(8 == lua_gettop(L));
-        lua_pop(L, 1);
+        r = luaL_loadfile(L, lua_tostring(L, 8)); co_assert(9 == lua_gettop(L));
+        if (r)
+        {
+            if (!boption) lua_error(L);
+            else {lua_pop(L, 1); co_assert(8 == lua_gettop(L));}
+        }
+        else
+        {
+            lua_call(L, 0, 0); co_assert(8 == lua_gettop(L));
+        }
+        lua_pop(L, 1); co_assert(7 == lua_gettop(L));
       }
 
       lua_pop(L, 3);
