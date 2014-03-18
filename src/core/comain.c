@@ -9,13 +9,16 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "co.h"
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 #include <crtdbg.h>
+#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
+#include <sys/resource.h>
+#include <sys/types.h>
 #endif
 
 void prepare();
 
 int main(int argc, const char** argv)
 {
-  co*Co;
+  co* Co;
 
   prepare();
 
@@ -33,5 +36,7 @@ void prepare()
 
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
   /* enable coredump */
+  struct rlimit rl = { -1, -1 };
+  setrlimit(RLIMIT_CORE, &rl);
 #endif
 }
