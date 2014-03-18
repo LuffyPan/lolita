@@ -91,6 +91,7 @@ struct co_longjmp
 
 struct co
 {
+  int noexport;
   int inneractive;
   int bactive;
   int tracelv;

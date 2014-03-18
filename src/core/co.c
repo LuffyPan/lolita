@@ -41,8 +41,8 @@ static int co_export_active(lua_State* L);
 
 static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
 {
-  if (lv > core_gettracelv(Co)) return;
-  printf("[%s] [%s] ", core_getmodname(Co, mod), core_getlvname(Co, lv));
+  if (lv > Co->tracelv) return;
+  printf("[%s] [%s] ", co_modname(Co, mod), co_lvname(Co, lv));
   vprintf(msg, msgva);
   printf("\n");
   fflush(stdout);fflush(stderr);
@@ -265,7 +265,7 @@ static int co_export_conf_set(lua_State* L)
 /*
   lua_State* can be non-force? and use void* instead
 */
-co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, lua_State* L)
+co* core_born(int argc, const char** argv, co_xllocf x, void* ud, int noexport, lua_State* L)
 {
   int z = 0;
   co* Co;
@@ -274,7 +274,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, 
   if (NULL == Co) return NULL;
   Co->xlloc = x;
   Co->ud = ud;
-  Co->tf = tf ? tf : defaulttrace;
+  Co->tf = defaulttrace;
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
@@ -287,6 +287,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, void* ud, co_tracef tf, 
   }
   Co->inneractive = 0;
   Co->bactive = 0;
+  Co->noexport = noexport;
   Co->tracelv = CO_LVFATAL;
   Co->errjmp = NULL;
   Co->L = L;
@@ -324,21 +325,6 @@ void core_open(co* Co, int x)
   if (x) lua_newtable(L);
   co_pushcore(L, Co);
   if (x){lua_setfield(L, -2, "core"); lua_setglobal(L, "lolita");}
-}
-
-const char* core_getmodname(co* Co, int mod)
-{
-  return co_modname(Co, mod);
-}
-
-const char* core_getlvname(co* Co, int lv)
-{
-  return co_lvname(Co, lv);
-}
-
-int core_gettracelv(co* Co)
-{
-  return Co->tracelv;
 }
 
 static void co_doborn(co* Co)
@@ -654,7 +640,8 @@ static void co_pexportcore(co* Co, lua_State* L)
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.core");
 
   /* TODO: need a flag to control should export the lolita, caz attach mode should need export at this time */
-  lua_setglobal(L, "lolita");
+  if (Co->noexport) lua_pop(L, 1);
+  else lua_setglobal(L, "lolita");
   co_assert(lua_gettop(L) == 0);
 }
 

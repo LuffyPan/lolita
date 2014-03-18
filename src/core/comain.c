@@ -11,42 +11,27 @@ Chamz Lau, Copyright (C) 2013-2017
 #include <crtdbg.h>
 #endif
 
-void* externalxlloc(void* ud, void* p, size_t os, size_t ns)
-{
-  void* x = NULL;
-  if (ns == 0){free(p);}
-  else{x = realloc(p, ns);}
-  return x;
-}
-
-/* is this need controled by outside ?? */
-void externaltrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
-{
-  if (lv > core_gettracelv(Co)) return;
-  printf("<%s><%s> ", core_getmodname(Co, mod), core_getlvname(Co, lv));
-  vprintf(msg, msgva);
-  printf("\n");
-  fflush(stdout);fflush(stderr);
-}
+void prepare();
 
 int main(int argc, const char** argv)
 {
   co*Co;
-  co_xllocf x = NULL;
-  co_tracef t = NULL;
-  /* Todo: hide plat */
+
+  prepare();
+
+  Co = core_born(argc, argv, NULL, NULL, 0, NULL);if (!Co){return 1;}
+  core_alive(Co);
+  core_die(Co);
+  return 0;
+}
+
+void prepare()
+{
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-#ifdef LOLITA_CORE_USE_EXTERNALXLLOC
-  x = externalxlloc;
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
+  /* enable coredump */
 #endif
-#ifdef LOLITA_CORE_USE_EXTERNALTRACE
-  t = externaltrace
-#endif
-  Co = core_born(argc, argv, x, NULL, t, NULL);if (!Co){return 1;}
-  core_alive(Co);
-  core_die(Co);
-  return 0;
 }

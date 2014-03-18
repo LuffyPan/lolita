@@ -19,7 +19,7 @@ LOLITA_CORE_EXPORT int luaopen_lolitaext(lua_State* L)
 
   acfn = lua_getallocf(L, (void**)&ud);
   printf("AllocFunc:%p, UserData:%p\n", acfn, ud);
-  Co = core_born(0, NULL, NULL, NULL, NULL, L);
+  Co = core_born(0, NULL, NULL, NULL, 1, L);
   if (!Co)
   {
     printf("core born failed\n");
