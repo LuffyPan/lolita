@@ -5,3 +5,8 @@ src/core/core_config.h
 src/core/coconf.h
 src/core/coembe.h
 *.DS_Store
+lolita*
+lolita.exe
+lolita.ilk
+lolita.exe.dSYM/*
+lolita.dSYM/*

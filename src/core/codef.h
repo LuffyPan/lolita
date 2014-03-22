@@ -20,12 +20,10 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
-
 #include "compat.h"
-#ifdef LOLITA_CORE_PREMAKE
-  #include "coconf.h"
-#else
-  #include "coconf.h.in"
+
+#ifndef LOLITA_CORE_GITVER
+  #define LOLITA_CORE_GITVER "none-gitver"
 #endif
 
 #define LOLITA_CORE_PLAT_WIN32 (1)

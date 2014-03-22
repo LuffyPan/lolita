@@ -673,7 +673,7 @@ static void co_pexportinfo(co* Co, lua_State* L)
   lua_pushstring(L, LOLITA_CORE_COPYRIGHT); lua_setfield(L, -2, "copyright");
   lua_pushstring(L, LOLITA_CORE_AUTHOR); lua_setfield(L, -2, "author");
   lua_pushnumber(L, LOLITA_CORE_VERSION); lua_setfield(L, -2, "version");
-  lua_pushstring(L, LOLITA_CORE_VERSION_REPOS); lua_setfield(L, -2, "reposversion");
+  lua_pushstring(L, LOLITA_CORE_GITVER); lua_setfield(L, -2, "reposversion");
   lua_pushstring(L, LOLITA_CORE_PLATSTR); lua_setfield(L, -2, "platform");
   lua_pop(L, 2); /* core.info */
   co_assert(lua_gettop(L) == 0);
