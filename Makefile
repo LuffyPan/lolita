@@ -65,8 +65,7 @@ undefined:
 
 
 mingw : TARGET := lolita.exe
-mingw : CFLAGS += -I/usr/include
-mingw : LDFLAGS += -L/usr/bin
+mingw : LDFLAGS += -lws2_32 -lole32
 
 mingw : $(SRC) lolita
 

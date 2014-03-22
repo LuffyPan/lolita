@@ -21,7 +21,6 @@ static void co_export(co* Co);
 static void co_born(co* Co, void* ud);
 static void co_load(co* Co);
 static void co_execute(co* Co);
-static void co_active(co* Co);
 static void co_alive(co* Co, void* ud);
 static void co_free(co* Co);
 static void co_fatalerror(co* Co, int e);

@@ -7,7 +7,7 @@ Chamz Lau, Copyright (C) 2013-2017
 */
 
 #include "co.h"
-#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32 && !defined(__MINGW32__)
 #include <crtdbg.h>
 #elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
 #include <sys/resource.h>
@@ -30,7 +30,7 @@ int main(int argc, const char** argv)
 
 void prepare()
 {
-#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32 && !defined(__MINGW32__)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 

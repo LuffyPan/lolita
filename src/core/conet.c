@@ -27,7 +27,9 @@ Chamz Lau, Copyright (C) 2013-2017
 #include <windows.h>
 #include <winsock2.h>
 #include <winerror.h>
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32 && !defined(__MINGW32__)
 #pragma comment(lib, "ws2_32.lib")
+#endif
 typedef int cosockfdm;
 typedef SOCKET cosockfd;
 typedef int cosockfd_size;
@@ -128,10 +130,13 @@ typedef struct cosock cosock;
 typedef void (*cosockeventer)(co* Co, cosock* s, cosock* as, int extra);
 /* typedef void (*cosock_activefunc)(void* p, cosock* s, cosock* sa); */
 
+#if defined(LOLITA_CORE_USE_SELECT)
 static void cosock_activeaccp_common(co* Co, cosock* s);
+#endif
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 static void cosock_activeconn_win32(co* Co, cosock* s);
-#else
+#endif
+#if defined(LOLITA_CORE_USE_SELECT) && LOLITA_CORE_PLAT != LOLITA_CORE_PLAT_WIN32
 static void cosock_activeconn_ux(co* Co, cosock* s);
 #endif
 
@@ -263,7 +268,6 @@ static int cosock_recv(co* Co, cosock* s);
 static int cosock_send(co* Co, cosock* s);
 static int cosock_canpush(co* Co, cosock* s, size_t datasize);
 static void cosock_push(co* Co, cosock* s, const char* data, size_t datasize);
-static int cosock_pop(co* Co, cosock* s, const char** data, size_t* datasize);
 static void cosock_active(co* Co, cosock* s);
 static void cosock_close(co* Co, cosock* s);
 static void cosock_delete(co* Co, cosock* s);
@@ -274,7 +278,6 @@ static void cosock_delete(co* Co, cosock* s);
 
 static int cosock_newfd(co* Co, cosock* s);
 static int cosock_newfdm(co* Co, cosock* s);
-static int cosock_ctlfdm(co* Co, cosock* s, int type, int op);
 static int cosock_markwrite(co* Co, cosock* s);
 static int cosock_attachfd(co* Co, cosock* s, cosockfd fd);
 static void cosock_newfdt(co* Co, cosock* s);
@@ -1064,14 +1067,13 @@ clear:
 static void coN_eventclose(co* Co, cosock* s, cosock* as, int extra)
 {
   int top = 0, z = 0;
-  cosock* ps = NULL;
   coN* N = Co->N;
   lua_State* L = co_L(Co);
   top = lua_gettop(L);
   lua_pushcfunction(L, co_pcallmsg);
   coN_tracedebug(Co,"id[%d,%d] close event", s->id, as ? as->id : 0);
-  if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP); ps = s; }
-  else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); ps = as; }
+  if (as == NULL) { co_assert(s->fdt == COSOCKFD_TCONN || s->fdt == COSOCKFD_TACCP); }
+  else { co_assert(s->fdt == COSOCKFD_TACCP && as->fdt == COSOCKFD_TATTA); }
   z = coN_geteventer(Co, N); if (!z) return;
   co_assert(z > 0);
   lua_pushnumber(L, 113);
@@ -1364,21 +1366,6 @@ static void cosock_push(co* Co, cosock* s, const char* data, size_t datasize)
   cosockbuf_use(Co, s->sndbuf, datasize);
 }
 
-/* this is not used?
-static int cosock_pop(co* Co, cosock* s, const char** pdata, size_t* pdatasize)
-{
-  const char* data;
-  size_t datasize;
-  cosockpack_hdr* hdr = NULL;
-  cosockpack_tail* tail = NULL;
-  size_t extrasize = sizeof(cosockpack_hdr) + sizeof(cosockpack_tail);
-  data = cosockbuf_data(s->revbuf);
-  datasize = cosockbuf_datasize(s->revbuf);
-  if (datasize < extrasize) return 1;
-  return 1;
-}
-*/
-
 static void cosock_active(co* Co, cosock* s)
 {
   if (s->bclosed)
@@ -1426,6 +1413,28 @@ static int cosock_newfd(co* Co, cosock* s)
   return 1;
 }
 
+#if defined(LOLITA_CORE_USE_KQUEUE) || defined(LOLITA_CORE_USE_EPOLL)
+static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
+{
+#if defined(LOLITA_CORE_USE_KQUEUE)
+  struct kevent ke;
+  if (op == 0) op = EV_ADD;
+  else if(op == 1) op = EV_DELETE;
+  else if(op == 2) op = EV_ENABLE;
+  else if(op == 3) op = EV_DISABLE;
+  else {co_assert(0);}
+  EV_SET(&ke, s->fd, type == 0 ? EVFILT_READ : EVFILT_WRITE, op, 0, 0, s);
+  if (-1 == kevent(s->fdm, &ke, 1, NULL, 0, NULL)) { cosock_logec(s); return 0; }
+#elif defined(LOLITA_CORE_USE_EPOLL)
+  struct epoll_event ev;
+  ev.data.ptr = s;
+  ev.events = type;
+  if (-1 == epoll_ctl(s->fdm, op, s->fd, &ev)) { cosock_logec(s); return 0; }
+#endif
+  return 1;
+}
+#endif
+
 static int cosock_newfdm(co* Co, cosock* s)
 {
 
@@ -1459,26 +1468,6 @@ static int cosock_newfdm(co* Co, cosock* s)
 
 #else
   coN_tracedebug(Co, "id[%d,%d]don't support any net mode, just use select", s->id, s->fdt);
-#endif
-  return 1;
-}
-
-static int cosock_ctlfdm(co* Co, cosock* s, int type, int op)
-{
-#if defined(LOLITA_CORE_USE_KQUEUE)
-  struct kevent ke;
-  if (op == 0) op = EV_ADD;
-  else if(op == 1) op = EV_DELETE;
-  else if(op == 2) op = EV_ENABLE;
-  else if(op == 3) op = EV_DISABLE;
-  else {co_assert(0);}
-  EV_SET(&ke, s->fd, type == 0 ? EVFILT_READ : EVFILT_WRITE, op, 0, 0, s);
-  if (-1 == kevent(s->fdm, &ke, 1, NULL, 0, NULL)) { cosock_logec(s); return 0; }
-#elif defined(LOLITA_CORE_USE_EPOLL)
-  struct epoll_event ev;
-  ev.data.ptr = s;
-  ev.events = type;
-  if (-1 == epoll_ctl(s->fdm, op, s->fd, &ev)) { cosock_logec(s); return 0; }
 #endif
   return 1;
 }
@@ -1570,6 +1559,7 @@ static void cosock_deletefdm(co* Co, cosock* s)
 #endif
 }
 
+#if defined(LOLITA_CORE_USE_SELECT)
 static void cosock_activeaccp_common(co* Co, cosock* s)
 {
   int r = 0;
@@ -1657,6 +1647,7 @@ static void cosock_activeaccp_common(co* Co, cosock* s)
     }
   }
 }
+#endif
 
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
 
@@ -1744,6 +1735,7 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
 
 #else
 
+#if defined(LOLITA_CORE_USE_SELECT) && LOLITA_CORE_PLAT != LOLITA_CORE_PLAT_WIN32
 static void cosock_activeconn_ux(co* Co, cosock* s)
 {
   int r = 0;
@@ -1838,6 +1830,7 @@ static void cosock_activeconn_ux(co* Co, cosock* s)
     cosock_close(Co, s);
   }
 }
+#endif
 
 #endif
 

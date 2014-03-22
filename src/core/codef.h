@@ -141,6 +141,6 @@ co* co_C(lua_State* L);
 int co_pcallmsg(lua_State* L);
 
 #define co_L(Co) ((Co)->L)
-#define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1));
+#define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1)); (void)Co
 
 #endif

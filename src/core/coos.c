@@ -123,7 +123,7 @@ BOOL WINAPI coOs_signalhandler(DWORD t)
 {
   if (!_coOs) return FALSE;
   if (_coOs->sigcnt >= COOS_SIG_MAXCNT) return FALSE;
-  if (t != CTRL_C_EVENT){printf("signal:%u\n", t);return FALSE;}
+  if (t != CTRL_C_EVENT){printf("signal:%u\n", (unsigned int)t);return FALSE;}
   /* F**k Windows */
   _coOs->sigs[_coOs->sigcnt++] = (int)COOS_SIG_INT;
   return TRUE;

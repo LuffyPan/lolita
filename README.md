@@ -8,10 +8,15 @@ Lolita can be used as a independent host program OR a plugin for Lua enviroment.
 Make
 ===========================
 
-Linux, Mac OS(GCC), Windows(Mingw32)
+Linux, Mac OS(GCC)
 
 * make
 * ./lolita x=test/config_server
+
+Windows(Mingw32)
+
+* make(mingw32-make) or make(mingw32-make) mingw
+* lolita x=test/config_server
 
 Windows(MSVC), Mac OS(Xcode)
 
