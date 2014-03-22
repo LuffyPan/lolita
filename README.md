@@ -5,36 +5,15 @@ Lolita is a portable, pure c, mini framework mainly for MMO development.
 
 Lolita can be used as a independent host program OR a plugin for Lua enviroment.
 
-Dependency
-==========================================
-
-* Premake4.4
-* Lua5.2.3(included)
-
-Modules Exported
-================
-
-* core.conf
-* core.base
-* core.info
-* core.os
-* core.net
-
-Building - Using Premake4.4
+Make
 ===========================
 
-    $ premake4 premake
-    $ premake4 make
-    $ premake4 deploy
+Linux, Mac OS(GCC), Windows(Mingw32)
 
-Usage
-=====
-used as a independent program
+* make
+* ./lolita x=test/config_server
 
-    $ cd _deploy
-    $ ./lolita x=../test/config_server
-    $ ./lolita x=../test/config_client
-    
-used as a plugin for Lua
+Windows(MSVC), Mac OS(Xcode)
 
-    require("lolitaext")
+* install [premake4](http://industriousone.com/premake/download)
+* premake4 xxxx (xxx = vs2002, vs2005, vs2008, vs2010, vs2012, xcode3, xcode4)
