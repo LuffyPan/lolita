@@ -2027,7 +2027,7 @@ static void cosock_evatta_epoll(co* Co, cosock* s, struct epoll_event* ev)
   if (ev->events & EPOLLERR || ev->events & EPOLLHUP || ev->events & EPOLLRDHUP)
   {
     cosock_close(Co, s);
-    coN_tracefatal(Co, "id[%d,%d] is closed..", s1->id, s->id);
+    coN_tracefatal(Co, "id[%d,%d] is closed caz epoll error..", s1->id, s->id);
     return;
   }
   if (ev->events & EPOLLIN)
