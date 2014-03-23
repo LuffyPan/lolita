@@ -1139,13 +1139,13 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
   coN_tracedebug(Co, "id[%d,%d] trying listen at [%s:%d]", s->id, 0, addr ? addr : "Any", (int)port);
   if (!cosock_newfd(Co, s))
   {
-    coN_tracedebug(Co, "id[%d,%d] listen failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    coN_tracefatal(Co, "id[%d,%d] listen failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
 
   if (!cosock_newfdm(Co, s))
   {
-    coN_tracedebug(Co, "id[%d,%d] listen failed while newfdm, [%s,%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    coN_tracefatal(Co, "id[%d,%d] listen failed while newfdm, [%s,%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
 
@@ -1155,13 +1155,13 @@ static int cosock_listen(co* Co, cosock* s, const char* addr, unsigned short por
   if (bind(s->fd, (const struct sockaddr*)&sin, sizeof(sin)))
   {
     cosock_logec(s);
-    coN_tracedebug(Co, "id[%d,%d] listen failed while bind, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    coN_tracefatal(Co, "id[%d,%d] listen failed while bind, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
   if (listen(s->fd, 5))
   {
     cosock_logec(s);
-    coN_tracedebug(Co, "id[%d,%d] listen failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    coN_tracefatal(Co, "id[%d,%d] listen failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
   s->sin = sin;
@@ -1177,13 +1177,13 @@ static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short po
   coN_tracedebug(Co, "id[%d,%d] trying connect to [%s:%d]", s->id, 0, addr, (int)port);
   if (!cosock_newfd(Co, s))
   {
-    coN_tracedebug(Co, "id[%d,%d] connect failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    coN_tracefatal(Co, "id[%d,%d] connect failed while newfd, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
 
   if (!cosock_newfdm(Co, s))
   {
-    coN_tracedebug(Co, "id[%d,%d] connect failed while newfdm, [%s,%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+    coN_tracefatal(Co, "id[%d,%d] connect failed while newfdm, [%s,%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
     return 0;
   }
 
@@ -1203,7 +1203,7 @@ static int cosock_connect(co* Co, cosock* s, const char* addr, unsigned short po
     }
     else
     {
-      coN_tracedebug(Co, "id[%d,%d] connect failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
+      coN_tracefatal(Co, "id[%d,%d] connect failed, [%s:%d]", s->id, 0, cosockfd_errstr(cosock_ec(s)), cosock_ec(s));
       return 0;
     }
   }
@@ -1241,7 +1241,7 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
   sn = cosock_new(Co, s->id2idx, s->attaclosedpo, NULL, s, s->eventer, COSOCKFD_TATTA, s->braw);
   if (!cosock_attachfd(Co, sn, nfd))
   {
-    coN_tracedebug(Co, "id[%d,%d] accept failed while attachfd, [%s:%d]", s->id, sn->id, cosockfd_errstr(s->ec), s->ec);
+    coN_tracefatal(Co, "id[%d,%d] accept failed while attachfd, [%s:%d]", s->id, sn->id, cosockfd_errstr(s->ec), s->ec);
     /* attachfd must set nfd to sn, nfd must be released while delete */
     cosock_delete(Co, sn);
     return 0;
@@ -1249,7 +1249,8 @@ static int cosock_accept(co* Co, cosock* s, cosock** psn)
 
   if (!cosock_newfdm(Co, sn))
   {
-    coN_tracedebug(Co, "id[%d,%d] accept failed while newfdm, [%s,%d]", s->id, sn->id, cosockfd_errstr(cosock_ec(sn)), cosock_ec(sn));
+    coN_tracefatal(Co, "id[%d,%d] accept failed while newfdm, [%s,%d]", s->id, sn->id, cosockfd_errstr(cosock_ec(sn)), cosock_ec(sn));
+    cosock_delete(Co, sn);
     return 0;
   }
 
@@ -1296,7 +1297,7 @@ static int cosock_recv(co* Co, cosock* s)
       {
         return 1;
       }
-      coN_tracedebug(Co, "id[%d,%d] failed while recv [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
+      coN_tracefatal(Co, "id[%d,%d] failed while recv [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
       return -1;
     }
     co_assert(r > 0);
@@ -1327,7 +1328,7 @@ static int cosock_send(co* Co, cosock* s)
     }
     else
     {
-      coN_tracedebug(Co, "id[%d,%d] send failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
+      coN_tracefatal(Co, "id[%d,%d] send failed [%s:%d]", s->id, 0, cosockfd_errstr(s->ec), s->ec);
       return -1;
     }
   }
