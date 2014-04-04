@@ -1037,9 +1037,38 @@ int co_pcallmsg(lua_State* L)
 {
 #if LUA_VERSION_NUM == 501
   /* what if lua 5.1.4 or lower ? */
-    lua_pushstring(L, "don't support Lua 5.2- to get traceback in core, it's time to give up!!\n");
+  /* TODO: check stack space is enough to do this? */
+  lua_getglobal(L, "debug");
+  if (!lua_istable(L, -1))
+  {
+    lua_pop(L, 1);
+    lua_pushstring(L, "\n");
+    lua_pushstring(L, "WTF, the [debug] is overwrited? give up traceback");
+    goto co_exit_flag;
+  }
+  lua_getfield(L, -1, "traceback");
+  if (!lua_isfunction(L, -1))
+  {
+    lua_pop(L, 2);
+    lua_pushstring(L, "\n");
+    lua_pushstring(L, "WTF, the [debug.traceback] is overwrited? give up traceback");
+    goto co_exit_flag;
+  }
+  lua_call(L, 0, 1);
+  if (!lua_isstring(L, -1))
+  {
+    lua_pop(L, 2); /* pop [wrong return value], [debug] */
+    lua_pushstring(L, "\n");
+    lua_pushstring(L, "WTF, the [debug.traceback] return is overwrited? give up traceback");
+  }
+  else
+  {
+    lua_remove(L, -2); /* pop debug */
+    lua_pushstring(L, "\n");
     lua_insert(L, -2);
-    lua_concat(L, 2);
+  }
+  co_exit_flag:
+  lua_concat(L, 3);
 #else
   luaL_traceback(L, L, lua_tostring(L, 1), 0);
 #endif
