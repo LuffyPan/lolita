@@ -193,6 +193,7 @@ void coOs_die(co* Co)
 {
   if (!Co->Os) return;
   coM_deleteobj(Co, Co->Os);
+  Co->Os = NULL;
 }
 
 static void coOs_sleep(int msec)

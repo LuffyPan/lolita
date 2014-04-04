@@ -22,7 +22,8 @@ static void co_born(co* Co, void* ud);
 static void co_load(co* Co);
 static void co_execute(co* Co);
 static void co_alive(co* Co, void* ud);
-static void co_free(co* Co);
+static void co_free(co* Co, void* ud);
+static void co_die(co* Co);
 static void co_fatalerror(co* Co, int e);
 static const char* co_modname(co* Co, int mod);
 static const char* co_lvname(co* Co, int lv);
@@ -297,7 +298,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, void* ud, int noexport, 
   if (z)
   {
     co_fatalerror(Co, z);
-    co_free(Co);
+    co_die(Co); Co = NULL;
     return NULL;
   }
   return (co*)Co;
@@ -315,7 +316,7 @@ void core_alive(co* Co)
 
 void core_die(co* Co)
 {
-  co_free(Co);
+  co_die(Co);
 }
 
 void core_open(co* Co, int x)
@@ -585,7 +586,7 @@ static int co_pfree(lua_State* L)
   return 0;
 }
 
-static void co_free(co* Co)
+static void co_free(co* Co, void* ud)
 {
   int n = 0;
   lua_State* L = co_L(Co);
@@ -604,6 +605,18 @@ static void co_free(co* Co)
   coOs_die(Co);
   co_deletelua(Co);
   co_assert((Co->xlloc == co_xlloc) == (Co->umem == sizeof(*Co)));
+  /* (*Co->xlloc)(NULL, Co, sizeof(co), 0); */
+}
+
+static void co_die(co* Co)
+{
+  int z = coR_pcall(Co, co_free, NULL);
+  if (z)
+  {
+      co_fatalerror(Co, z);
+      /* the memory leak is not important at this time.. */
+      /* will delete force */
+  }
   (*Co->xlloc)(NULL, Co, sizeof(co), 0);
 }
 
@@ -642,6 +655,7 @@ static void co_deletelua(co* Co)
 {
   lua_State* L = co_L(Co);
   if ((!Co->battachL) && L) lua_close(L);
+  co_L(Co) = NULL;
 }
 
 static void co_pexportcore(co* Co, lua_State* L)

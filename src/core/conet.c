@@ -569,6 +569,7 @@ void coN_die(co* Co)
   coN_uninitenv(Co);
   coN_deleteid2idx(Co);
   coM_deleteobj(Co, Co->N);
+  Co->N = NULL;
 }
 
 int coN_pexportapi(co* Co, lua_State* L)
