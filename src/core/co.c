@@ -1037,6 +1037,9 @@ int co_pcallmsg(lua_State* L)
 {
 #if LUA_VERSION_NUM == 501
   /* what if lua 5.1.4 or lower ? */
+    lua_pushstring(L, "don't support Lua 5.2- to get traceback in core, it's time to give up!!\n");
+    lua_insert(L, -2);
+    lua_concat(L, 2);
 #else
   luaL_traceback(L, L, lua_tostring(L, 1), 0);
 #endif
