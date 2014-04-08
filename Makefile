@@ -2,7 +2,7 @@
 
 COREPATH = src/core
 LUAPATH = deps/lua-5.2.3/src
-CFLAGS = -g -Wall -I$(COREPATH) -I$(LUAPATH) -D LOLITA_CORE_GITVER=\"$(GITVER)\"
+CFLAGS = -g -Wall -I$(COREPATH) -D LOLITA_CORE_GITVER=\"$(GITVER)\"
 LDFLAGS :=
 
 CORESRC := \
@@ -56,6 +56,14 @@ SYS=$(if $(filter Linux%,$(UNAME)),linux,\
 )))
 
 GITVER=$(shell git describe --dirty)
+
+ifdef LUAJIT
+CFLAGS += $(shell pkg-config --cflags luajit) -D LOLITA_CORE_LUAJIT
+LDFLAGS += $(shell pkg-config --libs luajit)
+LUASRC :=
+else
+CFLAGS += -I$(LUAPATH)
+endif
 
 all: $(SYS)
 

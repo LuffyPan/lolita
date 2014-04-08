@@ -12,9 +12,11 @@ Chamz Lau, Copyright (C) 2013-2017
 #include "coos.h"
 #include "comm.h"
 
+#if !defined(LOLITA_CORE_LUAJIT)
+static void* co_lualloc(void* ud, void* p, size_t os, size_t ns);
+#endif
 static int co_panic(lua_State* L);
 static void* co_xlloc(void* ud, void* p, size_t os, size_t ns);
-static void* co_lualloc(void* ud, void* p, size_t os, size_t ns);
 static void co_newlua(co* Co);
 static void co_deletelua(co* Co);
 static void co_export(co* Co);
@@ -640,7 +642,12 @@ static void co_newlua(co* Co)
   }
   else
   {
+    /* Luajit under 64bit, must use luaL_newstate, caz must use the build-in memory alloc? */
+#if defined(LOLITA_CORE_LUAJIT)
+    L = luaL_newstate();
+#else
     L = lua_newstate(co_lualloc, Co);
+#endif
     if (!L) coR_throw(Co, CO_ERRSCRIPTNEW);
     n = lua_gettop(L); co_assert(n == 0);
     co_L(Co) = L;
@@ -910,6 +917,7 @@ static int co_panic(lua_State* L)
   return 0;
 }
 
+#if !defined(LOLITA_CORE_LUAJIT)
 static void* co_lualloc(void* ud, void* p, size_t os, size_t ns)
 {
   co* Co = co_cast(co*, ud);
@@ -921,6 +929,7 @@ static void* co_lualloc(void* ud, void* p, size_t os, size_t ns)
   if (NULL == np && ns > 0 && ns <= os) co_assert(0);
   return np;
 }
+#endif
 
 static void* co_xlloc(void* ud, void* p, size_t os, size_t ns)
 {
@@ -998,6 +1007,11 @@ static int co_export_detach(lua_State* L)
   lua_pushnil(L);
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   */
+
+  /*
+    return 1 directly caz luajit coredump
+  */
+  lua_pushnil(L);
   return 1;
 }
 
