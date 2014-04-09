@@ -92,6 +92,7 @@ struct co
   int noexport;
   int inneractive;
   int bactive;
+  int brettach;
   int tracelv;
   co_xllocf xlloc;
   co_tracef tf;

@@ -38,6 +38,8 @@ static int co_export_settracelv(lua_State* L);
 static int co_export_getregistry(lua_State* L);
 static int co_export_attach(lua_State* L);
 static int co_export_detach(lua_State* L);
+static int co_export_rettach(lua_State* L);
+static int co_export_isrettaching(lua_State* L);
 static int co_export_addpath(lua_State* L);
 static int co_export_active(lua_State* L);
 
@@ -289,6 +291,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, void* ud, int noexport, 
   }
   Co->inneractive = 0;
   Co->bactive = 0;
+  Co->brettach = 0;
   Co->noexport = noexport;
   Co->tracelv = CO_LVFATAL;
   Co->errjmp = NULL;
@@ -834,6 +837,8 @@ static void co_pexportbase(co* Co, lua_State* L)
     {"getregistry", co_export_getregistry},
     {"attach", co_export_attach},
     {"detach", co_export_detach},
+    {"rettach", co_export_rettach},
+    {"isrettaching", co_export_isrettaching},
     {"addpath", co_export_addpath},
     {"active", co_export_active},
     {NULL, NULL},
@@ -987,14 +992,47 @@ static int co_export_getregistry(lua_State* L)
 
 static int co_export_attach(lua_State* L)
 {
+  co* Co = co_C(L);
+  if (Co->brettach)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "attach while rettaching, just return the attach!");
+    lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach");
+    return 1;
+  }
+
+
+  /* if table is different? replace it ?? let me think about it!! */
   lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   if (!lua_isnil(L, -1)) { luaL_error(L, "duplicate attach"); }
   lua_pop(L, 1);
-  luaL_checktype(L, 1, LUA_TTABLE);
-  lua_pushvalue(L, 1); /* ensure that the -1 is this table */
-  lua_getfield(L, -1, "born"); luaL_checktype(L, -1, LUA_TFUNCTION); lua_pop(L, 1);
-  lua_getfield(L, -1, "active"); luaL_checktype(L, -1, LUA_TFUNCTION); lua_pop(L, 1);
-  lua_getfield(L, -1, "die"); luaL_checktype(L, -1, LUA_TFUNCTION); lua_pop(L, 1);
+
+
+  /* if attach is not pass in, create a new for it */
+  /* ensure that the -1 is this table */
+  if (!lua_istable(L, 1))
+  {
+    lua_newtable(L);
+    lua_pushvalue(L, -1);
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "create a new attach for it");
+  }
+  else
+  {
+    lua_pushvalue(L, 1);
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "pass in attach for it");
+  }
+
+  lua_getfield(L, -1, "born");
+  if (!(lua_isnil(L, -1) || lua_isfunction(L, -1))) luaL_error(L, "[born] should be nil or function");
+  lua_pop(L, 1);
+  lua_getfield(L, -1, "active");
+  if (!(lua_isnil(L, -1) || lua_isfunction(L, -1))) luaL_error(L, "[active] should be nil or function");
+  lua_pop(L, 1);
+  lua_getfield(L, -1, "die");
+  if (!(lua_isnil(L, -1) || lua_isfunction(L, -1))) luaL_error(L, "[die] should be nil or function");
+  lua_pop(L, 1);
+  lua_getfield(L, -1, "reborn");
+  if (!(lua_isnil(L, -1) || lua_isfunction(L, -1))) luaL_error(L, "[reborn] should be nil or function");
+  lua_pop(L, 1);
   lua_setfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   return 1;
 }
@@ -1012,6 +1050,48 @@ static int co_export_detach(lua_State* L)
     return 1 directly caz luajit coredump
   */
   lua_pushnil(L);
+  return 1;
+}
+
+static int co_export_isrettaching(lua_State* L)
+{
+  co* Co = co_C(L);
+  lua_pushboolean(L, Co->brettach);
+  return 1;
+}
+
+static int co_export_rettach(lua_State* L)
+{
+  co* Co = co_C(L);
+  int n = lua_gettop(L);
+  if (Co->brettach) { luaL_error(L, "rettach in rettaching?? fucker?"); }
+  if (!Co->bactive) { luaL_error(L, "can't rettach while not in active"); }
+  Co->brettach = 1;
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "rettaching........");
+
+  /* reexecute */
+  /* TODO::should clear some status, such as package.cpath, package.path, */
+  /* TODO::rettach include the x=path config files */
+  co_execute(Co);
+
+  if (!co_attachfun(L, "reborn"))
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "rettached without reborn!");
+    co_assert(lua_gettop(L) == n);
+    return 0;
+  }
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "reborning........");
+  co_assert(lua_isfunction(L, n + 1));
+  co_assert(lua_istable(L, n + 2));
+  /* this should pcall to protect the brettach flag can be reset and make it continue run! */
+  lua_call(L, 1, 0);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "reborned!!!!!!!!!!");
+
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "rettached!!!!!!!!!");
+  Co->brettach = 0;
+
+  co_assert(lua_gettop(L) == n);
+  lua_pushnumber(L, 1);
   return 1;
 }
 
@@ -1105,12 +1185,19 @@ co* co_C(lua_State* L)
 int co_attachfun(lua_State* L, const char* fun)
 {
   int n = 0;
+  co* Co = co_C(L);
   n = lua_gettop(L);
   lua_getfield(L, LUA_REGISTRYINDEX, "lolita.attach");
   if (!lua_istable(L, n + 1)) {lua_pop(L, 1); co_assert(n == lua_gettop(L)); return 0;}
   co_assert(n + 1 == lua_gettop(L));
 
-  lua_getfield(L, n + 1, fun); co_assert(n + 2 == lua_gettop(L)); co_assert(lua_isfunction(L, n + 2));
+  lua_getfield(L, n + 1, fun); co_assert(n + 2 == lua_gettop(L)); co_assert(lua_isfunction(L, n + 2) || lua_isnil(L, n + 2));
+  if (lua_isnil(L, n + 2))
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "attach's [%s] is nil!", fun);
+    lua_pop(L, 2);
+    return 0;
+  }
   lua_insert(L, n + 1);
   co_assert(n + 2 == lua_gettop(L));
   return 1;
