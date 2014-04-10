@@ -8,6 +8,10 @@ Lolita can be used as a independent host program OR a plugin for Lua enviroment.
 Make
 ===========================
 
+If you are lucky enough, You don't need to install **uuid-dev**, **pkg-config**, **luajit**.. by yourself!
+
+If you wanna use **luajit**. **LUAJIT=1** should be add as Makefile's parameter
+
 Linux, Mac OS(GCC)
 
 * make

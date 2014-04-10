@@ -76,7 +76,7 @@ print(string.format("%s", core.info.author))
 print(string.format("%s", core.info.reposversion))
 print("")
 
-local echo = {}
+local echo = core.base.attach()
 
 function echo:born()
   --set trace level
@@ -131,6 +131,13 @@ function echo:born()
   end
   print("oh, i'm born")
   return 1
+end
+
+function echo:reborn()
+  -- TODO::the register of net and os
+  -- should register the net ev again?
+  -- should register the os ev again?
+  print("yeah, i'm reborned")
 end
 
 function echo:active()

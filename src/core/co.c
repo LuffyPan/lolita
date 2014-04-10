@@ -1060,6 +1060,34 @@ static int co_export_isrettaching(lua_State* L)
   return 1;
 }
 
+static int co_prettach(lua_State* L)
+{
+  co* Co = co_C(L);
+  int n = lua_gettop(L);
+
+  /* reexecute */
+  /* TODO::should clear some status, such as package.cpath, package.path, */
+  /* TODO::rettach include the x=path config files */
+  co_assert(0 == n);
+  co_execute(Co);
+  co_assert(lua_gettop(L) == n);
+
+  if (!co_attachfun(L, "reborn"))
+  {
+    co_assert(lua_gettop(L) == n);
+    return 0;
+  }
+
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "reborning........");
+  co_assert(lua_isfunction(L, n + 1));
+  co_assert(lua_istable(L, n + 2));
+  lua_call(L, 1, 0);
+  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "reborned!!!!!!!!!!");
+  co_assert(0 == lua_gettop(L));
+
+  return 0;
+}
+
 static int co_export_rettach(lua_State* L)
 {
   co* Co = co_C(L);
@@ -1069,23 +1097,11 @@ static int co_export_rettach(lua_State* L)
   Co->brettach = 1;
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "rettaching........");
 
-  /* reexecute */
-  /* TODO::should clear some status, such as package.cpath, package.path, */
-  /* TODO::rettach include the x=path config files */
-  co_execute(Co);
-
-  if (!co_attachfun(L, "reborn"))
-  {
-    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "rettached without reborn!");
-    co_assert(lua_gettop(L) == n);
-    return 0;
-  }
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "reborning........");
-  co_assert(lua_isfunction(L, n + 1));
-  co_assert(lua_istable(L, n + 2));
-  /* this should pcall to protect the brettach flag can be reset and make it continue run! */
-  lua_call(L, 1, 0);
-  co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "reborned!!!!!!!!!!");
+  lua_pushcfunction(L, co_pcallmsg); co_assert(n + 1 == lua_gettop(L));
+  lua_pushcfunction(L, co_prettach); co_assert(n + 2 == lua_gettop(L));
+  if (lua_pcall(L, 0, 0, n + 1)) {co_tracecallstack(Co, CO_MOD_CORE, CO_LVFATAL, L); lua_pop(L, 1);} /* pop the error string */
+  co_assert(n + 1 == lua_gettop(L));
+  lua_pop(L, 1); /* pop the pcallmsg function */
 
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "rettached!!!!!!!!!");
   Co->brettach = 0;
