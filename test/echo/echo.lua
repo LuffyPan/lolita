@@ -88,7 +88,7 @@ function echo:born()
 
   --register os signal process
   --TODO:the second param can be ignore
-  assert(core.os.register(function() core.base.detach() end, nil))
+  assert(core.os.register(function() core.base.rettach() end, nil))
 
   --check the proc
   assert(core.os.getpinfo(core.os.getpid()) == 1)
@@ -135,8 +135,8 @@ end
 
 function echo:reborn()
   -- TODO::the register of net and os
-  -- should register the net ev again?
-  -- should register the os ev again?
+  assert(core.net.register(self.ev, self))
+  assert(core.os.register(function() core.base.detach() end, nil))
   print("yeah, i'm reborned")
 end
 
@@ -202,6 +202,3 @@ function echo:evclient(evid, id, attaid, extra)
 
   end
 end
-
---born, active, die must be the function of echo to attach
-lolita.core.base.attach(echo)
