@@ -417,9 +417,17 @@ static void co_born(co* Co, void* ud)
   co_assert(n == lua_gettop(L));
 }
 
-static void co_addpath(co* Co, lua_State* L, const char* path)
+/* the ignore parameter is to control should be really add the path, reborn is useful on this */
+static void co_addpath(co* Co, lua_State* L, const char* path, int ignore)
 {
-  int top = lua_gettop(L);
+  int top = 0;
+
+  if (ignore)
+  {
+    co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "ignore add search path: %s, caz rettaching", path);
+    return;
+  }
+  top = lua_gettop(L);
   lua_getglobal(L, "package");
   co_assert(lua_istable(L, -1));
 
@@ -474,7 +482,7 @@ static void co_execute(co* Co)
       lua_pushnumber(L, i);
       lua_gettable(L, 4);
       co_assert(5 == lua_gettop(L));
-      co_addpath(Co, L, lua_tostring(L, -1));
+      co_addpath(Co, L, lua_tostring(L, -1), Co->brettach);
       lua_pop(L, 1); co_assert(4 == lua_gettop(L));
     }
     co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "exeX search");
@@ -490,7 +498,7 @@ static void co_execute(co* Co)
     for (i = 1; i <= len; ++i)
     {
       lua_pushnumber(L, i); lua_gettable(L, 4); co_assert(5 == lua_gettop(L));
-      co_addpath(Co, L, lua_tostring(L, 5));
+      co_addpath(Co, L, lua_tostring(L, 5), Co->brettach);
       lua_pushvalue(L, 5); co_assert(6 == lua_gettop(L));
       lua_pushstring(L, "manifest.lua");
       lua_concat(L, 2); co_assert(6 == lua_gettop(L));
@@ -1114,7 +1122,7 @@ static int co_export_rettach(lua_State* L)
 static int co_export_addpath(lua_State* L)
 {
   co* Co = co_C(L);
-  co_addpath(Co, L, luaL_checkstring(L, 1));
+  co_addpath(Co, L, luaL_checkstring(L, 1), 0);
   return 0;
 }
 
