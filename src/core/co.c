@@ -672,7 +672,21 @@ static void co_newlua(co* Co)
 static void co_deletelua(co* Co)
 {
   lua_State* L = co_L(Co);
-  if ((!Co->battachL) && L) lua_close(L);
+  if (L)
+  {
+    lua_pushnil(L);
+    lua_setfield(L, LUA_REGISTRYINDEX, "lolita");
+    if (!Co->noexport)
+    {
+      /* there has no double check */
+      lua_pushnil(L);
+      lua_setglobal(L, "lolita");
+    }
+    if (!Co->battachL)
+    {
+      lua_close(L);
+    }
+  }
   co_L(Co) = NULL;
 }
 
