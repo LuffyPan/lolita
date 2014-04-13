@@ -164,7 +164,13 @@ void coOs_activesig(co* Co)
     int sig = Os->sigs[--Os->sigcnt];
     int z = 0;
     z = coOs_getsighandler(Co, Os);
-    if (!z) {Os->sigcnt = 0; return;}
+    if (!z)
+    {
+      /* no sighandler, default detach */
+      Co->bactive = 0;
+      Os->sigcnt = 0;
+      return;
+    }
     co_assert(z > 0);
     lua_pushnumber(L, sig);
     lua_call(L, 1 + z - 1, 0);
