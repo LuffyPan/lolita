@@ -2025,10 +2025,16 @@ static void cosock_evatta_epoll(co* Co, cosock* s, struct epoll_event* ev)
   co_assert(s->fdt == COSOCKFD_TATTA);
   co_assert(s1->fdt == COSOCKFD_TACCP);
 
-  if (ev->events & EPOLLERR || ev->events & EPOLLHUP || ev->events & EPOLLRDHUP)
+  if (ev->events & EPOLLERR)
   {
     cosock_close(Co, s);
-    coN_tracefatal(Co, "id[%d,%d] is closed caz epoll error..", s1->id, s->id);
+    coN_tracedebug(Co, "id[%d,%d] is closed caz epoll error..", s1->id, s->id);
+    return;
+  }
+  if (ev->events & EPOLLHUP || ev->events & EPOLLRDHUP)
+  {
+    coN_tracedebug(Co, "id[%d,%d] is closed caz epoll HUP or RDHUP..", s1->id, s->id);
+    cosock_close(Co, s);
     return;
   }
   if (ev->events & EPOLLIN)
