@@ -77,8 +77,9 @@ typedef struct coOs coOs;
 
 typedef struct co_longjmp co_longjmp;
 typedef struct co co;
+typedef struct co_gene co_gene;
 typedef void* (*co_xllocf)(void* ud, void* p, size_t olds, size_t news);
-typedef void (*co_tracef)(co*Co, int mod, int lv, const char* msg, va_list msgva);
+typedef void (*co_tracef)(co* Co, int mod, int lv, const char* moddesc, const char* lvdesc, const char* msg, va_list msgva);
 
 struct co_longjmp
 {
@@ -108,6 +109,15 @@ struct co
   coOs* Os;
 };
 
+struct co_gene
+{
+  co_xllocf xf;
+  co_tracef tf;
+  int noexport;
+  void* ud;
+};
+
+
 #define CO_OK 0
 #define CO_ERRRUN 1
 #define CO_ERRMEM 2
@@ -116,9 +126,10 @@ struct co
 #define CO_ERRSCRIPTCALL 5
 #define CO_ERRX 6
 
-#define CO_LVFATAL 0
-#define CO_LVDEBUG 1
-#define CO_LVINFO 2
+#define CO_LVNONE 0
+#define CO_LVFATAL 1
+#define CO_LVDEBUG 2
+#define CO_LVINFO 3
 
 #define CO_MOD_CORE 0
 #define CO_MOD_NET 1

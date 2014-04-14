@@ -43,7 +43,7 @@ static int co_export_isrettaching(lua_State* L);
 static int co_export_addpath(lua_State* L);
 static int co_export_active(lua_State* L);
 
-static void defaulttrace(co*Co, int mod, int lv, const char* msg, va_list msgva)
+static void co_buildintrace(co* Co, int mod, int lv, const char* msg, va_list msgva)
 {
   if (lv > Co->tracelv) return;
   printf("[%s] [%s] ", co_modname(Co, mod), co_lvname(Co, lv));
@@ -267,18 +267,20 @@ static int co_export_conf_set(lua_State* L)
 }
 
 /*
-  lua_State* can be non-force? and use void* instead
+
+the next version will move the [co_xllocf] and [L] and [noexport] to the co_gene
+
 */
-co* core_born(int argc, const char** argv, co_xllocf x, void* ud, int noexport, lua_State* L)
+co* core_born(int argc, const char** argv, co_xllocf x, co_gene* Coge, int noexport, lua_State* L)
 {
   int z = 0;
   co* Co;
   x = x ? x : co_xlloc;
-  Co = co_cast(co*, (*x)(x == co_xlloc ? NULL : ud, NULL, 0, sizeof(co)));
+  Co = co_cast(co*, (*x)(x == co_xlloc ? NULL : (Coge ? Coge->ud : NULL), NULL, 0, sizeof(co)));
   if (NULL == Co) return NULL;
   Co->xlloc = x;
-  Co->ud = ud;
-  Co->tf = defaulttrace;
+  Co->ud = Coge ? Coge->ud : NULL;
+  Co->tf = Coge ? Coge->tf : NULL;
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
@@ -324,12 +326,10 @@ void core_die(co* Co)
   co_die(Co);
 }
 
-void core_open(co* Co, int x)
+void core_steal(co* Co)
 {
   lua_State* L = co_L(Co);
-  if (x) lua_newtable(L);
   co_pushcore(L, Co);
-  if (x){lua_setfield(L, -2, "core"); lua_setglobal(L, "lolita");}
 }
 
 static void co_doborn(co* Co)
@@ -912,7 +912,7 @@ static const char* co_lvname(co* Co, int lv)
 {
   static const char* _ln[CO_LVINFO+1] =
   {
-    "FATAL","DEBUG", "INFO",
+    "NONE","FATAL","DEBUG", "INFO",
   };
   co_assert(lv >= CO_LVFATAL && lv <= CO_LVINFO);
   return _ln[lv];
@@ -1153,10 +1153,17 @@ static int co_export_active(lua_State* L)
 void co_trace(co* Co, int mod, int lv, const char* msg, ...)
 {
   va_list msgva;
-  if (!Co->tf) return;
+
   va_start(msgva, msg);
-  Co->tf(Co, mod, lv, msg, msgva);
+  co_buildintrace(Co, mod, lv, msg, msgva);
   va_end(msgva);
+
+  if (Co->tf)
+  {
+    va_start(msgva, msg);
+    Co->tf(Co, mod, lv, co_modname(Co, mod), co_lvname(Co, lv), msg, msgva);
+    va_end(msgva);
+  }
 }
 
 void co_tracecallstack(co* Co, int mod, int lv, lua_State* L)

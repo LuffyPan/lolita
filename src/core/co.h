@@ -11,9 +11,9 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #include "codef.h"
 
-co* core_born(int argc, const char** argv, co_xllocf x, void* ud, int noexport, lua_State* L);
+co* core_born(int argc, const char** argv, co_xllocf x, co_gene* Coge, int noexport, lua_State* L);
 void core_alive(co* Co);
 void core_die(co* Co);
-void core_open(co* Co, int x);
+void core_steal(co* Co);
 
 #endif
