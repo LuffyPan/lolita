@@ -16,6 +16,7 @@ Chamz Lau, Copyright (C) 2013-2017
 
 static void prepare();
 static void trace(co* Co, int mod, int lv, const char* moddesc, const char* lvdesc, const char* msg, va_list msgva);
+static void exf(co* Co, lua_State* L, void* feature);
 
 int main(int argc, const char** argv)
 {
@@ -24,6 +25,7 @@ int main(int argc, const char** argv)
 
   prepare();
 
+  Coge.exf = exf;
   Coge.tf = trace;
   Coge.ud = NULL;
   Co = core_born(argc, argv, NULL, &Coge, 0, NULL);if (!Co){return 1;}
@@ -55,3 +57,13 @@ static void trace(co* Co, int mod, int lv, const char* moddesc, const char* lvde
   */
 }
 
+static void exf(co* Co, lua_State* L, void* feature)
+{
+  /* promise the lua_gettop(L) is 0 when finished */
+  /*
+  co_assert(0 == lua_gettop(L));
+  lua_newtable(L);
+  lua_setglobal(L, "exf");
+  co_assert(0 == lua_gettop(L));
+  */
+}

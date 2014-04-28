@@ -288,6 +288,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, co_gene* Coge, int noexp
   Co->xlloc = x;
   Co->ud = Coge ? Coge->ud : NULL;
   Co->tf = Coge ? Coge->tf : NULL;
+  Co->exf = Coge ? Coge->exf : NULL;
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
@@ -837,6 +838,7 @@ static void co_export(co* Co, lua_State* L)
 {
   co_assert(co_L(Co) == L);
   co_assert(lua_gettop(L) == 0);
+  if (Co->exf) Co->exf(Co, L, NULL);
   co_pexportcore(Co, L);
   co_pexportconf(Co, L);
   co_pexportinfo(Co, L);
@@ -1228,7 +1230,7 @@ static void co_setC(lua_State* L, co* Co)
   if (!lua_isnil(L, -1) && Co)
   {
     co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "[LOLITA] is duplicated!");
-    return coR_throw(Co, 1);
+    coR_throw(Co, 1);
   }
   lua_pop(L, 1);
   lua_pushlightuserdata(L, Co);
