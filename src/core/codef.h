@@ -81,6 +81,7 @@ typedef struct co_gene co_gene;
 typedef void* (*co_xllocf)(void* ud, void* p, size_t olds, size_t news);
 typedef void (*co_tracef)(co* Co, int mod, int lv, const char* moddesc, const char* lvdesc, const char* msg, va_list msgva);
 typedef void (*co_exportf)(co* Co, lua_State* L, void* feature);
+typedef int (*co_dofilef)(co* Co, lua_State* L, const char* fname, int nargs, int nresults, int boptional, void* feature);
 
 struct co_longjmp
 {
@@ -99,6 +100,7 @@ struct co
   co_xllocf xlloc;
   co_tracef tf;
   co_exportf exf;
+  co_dofilef dof;
   void* ud;
   size_t umem;
   size_t maxmem;
@@ -116,6 +118,7 @@ struct co_gene
   co_xllocf xf;
   co_tracef tf;
   co_exportf exf;
+  co_dofilef dof;
   int noexport;
   void* ud;
 };

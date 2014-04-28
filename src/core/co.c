@@ -59,6 +59,38 @@ static void co_buildintrace(co* Co, int mod, int lv, const char* msg, va_list ms
   fflush(stdout);fflush(stderr);
 }
 
+static int co_buildindofile(co* Co, lua_State* L, const char* fname, int nargs, int nresults, int optional, void* feature)
+{
+  int idx = 0;
+  int n = lua_gettop(L);
+  co_assert(nargs >= 0 && nresults >= 0 && n >= nargs);
+  idx = n - nargs + 1;
+
+  if ( luaL_loadfile(L, fname) )
+  {
+    if (optional)
+    {
+      lua_pop(L, nargs + 1);
+      co_assert(lua_gettop(L) == idx - 1);
+      return 0;
+    }
+    else
+    {
+      lua_pushvalue(L, -1);
+      lua_insert(L, idx);
+      lua_pop(L, nargs + 1);
+      co_assert(lua_gettop(L) == idx - 1 + 1);
+      lua_error(L);
+    }
+  }
+  co_assert(lua_gettop(L) == n + 1);
+  lua_insert(L, idx);
+  co_assert(lua_gettop(L) == n + 1);
+  lua_call(L, nargs, nresults);
+  co_assert(lua_gettop(L) == idx - 1 + nresults);
+  return 1;
+}
+
 static void co_pushconfpath(co* Co, lua_State* L, const char* file)
 {
   const char* path = NULL;
@@ -140,8 +172,7 @@ static void co_loadx(co* Co, lua_State* L, const char* file)
     return;
   }
   co_pushconfpath(Co, L, file);
-  if (luaL_loadfile(L, file)) lua_error(L);
-  lua_call(L, 0, 0);
+  Co->dof(Co, L, file, 0, 0, 0, NULL);
   co_popconfpath(Co, L);
   co_assert(n == lua_gettop(L));
   co_trace(Co, CO_MOD_CORE, CO_LVDEBUG, "config %s loaded", file);
@@ -289,6 +320,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, co_gene* Coge, int noexp
   Co->ud = Coge ? Coge->ud : NULL;
   Co->tf = Coge ? Coge->tf : NULL;
   Co->exf = Coge ? Coge->exf : NULL;
+  Co->dof = (Coge && Coge->dof) ? Coge->dof : co_buildindofile;
   Co->argc = argc;
   Co->argv = argv;
   Co->umem = 0;
@@ -504,8 +536,8 @@ static void co_execute(co* Co)
       lua_pushvalue(L, 5); co_assert(6 == lua_gettop(L));
       lua_pushstring(L, "manifest.lua");
       lua_concat(L, 2); co_assert(6 == lua_gettop(L));
-      if (luaL_loadfile(L, lua_tostring(L, -1))) lua_error(L);
-      lua_call(L, 0, 1); co_assert(7 == lua_gettop(L));
+      Co->dof(Co, L, lua_tostring(L, -1), 0, 1, 0, NULL);
+      co_assert(7 == lua_gettop(L));
 
       lua_len(L, 7); len2 = (int)lua_tonumber(L, -1); lua_pop(L, 1);
       for (i2 = 1; i2 <= len2; ++i2)
@@ -523,16 +555,7 @@ static void co_execute(co* Co)
             lua_remove(L, 9); co_assert(9 == lua_gettop(L));
         }
         lua_concat(L, 2); co_assert(8 == lua_gettop(L));
-        r = luaL_loadfile(L, lua_tostring(L, 8)); co_assert(9 == lua_gettop(L));
-        if (r)
-        {
-            if (!boption) lua_error(L);
-            else {lua_pop(L, 1); co_assert(8 == lua_gettop(L));}
-        }
-        else
-        {
-            lua_call(L, 0, 0); co_assert(8 == lua_gettop(L));
-        }
+        Co->dof(Co, L, lua_tostring(L, 8), 0, 0, boption, NULL);
         lua_pop(L, 1); co_assert(7 == lua_gettop(L));
       }
 
