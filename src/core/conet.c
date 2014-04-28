@@ -291,7 +291,6 @@ static void cosock_deletefdt(co* Co, cosock* s);
 #define cosock_afunc(s) ((s)->afunc)
 #define cosock_fdt(s) ((s)->fdt)
 
-static void coN_export(co* Co);
 static void coN_initenv(co* Co);
 static void coN_uninitenv(co* Co);
 static void coN_initeventer(co* Co);
@@ -497,7 +496,7 @@ static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
   Co = co_C(L);
-  co_pushcore(L, Co);
+  co_c(L);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
   lua_pushnumber(L, id);
@@ -515,7 +514,7 @@ static int cosockid2idx_getidx(cosockid2idx* id2idx, int id)
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
   Co = co_C(L);
-  co_pushcore(L, Co);
+  co_c(L);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
   lua_pushnumber(L, id);
@@ -541,7 +540,6 @@ void coN_born(co* Co)
   coN_newid2idx(Co);
   coN_initenv(Co);
   coN_newcosocks(Co);
-  coN_export(Co);
 }
 
 void coN_active(co* Co)
@@ -587,7 +585,7 @@ int coN_pexportapi(co* Co, lua_State* L)
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
-  co_pushcore(L, Co);
+  co_c(L);
   lua_newtable(L);
   luaL_setfuncs(L, coN_funcs, 0);
 
@@ -614,10 +612,10 @@ int coN_pexport(lua_State* L)
   return 0;
 }
 
-static void coN_export(co* Co)
+void coN_export(co* Co, lua_State* L)
 {
   int z, top;
-  lua_State* L = co_L(Co);
+  co_assert(co_L(Co) == L);
   top = lua_gettop(L);
   if (!Co->battachL) {co_assert(lua_gettop(L) == 0);}
   lua_pushcfunction(L, co_pcallmsg);

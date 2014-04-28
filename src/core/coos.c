@@ -77,7 +77,7 @@ int coOs_pexportapi(co* Co, lua_State* L)
     {NULL, NULL},
   };
   co_assert(lua_gettop(L) == 0);
-  co_pushcore(L, Co);
+  co_c(L);
   lua_newtable(L);
   luaL_setfuncs(L, coOs_funcs, 0);
   /* push sig const */
@@ -98,10 +98,10 @@ int coOs_pexport(lua_State* L)
   return 0;
 }
 
-void coOs_export(co* Co)
+void coOs_export(co* Co, lua_State* L)
 {
   int z, top;
-  lua_State* L = co_L(Co);
+  co_assert(co_L(Co) == L);
   top = lua_gettop(L);
   if (!Co->battachL) {co_assert(top == 0);}
   lua_pushcfunction(L, co_pcallmsg);
@@ -186,7 +186,6 @@ void coOs_born(co* Co)
   Os->sigcnt = 0;
   Co->Os = Os;
   if (!Co->battachL) {coOs_initsig(Co);}
-  coOs_export(Co);
 }
 
 void coOs_active(co* Co, int msec)

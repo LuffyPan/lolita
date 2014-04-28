@@ -150,9 +150,8 @@ void co_trace(co* Co, int mod, int lv, const char* msg, ...);
 void co_tracecallstack(co* Co, int mod, int lv, lua_State* L);
 
 co* co_C(lua_State* L);
+void co_c(lua_State* L);
 int co_pcallmsg(lua_State* L);
-
 #define co_L(Co) ((Co)->L)
-#define co_pushcore(L, Co) lua_getfield(L, LUA_REGISTRYINDEX, "lolita.core"); co_assert(lua_istable(L, -1)); (void)Co
 
 #endif
