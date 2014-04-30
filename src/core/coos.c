@@ -138,6 +138,7 @@ void coOs_signalhandler(int t)
 }
 #endif
 
+/* forbid reentrant */
 void coOs_initsig(co* Co)
 {
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
@@ -149,6 +150,20 @@ void coOs_initsig(co* Co)
 #endif
   co_assert(!_coOs);
   _coOs = Co->Os;
+}
+
+void coOs_uninitsig(co* Co)
+{
+#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
+  BOOL b = FALSE;
+  b = SetConsoleCtrlHandler(coOs_signalhandler, FALSE);
+  co_assert(b);
+#else
+  /* signal(SIGINT, coOs_signalhandler); */
+#endif
+  co_assert(_coOs);
+  co_assert(Co->Os == _coOs);
+  _coOs = NULL;
 }
 
 void coOs_activesig(co* Co)
@@ -185,7 +200,7 @@ void coOs_born(co* Co)
   Os = co_cast(coOs*, coM_newobj(Co, coOs));
   Os->sigcnt = 0;
   Co->Os = Os;
-  if (!Co->battachL) {coOs_initsig(Co);}
+  if (!Co->battachL) { coOs_initsig(Co); }
 }
 
 void coOs_active(co* Co, int msec)
@@ -197,6 +212,7 @@ void coOs_active(co* Co, int msec)
 void coOs_die(co* Co)
 {
   if (!Co->Os) return;
+  if (!Co->battachL) { coOs_uninitsig(Co); }
   coM_deleteobj(Co, Co->Os);
   Co->Os = NULL;
 }

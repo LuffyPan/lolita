@@ -123,14 +123,14 @@ struct co_gene
   void* ud;
 };
 
-
 #define CO_OK 0
 #define CO_ERRRUN 1
 #define CO_ERRMEM 2
 #define CO_ERRSCRIPTPANIC 3
 #define CO_ERRSCRIPTNEW 4
 #define CO_ERRSCRIPTCALL 5
-#define CO_ERRX 6
+#define CO_ERRDUPLICATE 6
+#define CO_ERRX 7
 
 #define CO_LVNONE 0
 #define CO_LVFATAL 1

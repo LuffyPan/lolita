@@ -345,6 +345,12 @@ co* core_born(int argc, const char** argv, co_xllocf x, co_gene* Coge, int noexp
   if (z)
   {
     co_fatalerror(Co, z);
+    if (z == CO_ERRDUPLICATE)
+    {
+        /* live bury if duplicate to avoid chaos */
+        Co = NULL;
+        return NULL;
+    }
     co_die(Co); Co = NULL;
     return NULL;
   }
@@ -902,18 +908,22 @@ static const char* co_lvname(co* Co, int lv)
   return _ln[lv];
 }
 
+/*
 #define CO_OK 0
 #define CO_ERRRUN 1
 #define CO_ERRMEM 2
 #define CO_ERRSCRIPTPANIC 3
 #define CO_ERRSCRIPTNEW 4
 #define CO_ERRSCRIPTCALL 5
-#define CO_ERRX 6
+#define CO_ERRDUPLICATE 6
+#define CO_ERRX 7
+*/
 static const char* co_errorstr(co* Co, int e)
 {
   static const char* _es[CO_ERRX+1] =
   {
-    "ok!","runtime error", "memory is not enough\?", "script paniced!", "memory is not enough to new script", "failed to call script",
+    "ok!","runtime error", "memory is not enough\?", "script paniced!", "memory is not enough to new script", "failed to call script!",
+    "duplicate core!",
     "xxxxx error\?",
   };
   co_assert(e >= CO_OK && e <= CO_ERRX);
@@ -1254,7 +1264,7 @@ static void co_setC(lua_State* L, co* Co)
   {
     /* TODO:cause assert co_C */
     co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "[LOLITA] is duplicated!");
-    coR_throw(Co, 1);
+    coR_throw(Co, CO_ERRDUPLICATE);
   }
   lua_pop(L, 1);
   if (Co) { lua_pushlightuserdata(L, Co); }
