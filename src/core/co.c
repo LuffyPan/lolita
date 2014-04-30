@@ -1252,11 +1252,13 @@ static void co_setC(lua_State* L, co* Co)
   lua_getfield(L, LUA_REGISTRYINDEX, "LOLITA");
   if (!lua_isnil(L, -1) && Co)
   {
+    /* TODO:cause assert co_C */
     co_trace(Co, CO_MOD_CORE, CO_LVFATAL, "[LOLITA] is duplicated!");
     coR_throw(Co, 1);
   }
   lua_pop(L, 1);
-  lua_pushlightuserdata(L, Co);
+  if (Co) { lua_pushlightuserdata(L, Co); }
+  else { lua_pushnil(L); }
   lua_setfield(L, LUA_REGISTRYINDEX, "LOLITA");
   co_assert(lua_gettop(L) == n);
 }
