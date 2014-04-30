@@ -548,7 +548,7 @@ static void co_execute(co* Co)
       lua_len(L, 7); len2 = (int)lua_tonumber(L, -1); lua_pop(L, 1);
       for (i2 = 1; i2 <= len2; ++i2)
       {
-        int boption = 0, r = 0;
+        int boption = 0;
         co_assert(7 == lua_gettop(L));
         lua_pushvalue(L, 5); /* manifest path */
         lua_pushnumber(L, i2); lua_gettable(L, 7); co_assert(9 == lua_gettop(L));
