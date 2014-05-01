@@ -422,6 +422,12 @@ static int coOs_export_mkdir(lua_State* L)
   while ((p = strchr(p, '/')))
   {
     *p = '\0';
+    if (coOs_isdir(pathx))
+    {
+      *p = '/';
+      p = p + 1;
+      continue;
+    }
     z = coOs_mkdir(Co, pathx);
     if (!z) break;
     *p = '/';
