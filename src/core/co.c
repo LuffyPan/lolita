@@ -335,7 +335,7 @@ co* core_born(int argc, const char** argv, co_xllocf x, co_gene* Coge, int noexp
   Co->bactive = 0;
   Co->brettach = 0;
   Co->noexport = noexport;
-  Co->tracelv = CO_LVFATAL;
+  Co->tracelv = Coge ? Coge->tracelv : CO_LVFATAL;
   Co->errjmp = NULL;
   Co->L = L;
   Co->battachL = 0;

@@ -61,6 +61,10 @@ typedef int cosockfd_size;
 #include <sys/event.h>
 #elif defined(LOLITA_CORE_USE_EPOLL)
 #include <sys/epoll.h>
+/* epoll on little os not trigger this error, and not define this */
+#ifndef EPOLLRDHUP
+#define EPOLLRDHUP 0x2000
+#endif
 #endif
 
 

@@ -119,6 +119,7 @@ struct co_gene
   co_tracef tf;
   co_exportf exf;
   co_dofilef dof;
+  int tracelv;
   int noexport;
   void* ud;
 };

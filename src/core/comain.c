@@ -27,6 +27,7 @@ int main(int argc, const char** argv)
 
   Coge.exf = exf;
   Coge.tf = trace;
+  Coge.tracelv = CO_LVFATAL;
   Coge.ud = NULL;
   Co = core_born(argc, argv, NULL, &Coge, 0, NULL);if (!Co){return 1;}
   core_alive(Co);
