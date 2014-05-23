@@ -79,7 +79,7 @@ mingw : $(SRC) lolita
 
 linux : TARGET := lolita
 linux : CFLAGS += -I/usr/include -D LUA_USE_LINUX
-linux : LDFLAGS += -lm -luuid -ldl
+linux : LDFLAGS += -lm -ldl
 
 linux : $(SRC) lolita
 

@@ -496,10 +496,8 @@ static int cosockid2idx_newid(cosockid2idx* id2idx)
 
 static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
 {
-  co* Co = NULL;
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
-  Co = co_C(L);
   co_c(L);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));
@@ -514,10 +512,8 @@ static void cosockid2idx_attachii(cosockid2idx* id2idx, int id, int idx)
 static int cosockid2idx_getidx(cosockid2idx* id2idx, int id)
 {
   int idx = 0;
-  co* Co = NULL;
   lua_State* L = id2idx->id2idx;
   int t = lua_gettop(L);
-  Co = co_C(L);
   co_c(L);
   lua_getfield(L, -1, "net"); co_assert(lua_istable(L, -1));
   lua_getfield(L, -1, "ids"); co_assert(lua_istable(L, -1));

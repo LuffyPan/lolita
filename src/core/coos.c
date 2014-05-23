@@ -14,7 +14,6 @@ Chamz Lau, Copyright (C) 2013-2017
 
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
   #include <Windows.h>
-  #include <objbase.h>
 #else
   #include <unistd.h>
   #include <sys/types.h>
@@ -23,9 +22,6 @@ Chamz Lau, Copyright (C) 2013-2017
   #include <signal.h>
 #endif
 
-#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX || LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX
-  #include <uuid/uuid.h>
-#endif
 #if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX
   #include <sys/sysctl.h>
 #endif
@@ -49,7 +45,6 @@ static int coOs_export_getpid(lua_State* L);
 static int coOs_export_getpinfo(lua_State* L);
 static int coOs_export_gettime(lua_State* L);
 static int coOs_export_sleep(lua_State* L);
-static int coOs_export_uuid(lua_State* L);
 static int coOs_export_active(lua_State* L);
 static int coOs_export_register(lua_State* L);
 
@@ -71,7 +66,6 @@ int coOs_pexportapi(co* Co, lua_State* L)
     {"getpinfo", coOs_export_getpinfo},
     {"gettime", coOs_export_gettime},
     {"sleep", coOs_export_sleep},
-    {"uuid", coOs_export_uuid},
     {"active", coOs_export_active},
     {"register", coOs_export_register},
     {NULL, NULL},
@@ -505,34 +499,6 @@ static int coOs_export_register(lua_State* L)
   coOs_setsighandler(Co, Os);
   co_assert(lua_gettop(L) == 0);
   lua_pushnumber(L, 1);
-  return 1;
-}
-
-static int coOs_export_uuid(lua_State* L)
-{
-  char uuid[64];
-  unsigned char* p = NULL;
-
-#if LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_MACOSX || LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_LINUX 
-  uuid_t u;
-  uuid_generate(u);
-  p = u;
-#elif LOLITA_CORE_PLAT == LOLITA_CORE_PLAT_WIN32
-  unsigned char u[16];
-  CoCreateGuid((GUID*)u);
-  p = u;
-#endif
-
-  if (!p) return 0;
-
-  sprintf(uuid, "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-    p[0], p[1], p[2], p[3],
-    p[4], p[5],
-    p[6], p[7],
-    p[8], p[9],
-    p[10], p[11], p[12], p[13], p[14], p[15]);
-
-  lua_pushstring(L, uuid);
   return 1;
 }
 
