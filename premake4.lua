@@ -59,3 +59,8 @@ project "lolita"
     extluapath .. "/luac.c",
     extluapath .. "/print.c",
   }
+
+  configuration "gmake"
+    links {"m", "dl"}
+  configuration "xcode*"
+    links {"m", "dl"}
