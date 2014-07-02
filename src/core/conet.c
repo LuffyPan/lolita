@@ -154,11 +154,12 @@ static void cosock_activeconn_ux(co* Co, cosock* s);
 #define COSOCKPACK_HDR_FLAG '|'
 #define COSOCKPACK_TAIL_FLAG '^'
 #define COSOCKPACK_VERSION 1990
+
 struct cosockpack_hdr
 {
   char flag;
   char reserved[3];
-  int16_t ver;
+  int32_t ver;
   /* This data type is not so good, it's size will change on diff platform */
   /* size_t dsize; */
   int32_t dsize;
@@ -167,6 +168,7 @@ struct cosockpack_hdr
 struct cosockpack_tail
 {
   char flag;
+  char reserved[3];
 };
 
 struct cosockbuf
@@ -637,6 +639,8 @@ static void coN_initenv(co* Co)
   WSADATA wsadata = { 0 };
   coR_runerror(Co, 0 == WSAStartup(MAKEWORD(2, 2), &wsadata));
 #endif
+  co_assert(sizeof(cosockpack_hdr) == 12);
+  co_assert(sizeof(cosockpack_tail) == 4);
 }
 
 static void coN_uninitenv(co* Co)
