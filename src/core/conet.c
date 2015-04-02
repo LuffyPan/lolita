@@ -1690,13 +1690,13 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
       {
         co_assert(1 == r);
       }
-      return;
+      //return;
     }
     else
     {
       s->bconnected = 1;
       cosock_eventconnect(Co, s, NULL, 1);
-      return;
+      //return;
     }
   }
   if (FD_ISSET(s->fd, &efds))
@@ -1706,12 +1706,12 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
     {
       /* just close it as an exception */
       coN_tracefatal(Co, "id[%d,%d] connector is in exceptfds while connected\?", s->id, 0);
-      return;
+      //return;
     }
     else
     {
       cosock_eventconnect(Co, s, NULL, 0);
-      return;
+      //return;
     }
   }
   if (FD_ISSET(s->fd, &rfds))
@@ -1733,7 +1733,7 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
       co_assert(1 == r);
       cosock_eventprocesspack(Co, s, NULL, 0);
     }
-    return;
+    //return;
   }
 }
 
