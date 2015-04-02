@@ -1673,27 +1673,6 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
     return;
   }
   co_assert(r >= 1);
-  if (FD_ISSET(s->fd, &rfds))
-  {
-    r = cosock_recv(Co, s);
-    if (0 == r)
-    {
-      /* closed gracely, process package first */
-      cosock_close(Co, s);
-      cosock_eventprocesspack(Co, s, NULL, 0);
-    }
-    else if (-1 == r)
-    {
-      cosock_close(Co, s);
-      cosock_eventprocesspack(Co, s, NULL, 0);
-    }
-    else
-    {
-      co_assert(1 == r);
-      cosock_eventprocesspack(Co, s, NULL, 0);
-    }
-    return;
-  }
   if (FD_ISSET(s->fd, &wfds))
   {
     if (s->bconnected)
@@ -1734,6 +1713,27 @@ static void cosock_activeconn_win32(co* Co, cosock* s)
       cosock_eventconnect(Co, s, NULL, 0);
       return;
     }
+  }
+  if (FD_ISSET(s->fd, &rfds))
+  {
+    r = cosock_recv(Co, s);
+    if (0 == r)
+    {
+      /* closed gracely, process package first */
+      cosock_close(Co, s);
+      cosock_eventprocesspack(Co, s, NULL, 0);
+    }
+    else if (-1 == r)
+    {
+      cosock_close(Co, s);
+      cosock_eventprocesspack(Co, s, NULL, 0);
+    }
+    else
+    {
+      co_assert(1 == r);
+      cosock_eventprocesspack(Co, s, NULL, 0);
+    }
+    return;
   }
 }
 
